@@ -54,7 +54,7 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
             }
             return parseInt(colon[1], 10) + mins / 60;
         }
-        return parseFloat(val); // plain decimal or NaN
+        return parseFloat(val); // Plain decimal or NaN.
     }
 
     /**
@@ -67,7 +67,10 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
         hours = Math.max(0, hours || 0);
         var h = Math.floor(hours);
         var m = Math.round((hours - h) * 60);
-        if (m >= 60) { h++; m = 0; }
+        if (m >= 60) {
+            h++;
+            m = 0;
+        }
         return h + ':' + (m < 10 ? '0' : '') + m;
     }
 
@@ -152,31 +155,31 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
                 return;
             }
 
-            var input    = row.querySelector('.workload-hours-input');
+            var input = row.querySelector('.workload-hours-input');
             var btnMinus = row.querySelector('.workload-btn-minus');
-            var btnPlus  = row.querySelector('.workload-btn-plus');
+            var btnPlus = row.querySelector('.workload-btn-plus');
 
             if (!input || !btnMinus || !btnPlus) {
                 return;
             }
 
-            var step      = parseFloat(input.dataset.step) || 1;
-            var max       = parseFloat(input.dataset.max)  || 40;
+            var step = parseFloat(input.dataset.step) || 1;
+            var max = parseFloat(input.dataset.max) || 40;
             var lastValid = parseFloat(input.dataset.hours) || 0;
-            input.value   = formatHHMM(lastValid);
+            input.value = formatHHMM(lastValid);
 
             btnMinus.addEventListener('click', function() {
-                var newVal  = Math.max(0, lastValid - step);
+                var newVal = Math.max(0, lastValid - step);
                 input.value = formatHHMM(newVal);
-                lastValid   = newVal;
+                lastValid = newVal;
                 saveHours(courseId, newVal);
                 updateWarning(courseId, newVal);
             });
 
             btnPlus.addEventListener('click', function() {
-                var newVal  = Math.min(max, lastValid + step);
+                var newVal = Math.min(max, lastValid + step);
                 input.value = formatHHMM(newVal);
-                lastValid   = newVal;
+                lastValid = newVal;
                 saveHours(courseId, newVal);
                 updateWarning(courseId, newVal);
             });
@@ -187,9 +190,9 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
                     this.value = formatHHMM(lastValid);
                     return;
                 }
-                var newVal  = Math.max(0, Math.min(max, parsed));
-                this.value  = formatHHMM(newVal);
-                lastValid   = newVal;
+                var newVal = Math.max(0, Math.min(max, parsed));
+                this.value = formatHHMM(newVal);
+                lastValid = newVal;
                 saveHours(courseId, newVal);
                 updateWarning(courseId, newVal);
             });
@@ -207,7 +210,7 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
         if (!pageSize) {
             return;
         }
-        var rows  = document.querySelectorAll('.workload-course-row');
+        var rows = document.querySelectorAll('.workload-course-row');
         var total = Math.ceil(rows.length / pageSize);
         currentPage = page;
 
@@ -221,7 +224,7 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
 
         var prevBtn = document.querySelector('.workload-btn-prev');
         var nextBtn = document.querySelector('.workload-btn-next');
-        var info    = document.querySelector('.workload-page-info');
+        var info = document.querySelector('.workload-page-info');
 
         if (prevBtn) {
             prevBtn.disabled = (page <= 0);
@@ -259,7 +262,7 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
         }
         if (nextBtn) {
             nextBtn.addEventListener('click', function() {
-                var rows  = document.querySelectorAll('.workload-course-row');
+                var rows = document.querySelectorAll('.workload-course-row');
                 var total = Math.ceil(rows.length / pageSize);
                 if (currentPage < total - 1) {
                     showPage(currentPage + 1);

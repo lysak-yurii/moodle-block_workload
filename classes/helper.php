@@ -5,6 +5,14 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
  * Central helper/business-logic class for block_workload.
@@ -16,13 +24,13 @@
 
 namespace block_workload;
 
-defined('MOODLE_INTERNAL') || die();
 
+/**
+ * Helper functions for block_workload.
+ */
 class helper {
+    // Cohort queries.
 
-    // -------------------------------------------------------------------------
-    // Cohort queries
-    // -------------------------------------------------------------------------
 
     /**
      * Return the first active cohort the given user belongs to.
@@ -217,9 +225,9 @@ class helper {
         );
     }
 
-    // -------------------------------------------------------------------------
-    // Activation
-    // -------------------------------------------------------------------------
+
+    // Activation.
+
 
     /**
      * Check whether workload is currently active for a cohort.
@@ -243,14 +251,14 @@ class helper {
         // Build comparable integer: year * 100 + week.
         $current = (int) date('o') * 100 + (int) date('W');
         $from    = $cohort->year_from ? ((int)$cohort->year_from * 100 + (int)$cohort->week_from) : 0;
-        $to      = $cohort->year_to   ? ((int)$cohort->year_to   * 100 + (int)$cohort->week_to)   : PHP_INT_MAX;
+        $to      = $cohort->year_to ? ((int)$cohort->year_to * 100 + (int)$cohort->week_to) : PHP_INT_MAX;
 
         return ($current >= $from && $current <= $to);
     }
 
-    // -------------------------------------------------------------------------
-    // Entries
-    // -------------------------------------------------------------------------
+
+    // Entries.
+
 
     /**
      * Return workload entries for a user in a given week, indexed by courseid.
@@ -302,9 +310,9 @@ class helper {
         }
     }
 
-    // -------------------------------------------------------------------------
-    // Statistics
-    // -------------------------------------------------------------------------
+
+    // Statistics.
+
 
     /**
      * Return detailed entries for a cohort, optionally filtered by week range.
@@ -315,17 +323,22 @@ class helper {
         int $cohortid,
         ?int $weekfrom = null,
         ?int $yearfrom = null,
-        ?int $weekto   = null,
-        ?int $yearto   = null
+        ?int $weekto = null,
+        ?int $yearto = null
     ): array {
         global $DB;
 
         $params = ['cohortid' => $cohortid];
-        $where  = ['EXISTS (SELECT 1 FROM {block_workload_members} wm WHERE wm.userid = e.userid AND wm.cohortid = :cohortid)'];
+        $where  = ['EXISTS (SELECT 1 FROM {block_workload_members} wm'
+            . ' WHERE wm.userid = e.userid AND wm.cohortid = :cohortid)'];
 
         // Year supplied without week → use first/last ISO week of that year.
-        if ($yearfrom !== null && !$weekfrom) { $weekfrom = 1;  }
-        if ($yearto   !== null && !$weekto)   { $weekto   = 53; }
+        if ($yearfrom !== null && !$weekfrom) {
+            $weekfrom = 1;
+        }
+        if ($yearto !== null && !$weekto) {
+            $weekto   = 53;
+        }
 
         if ($weekfrom && $yearfrom) {
             $where[]              = '(e.year * 100 + e.weeknumber) >= :from';
@@ -355,17 +368,22 @@ class helper {
         int $cohortid,
         ?int $weekfrom = null,
         ?int $yearfrom = null,
-        ?int $weekto   = null,
-        ?int $yearto   = null
+        ?int $weekto = null,
+        ?int $yearto = null
     ): array {
         global $DB;
 
         $params = ['cohortid' => $cohortid];
-        $where  = ['EXISTS (SELECT 1 FROM {block_workload_members} wm WHERE wm.userid = e.userid AND wm.cohortid = :cohortid)'];
+        $where  = ['EXISTS (SELECT 1 FROM {block_workload_members} wm'
+            . ' WHERE wm.userid = e.userid AND wm.cohortid = :cohortid)'];
 
         // Year supplied without week → use first/last ISO week of that year.
-        if ($yearfrom !== null && !$weekfrom) { $weekfrom = 1;  }
-        if ($yearto   !== null && !$weekto)   { $weekto   = 53; }
+        if ($yearfrom !== null && !$weekfrom) {
+            $weekfrom = 1;
+        }
+        if ($yearto !== null && !$weekto) {
+            $weekto   = 53;
+        }
 
         if ($weekfrom && $yearfrom) {
             $where[]        = '(e.year * 100 + e.weeknumber) >= :from';
@@ -400,16 +418,20 @@ class helper {
         int $userid,
         ?int $weekfrom = null,
         ?int $yearfrom = null,
-        ?int $weekto   = null,
-        ?int $yearto   = null
+        ?int $weekto = null,
+        ?int $yearto = null
     ): array {
         global $DB;
         $params = ['userid' => $userid];
         $where  = 'e.userid = :userid';
 
         // Year supplied without week → use first/last ISO week of that year.
-        if ($yearfrom !== null && !$weekfrom) { $weekfrom = 1;  }
-        if ($yearto   !== null && !$weekto)   { $weekto   = 53; }
+        if ($yearfrom !== null && !$weekfrom) {
+            $weekfrom = 1;
+        }
+        if ($yearto !== null && !$weekto) {
+            $weekto   = 53;
+        }
 
         if ($weekfrom !== null && $yearfrom !== null) {
             $where           .= ' AND (e.year * 100 + e.weeknumber) >= :wf';
@@ -429,9 +451,9 @@ class helper {
         return $DB->get_records_sql($sql, $params);
     }
 
-    // -------------------------------------------------------------------------
-    // Enrollment-mode helpers
-    // -------------------------------------------------------------------------
+
+    // Enrollment-mode helpers.
+
 
     /**
      * Return courses shown to a student in enrollment mode:
@@ -614,7 +636,7 @@ class helper {
         int $limit = 0,
         int $offset = 0,
         string $firstletter = '',
-        string $lastletter  = ''
+        string $lastletter = ''
     ): array {
         global $DB;
         [$where, $params] = self::enrollment_students_where($firstletter, $lastletter);
@@ -655,7 +677,7 @@ class helper {
      */
     public static function get_enrollment_mode_students_count(
         string $firstletter = '',
-        string $lastletter  = ''
+        string $lastletter = ''
     ): int {
         global $DB;
         [$where, $params] = self::enrollment_students_where($firstletter, $lastletter);
@@ -671,7 +693,13 @@ class helper {
         );
     }
 
-    /** Build WHERE clause + params for enrollment student list. */
+    /**
+     * Build WHERE clause and params for enrollment student list.
+     *
+     * @param string $firstletter
+     * @param string $lastletter
+     * @return array
+     */
     private static function enrollment_students_where(string $firstletter, string $lastletter): array {
         global $DB;
         $where  = 'u.deleted = 0 AND u.suspended = 0';
@@ -689,9 +717,9 @@ class helper {
         return [$where, $params];
     }
 
-    // -------------------------------------------------------------------------
-    // Category helpers for course browser
-    // -------------------------------------------------------------------------
+
+    // Category helpers for course browser.
+
 
     /**
      * Return all course categories as a flat array for select menus,
@@ -727,29 +755,34 @@ class helper {
         }
 
         $options = [];
-        $nbsp   = "\xc2\xa0";                              // UTF-8 non-breaking space
-        $tee    = "\xe2\x94\x9c\xe2\x94\x80\xe2\x94\x80"; // ├──  (3 chars wide)
-        $corner = "\xe2\x94\x94\xe2\x94\x80\xe2\x94\x80"; // └──  (3 chars wide)
-        $pipe   = "\xe2\x94\x82" . $nbsp . $nbsp;          // │    (padded to 3 chars, aligns with ├──)
-        $blank  = $nbsp . $nbsp . $nbsp;                   //      (3 NBSP, aligns with └──)
+        $nbsp   = "\xc2\xa0";                              // UTF-8 non-breaking space.
+        $tee    = "\xe2\x94\x9c\xe2\x94\x80\xe2\x94\x80"; // Tree char: 3 chars wide.
+        $corner = "\xe2\x94\x94\xe2\x94\x80\xe2\x94\x80"; // Tree corner char: 3 chars wide.
+        $pipe   = "\xe2\x94\x82" . $nbsp . $nbsp;          // Tree pipe char: padded to 3 chars.
+        $blank  = $nbsp . $nbsp . $nbsp;                   // Three non-breaking spaces.
 
-        /**
-         * Recursive depth-first walk.
-         *
-         * $prefix === null  → true root level: show name only, no symbol.
-         * $prefix === ''    → first level below root: symbol but no leading pipe.
-         * $prefix !== null  → deeper levels: prepend accumulated pipe/blank prefix.
-         */
-        $walk = function(int $parentid, ?string $prefix) use (
-            &$walk, &$options, &$children, &$coursecounts, $nbsp, $tee, $corner, $pipe, $blank
+        // Recursive depth-first walk.
+        $walk = function (
+            int $parentid,
+            ?string $prefix
+        ) use (
+            &$walk,
+            &$options,
+            &$children,
+            &$coursecounts,
+            $nbsp,
+            $tee,
+            $corner,
+            $pipe,
+            $blank
         ): void {
             if (empty($children[$parentid])) {
                 return;
             }
             $siblings = $children[$parentid];
-            $lastIdx  = count($siblings) - 1;
+            $lastidx  = count($siblings) - 1;
             foreach ($siblings as $idx => $cat) {
-                $isLast = ($idx === $lastIdx);
+                $islast = ($idx === $lastidx);
                 $count  = $coursecounts[(int)$cat->id] ?? 0;
                 $suffix = $count > 0 ? $nbsp . '(' . $count . ')' : '';
 
@@ -759,10 +792,10 @@ class helper {
                     // Pass '' (not null) so their children know they are NOT root.
                     $walk((int)$cat->id, '');
                 } else {
-                    $symbol = $isLast ? $corner : $tee;
+                    $symbol = $islast ? $corner : $tee;
                     $options[(int)$cat->id] = $prefix . $symbol . $nbsp . $cat->name . $suffix;
                     // Under a non-last node continue with a pipe; under a last node use blanks.
-                    $walk((int)$cat->id, $prefix . ($isLast ? $blank : $pipe) . $nbsp);
+                    $walk((int)$cat->id, $prefix . ($islast ? $blank : $pipe) . $nbsp);
                 }
             }
         };
@@ -786,9 +819,9 @@ class helper {
         );
     }
 
-    // -------------------------------------------------------------------------
-    // Member filter helpers
-    // -------------------------------------------------------------------------
+
+    // Member filter helpers.
+
 
     /**
      * Return the given category ID plus all descendant category IDs (BFS).
@@ -846,9 +879,9 @@ class helper {
         return $rows;
     }
 
-    // -------------------------------------------------------------------------
-    // Aggregate statistics (manager overview – no per-row fetching)
-    // -------------------------------------------------------------------------
+
+    // Aggregate statistics (manager overview).
+
 
     /**
      * Weekly hour totals across a cohort (or all cohorts when cohortid = 0).
@@ -859,20 +892,25 @@ class helper {
         int $cohortid,
         ?int $weekfrom = null,
         ?int $yearfrom = null,
-        ?int $weekto   = null,
-        ?int $yearto   = null
+        ?int $weekto = null,
+        ?int $yearto = null
     ): array {
         global $DB;
         $where  = [];
         $params = [];
 
         if ($cohortid > 0) {
-            $where[]            = 'EXISTS (SELECT 1 FROM {block_workload_members} wm WHERE wm.userid = e.userid AND wm.cohortid = :cohortid)';
+            $where[] = 'EXISTS (SELECT 1 FROM {block_workload_members} wm'
+                . ' WHERE wm.userid = e.userid AND wm.cohortid = :cohortid)';
             $params['cohortid'] = $cohortid;
         }
 
-        if ($yearfrom !== null && !$weekfrom) { $weekfrom = 1;  }
-        if ($yearto   !== null && !$weekto)   { $weekto   = 53; }
+        if ($yearfrom !== null && !$weekfrom) {
+            $weekfrom = 1;
+        }
+        if ($yearto !== null && !$weekto) {
+            $weekto   = 53;
+        }
 
         if ($weekfrom && $yearfrom) {
             $where[]        = '(e.year * 100 + e.weeknumber) >= :wf';
@@ -909,26 +947,31 @@ class helper {
      */
     public static function get_cohort_top_users(
         int $cohortid,
-        int $limit          = 10,
-        ?int $weekfrom      = null,
-        ?int $yearfrom      = null,
-        ?int $weekto        = null,
-        ?int $yearto        = null,
+        int $limit = 10,
+        ?int $weekfrom = null,
+        ?int $yearfrom = null,
+        ?int $weekto = null,
+        ?int $yearto = null,
         string $firstletter = '',
-        string $lastletter  = '',
-        int $offset         = 0
+        string $lastletter = '',
+        int $offset = 0
     ): array {
         global $DB;
         $where  = [];
         $params = [];
 
         if ($cohortid > 0) {
-            $where[]            = 'EXISTS (SELECT 1 FROM {block_workload_members} wm WHERE wm.userid = e.userid AND wm.cohortid = :cohortid)';
+            $where[] = 'EXISTS (SELECT 1 FROM {block_workload_members} wm'
+                . ' WHERE wm.userid = e.userid AND wm.cohortid = :cohortid)';
             $params['cohortid'] = $cohortid;
         }
 
-        if ($yearfrom !== null && !$weekfrom) { $weekfrom = 1;  }
-        if ($yearto   !== null && !$weekto)   { $weekto   = 53; }
+        if ($yearfrom !== null && !$weekfrom) {
+            $weekfrom = 1;
+        }
+        if ($yearto !== null && !$weekto) {
+            $weekto   = 53;
+        }
 
         if ($weekfrom && $yearfrom) {
             $where[]        = '(e.year * 100 + e.weeknumber) >= :wf';
@@ -973,24 +1016,29 @@ class helper {
      */
     public static function get_cohort_top_users_count(
         int $cohortid,
-        ?int $weekfrom      = null,
-        ?int $yearfrom      = null,
-        ?int $weekto        = null,
-        ?int $yearto        = null,
+        ?int $weekfrom = null,
+        ?int $yearfrom = null,
+        ?int $weekto = null,
+        ?int $yearto = null,
         string $firstletter = '',
-        string $lastletter  = ''
+        string $lastletter = ''
     ): int {
         global $DB;
         $where  = [];
         $params = [];
 
         if ($cohortid > 0) {
-            $where[]            = 'EXISTS (SELECT 1 FROM {block_workload_members} wm WHERE wm.userid = e.userid AND wm.cohortid = :cohortid)';
+            $where[] = 'EXISTS (SELECT 1 FROM {block_workload_members} wm'
+                . ' WHERE wm.userid = e.userid AND wm.cohortid = :cohortid)';
             $params['cohortid'] = $cohortid;
         }
 
-        if ($yearfrom !== null && !$weekfrom) { $weekfrom = 1;  }
-        if ($yearto   !== null && !$weekto)   { $weekto   = 53; }
+        if ($yearfrom !== null && !$weekfrom) {
+            $weekfrom = 1;
+        }
+        if ($yearto !== null && !$weekto) {
+            $weekto   = 53;
+        }
 
         if ($weekfrom && $yearfrom) {
             $where[]        = '(e.year * 100 + e.weeknumber) >= :wf';
@@ -1030,20 +1078,25 @@ class helper {
         int $cohortid,
         ?int $weekfrom = null,
         ?int $yearfrom = null,
-        ?int $weekto   = null,
-        ?int $yearto   = null
+        ?int $weekto = null,
+        ?int $yearto = null
     ): \stdClass {
         global $DB;
         $where  = [];
         $params = [];
 
         if ($cohortid > 0) {
-            $where[]            = 'EXISTS (SELECT 1 FROM {block_workload_members} wm WHERE wm.userid = e.userid AND wm.cohortid = :cohortid)';
+            $where[] = 'EXISTS (SELECT 1 FROM {block_workload_members} wm'
+                . ' WHERE wm.userid = e.userid AND wm.cohortid = :cohortid)';
             $params['cohortid'] = $cohortid;
         }
 
-        if ($yearfrom !== null && !$weekfrom) { $weekfrom = 1;  }
-        if ($yearto   !== null && !$weekto)   { $weekto   = 53; }
+        if ($yearfrom !== null && !$weekfrom) {
+            $weekfrom = 1;
+        }
+        if ($yearto !== null && !$weekto) {
+            $weekto   = 53;
+        }
 
         if ($weekfrom && $yearfrom) {
             $where[]        = '(e.year * 100 + e.weeknumber) >= :wf';
@@ -1082,8 +1135,8 @@ class helper {
         int $cohortid,
         ?int $weekfrom = null,
         ?int $yearfrom = null,
-        ?int $weekto   = null,
-        ?int $yearto   = null
+        ?int $weekto = null,
+        ?int $yearto = null
     ): array {
         global $DB;
 
@@ -1091,12 +1144,17 @@ class helper {
         $params = [];
 
         if ($cohortid > 0) {
-            $where[]            = 'EXISTS (SELECT 1 FROM {block_workload_members} wm WHERE wm.userid = e.userid AND wm.cohortid = :cohortid)';
+            $where[] = 'EXISTS (SELECT 1 FROM {block_workload_members} wm'
+                . ' WHERE wm.userid = e.userid AND wm.cohortid = :cohortid)';
             $params['cohortid'] = $cohortid;
         }
 
-        if ($yearfrom !== null && !$weekfrom) { $weekfrom = 1;  }
-        if ($yearto   !== null && !$weekto)   { $weekto   = 53; }
+        if ($yearfrom !== null && !$weekfrom) {
+            $weekfrom = 1;
+        }
+        if ($yearto !== null && !$weekto) {
+            $weekto   = 53;
+        }
 
         if ($weekfrom && $yearfrom) {
             $where[]        = '(e.year * 100 + e.weeknumber) >= :wf';
@@ -1130,11 +1188,11 @@ class helper {
             return [];
         }
 
-        $userids   = array_unique(array_map(fn($r) => (int)$r->userid,   $rows));
+        $userids   = array_unique(array_map(fn($r) => (int)$r->userid, $rows));
         $courseids = array_unique(array_map(fn($r) => (int)$r->courseid, $rows));
 
-        [$useridSQL,   $uidParams] = $DB->get_in_or_equal($userids,   SQL_PARAMS_NAMED, 'uid');
-        [$courseidSQL, $cidParams] = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED, 'cid');
+        [$useridsql, $uidparams] = $DB->get_in_or_equal($userids, SQL_PARAMS_NAMED, 'uid');
+        [$courseidsql, $cidparams] = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED, 'cid');
 
         $rolerows = $DB->get_records_sql(
             "SELECT ra.id, ra.userid, ctx.instanceid AS courseid,
@@ -1142,9 +1200,9 @@ class helper {
                FROM {role_assignments} ra
                JOIN {context} ctx ON ctx.id = ra.contextid AND ctx.contextlevel = 50
                JOIN {role} r ON r.id = ra.roleid
-              WHERE ra.userid $useridSQL
-                AND ctx.instanceid $courseidSQL",
-            array_merge($uidParams, $cidParams)
+              WHERE ra.userid $useridsql
+                AND ctx.instanceid $courseidsql",
+            array_merge($uidparams, $cidparams)
         );
 
         $rolemap = [];

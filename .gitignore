@@ -1,0 +1,11 @@
+# moodle-plugin-ci installation (installed in parent blocks/ directory)
+../.moodle-plugin-ci/
+
+# Moodle test installation (only created during full setup)
+moodle/
+moodledata/
+
+# Local CI helper scripts (CI runs via GitHub Actions)
+tests/
+phpcs.xml
+.moodle-plugin-ci.yml

@@ -1,10 +1,18 @@
 <?php
-// This file is part of Moodle - http://moodle.org/
+// This file is part of Moodle - http://moodle.org/.
 //
-// Moodle is free software: you can redistribute it and/or modify
+// Moodle is free software: you can redistribute it and/or modify.
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,.
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the.
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License.
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
  * Quality Manager – cohort management page.
@@ -25,9 +33,9 @@
 require_once('../../config.php');
 require_once($CFG->libdir . '/formslib.php');
 
-$action  = optional_param('action',  'list', PARAM_ALPHA);
-$id      = optional_param('id',      0,      PARAM_INT);
-$confirm = optional_param('confirm', 0,      PARAM_BOOL);
+$action  = optional_param('action', 'list', PARAM_ALPHA);
+$id      = optional_param('id', 0, PARAM_INT);
+$confirm = optional_param('confirm', 0, PARAM_BOOL);
 
 $syscontext = context_system::instance();
 require_login();
@@ -56,11 +64,8 @@ $PAGE->set_url('/blocks/workload/manage.php', ['action' => $action, 'id' => $id]
 // Navigation breadcrumb.
 $PAGE->navbar->add(get_string('managetitle', 'block_workload'), new moodle_url('/blocks/workload/manage.php'));
 
-// =========================================================================
 // Router.
-// =========================================================================
 switch ($action) {
-
     // -----------------------------------------------------------------
     case 'add':
     case 'edit':
@@ -98,9 +103,12 @@ switch ($action) {
         break;
 }
 
-// =========================================================================
 // Action: toggle cohort active flag directly from the list.
-// =========================================================================
+/**
+ * Toggle a cohort's active flag.
+ *
+ * @param int $id
+ */
 function action_toggle_cohort(int $id): void {
     global $DB;
     require_sesskey();
@@ -118,15 +126,16 @@ function action_toggle_cohort(int $id): void {
     redirect(new moodle_url('/blocks/workload/manage.php'));
 }
 
-// =========================================================================
 // Action: list cohorts.
-// =========================================================================
+/**
+ * Render the cohort list page.
+ */
 function action_list(): void {
     global $DB, $OUTPUT, $PAGE;
 
     $cohorts = $DB->get_records('block_workload_cohorts', null, 'timecreated DESC');
 
-    // ---- Use Moodle's core/modal_factory for a native-looking modal with an iframe inside ----
+    // Use Moodle's core/modal_factory for a native-looking modal with an iframe inside.
     $PAGE->requires->js_amd_inline("
 require(['core/modal_factory', 'core/modal_events', 'jquery'], function(ModalFactory, ModalEvents, \$) {
 
@@ -208,13 +217,13 @@ require(['core/modal_factory', 'core/modal_events', 'jquery'], function(ModalFac
     } else {
         $table             = new html_table();
         $table->head       = [
-            get_string('cohortname',    'block_workload'),
+            get_string('cohortname', 'block_workload'),
             get_string('degreeprogram', 'block_workload'),
             get_string('department'),
-            get_string('active',        'block_workload'),
-            get_string('students',      'block_workload'),
-            get_string('courses',       'block_workload'),
-            get_string('actions',       'block_workload'),
+            get_string('active', 'block_workload'),
+            get_string('students', 'block_workload'),
+            get_string('courses', 'block_workload'),
+            get_string('actions', 'block_workload'),
         ];
         $table->attributes = ['class' => 'table table-striped table-hover table-sm'];
 
@@ -222,30 +231,42 @@ require(['core/modal_factory', 'core/modal_events', 'jquery'], function(ModalFac
             $membercount = $DB->count_records('block_workload_members', ['cohortid' => $cohort->id]);
             $coursecount = $DB->count_records('block_workload_courses', ['cohortid' => $cohort->id, 'active' => 1]);
 
-            $memberurl = new moodle_url('/blocks/workload/manage.php', ['action' => 'members',    'id' => $cohort->id]);
-            $courseurl = new moodle_url('/blocks/workload/manage.php', ['action' => 'courses',    'id' => $cohort->id]);
-            $delurl    = new moodle_url('/blocks/workload/manage.php', ['action' => 'delete',     'id' => $cohort->id]);
+            $memberurl = new moodle_url('/blocks/workload/manage.php', ['action' => 'members', 'id' => $cohort->id]);
+            $courseurl = new moodle_url('/blocks/workload/manage.php', ['action' => 'courses', 'id' => $cohort->id]);
+            $delurl    = new moodle_url('/blocks/workload/manage.php', ['action' => 'delete', 'id' => $cohort->id]);
 
-            $editurl  = (new moodle_url('/blocks/workload/manage.php', ['action' => 'edit',       'id' => $cohort->id, 'modal' => 1]))->out(false);
-            $activurl = (new moodle_url('/blocks/workload/manage.php', ['action' => 'activation', 'id' => $cohort->id, 'modal' => 1]))->out(false);
+            $editurl  = (new moodle_url(
+                '/blocks/workload/manage.php',
+                ['action' => 'edit', 'id' => $cohort->id, 'modal' => 1]
+            ))->out(false);
+            $activurl = (new moodle_url(
+                '/blocks/workload/manage.php',
+                ['action' => 'activation', 'id' => $cohort->id, 'modal' => 1]
+            ))->out(false);
 
             // Edit + Activation as modal triggers; rest navigate normally.
-            $editicon  = html_writer::link('#', $OUTPUT->pix_icon('t/edit',     get_string('editcohort',       'block_workload')),
-                ['class' => 'action-icon', 'title' => get_string('editcohort',       'block_workload'),
-                 'data-modal-url' => $editurl,  'data-modal-title' => get_string('editcohort',       'block_workload'),
-                 'data-modal-large' => '1']);
-            $activicon = html_writer::link('#', $OUTPUT->pix_icon('i/calendar', get_string('cohortactivation', 'block_workload')),
+            $editicon  = html_writer::link(
+                '#',
+                $OUTPUT->pix_icon('t/edit', get_string('editcohort', 'block_workload')),
+                ['class' => 'action-icon', 'title' => get_string('editcohort', 'block_workload'),
+                 'data-modal-url' => $editurl, 'data-modal-title' => get_string('editcohort', 'block_workload'),
+                'data-modal-large' => '1']
+            );
+            $activicon = html_writer::link(
+                '#',
+                $OUTPUT->pix_icon('i/calendar', get_string('cohortactivation', 'block_workload')),
                 ['class' => 'action-icon', 'title' => get_string('cohortactivation', 'block_workload'),
                  'data-modal-url'      => $activurl,
                  'data-modal-title'    => get_string('cohortactivation', 'block_workload'),
-                 'data-modal-maxwidth' => '460']);
+                'data-modal-maxwidth' => '460']
+            );
 
             $actions = implode('', [
                 $editicon,
-                $OUTPUT->action_icon($memberurl, new pix_icon('i/users',  get_string('cohortmembers', 'block_workload'))),
+                $OUTPUT->action_icon($memberurl, new pix_icon('i/users', get_string('cohortmembers', 'block_workload'))),
                 $OUTPUT->action_icon($courseurl, new pix_icon('i/course', get_string('cohortcourses', 'block_workload'))),
                 $activicon,
-                $OUTPUT->action_icon($delurl,    new pix_icon('t/delete', get_string('deletecohort',  'block_workload'))),
+                $OUTPUT->action_icon($delurl, new pix_icon('t/delete', get_string('deletecohort', 'block_workload'))),
             ]);
 
             $toggleurl   = new moodle_url('/blocks/workload/manage.php', [
@@ -256,24 +277,25 @@ require(['core/modal_factory', 'core/modal_events', 'jquery'], function(ModalFac
             $inputattrs = [
                 'type'  => 'checkbox',
                 'class' => 'custom-control-input',
-                // No id needed — label has no "for", so there is no implicit
-                // label→input click binding that could swallow the <a> navigation.
+                // No id needed — label has no "for", so there is no implicit.
+                // Label→input click binding that could swallow the <a> navigation.
             ];
             if ($cohort->active) {
                 $inputattrs['checked'] = 'checked';
             }
             $activebadge = html_writer::link(
                 $toggleurl,
-                html_writer::tag('div',
+                html_writer::tag(
+                    'div',
                     html_writer::empty_tag('input', $inputattrs) .
                     html_writer::tag('label', '', [
-                        // No "for" attribute — Bootstrap uses CSS sibling selectors
-                        // (input:checked ~ label) so the visual toggle still works,
-                        // but without "for" the label has no implicit checkbox-toggle
-                        // behaviour that would compete with the surrounding <a>.
+                        // No "for" attribute — Bootstrap uses CSS sibling selectors.
+                        // (input:checked ~ label) so the visual toggle still works,.
+                        // But without "for" the label has no implicit checkbox-toggle.
+                        // Behaviour that would compete with the surrounding <a>.
                         'class' => 'custom-control-label',
                         'title' => $cohort->active
-                            ? get_string('active',   'block_workload')
+                            ? get_string('active', 'block_workload')
                             : get_string('inactive', 'block_workload'),
                     ]),
                     ['class' => 'custom-control custom-switch', 'style' => 'pointer-events:none;']
@@ -297,9 +319,13 @@ require(['core/modal_factory', 'core/modal_events', 'jquery'], function(ModalFac
     echo $OUTPUT->footer();
 }
 
-// =========================================================================
 // Action: create / edit cohort form.
-// =========================================================================
+/**
+ * Handle the create/edit cohort form.
+ *
+ * @param string $action
+ * @param int $id
+ */
 function action_cohort_form(string $action, int $id): void {
     global $DB, $OUTPUT, $PAGE;
 
@@ -310,8 +336,10 @@ function action_cohort_form(string $action, int $id): void {
         $PAGE->set_pagelayout('embedded');
     }
 
-    $formurl = new moodle_url('/blocks/workload/manage.php',
-        ['action' => $action, 'id' => $id, 'modal' => (int)$modal]);
+    $formurl = new moodle_url(
+        '/blocks/workload/manage.php',
+        ['action' => $action, 'id' => $id, 'modal' => (int)$modal]
+    );
     $form = new \block_workload\form\cohort_form(
         $formurl,
         ['cohort' => $cohort, 'departments' => \block_workload\helper::get_distinct_cohort_departments()]
@@ -384,16 +412,20 @@ function action_cohort_form(string $action, int $id): void {
     echo $OUTPUT->header();
     if (!$modal) {
         echo $OUTPUT->heading($action === 'edit'
-            ? get_string('editcohort',  'block_workload')
-            : get_string('addcohort',   'block_workload'));
+            ? get_string('editcohort', 'block_workload')
+            : get_string('addcohort', 'block_workload'));
     }
     $form->display();
     echo $OUTPUT->footer();
 }
 
-// =========================================================================
 // Action: delete cohort.
-// =========================================================================
+/**
+ * Handle cohort deletion.
+ *
+ * @param int $id
+ * @param bool $confirmed
+ */
 function action_delete(int $id, bool $confirmed): void {
     global $DB, $OUTPUT;
 
@@ -429,42 +461,48 @@ function action_delete(int $id, bool $confirmed): void {
     echo $OUTPUT->footer();
 }
 
-// =========================================================================
 // Action: manage members.
-// =========================================================================
+/**
+ * Render the manage members page.
+ *
+ * @param int $id
+ */
 function action_members(int $id): void {
     global $DB, $OUTPUT, $PAGE;
 
     $cohort  = $DB->get_record('block_workload_cohorts', ['id' => $id], '*', MUST_EXIST);
     $baseurl = new moodle_url('/blocks/workload/manage.php', ['action' => 'members', 'id' => $id]);
 
-    // ---- Paging & filter params (read early — needed for confirmation URLs) --
-    $page    = optional_param('page',    0,  PARAM_INT);
+    // Paging & filter params (read early — needed for confirmation URLs).
+    $page    = optional_param('page', 0, PARAM_INT);
     $perpage = optional_param('perpage', 25, PARAM_INT); // 0 = show all
 
     $alphabet    = explode(',', get_string('alphabet', 'langconfig'));
     $firstletter = optional_param('firstletter', '', PARAM_RAW);
-    $lastletter  = optional_param('lastletter',  '', PARAM_RAW);
+    $lastletter  = optional_param('lastletter', '', PARAM_RAW);
     // Accept only letters that are actually in the current language alphabet.
     $firstletter = (in_array($firstletter, $alphabet, true)) ? $firstletter : '';
-    $lastletter  = (in_array($lastletter,  $alphabet, true)) ? $lastletter  : '';
+    $lastletter  = (in_array($lastletter, $alphabet, true)) ? $lastletter : '';
 
-    $search            = optional_param('search',            '', PARAM_TEXT);
-    $filterdepartment  = optional_param('filterdepartment',  '', PARAM_TEXT);
+    $search            = optional_param('search', '', PARAM_TEXT);
+    $filterdepartment  = optional_param('filterdepartment', '', PARAM_TEXT);
     $filterinstitution = optional_param('filterinstitution', '', PARAM_TEXT);
-    $filtercategory    = optional_param('filtercategory',    0,  PARAM_INT);
-    $moodlecohortid    = optional_param('moodlecohortid',    0,  PARAM_INT);
+    $filtercategory    = optional_param('filtercategory', 0, PARAM_INT);
+    $moodlecohortid    = optional_param('moodlecohortid', 0, PARAM_INT);
     $importenabled     = (bool) get_config('block_workload', 'enablemoodlecohortimport');
     // Panel is "open" when any filter param was submitted (keeps state after filter).
     $hassearch  = ($search !== '' || $filterdepartment !== '' || $filterinstitution !== '' || $filtercategory > 0);
     $panelopen  = $hassearch || ($importenabled && $moodlecohortid > 0); // JS will also be able to open it client-side.
 
-    // ---- Single-remove: show Moodle confirmation page --------------------
+    // Single-remove: show Moodle confirmation page.
     $confirmremoveid = optional_param('confirmremoveid', 0, PARAM_INT);
     if ($confirmremoveid) {
-        $member = $DB->get_record('user', ['id' => $confirmremoveid],
+        $member = $DB->get_record(
+            'user',
+            ['id' => $confirmremoveid],
             'id, firstname, lastname, firstnamephonetic, lastnamephonetic, middlename, alternatename',
-            MUST_EXIST);
+            MUST_EXIST
+        );
         $yesurl = new moodle_url('/blocks/workload/manage.php', [
             'action'      => 'members',
             'id'          => $id,
@@ -487,7 +525,7 @@ function action_members(int $id): void {
         return;
     }
 
-    // ---- Single-remove: execute (reached via "Continue" in confirmation) ----
+    // Single-remove: execute (reached via "Continue" in confirmation).
     $removeid = optional_param('removeid', 0, PARAM_INT);
     if ($removeid && confirm_sesskey()) {
         $DB->delete_records('block_workload_members', ['cohortid' => $id, 'userid' => (int)$removeid]);
@@ -501,9 +539,9 @@ function action_members(int $id): void {
         redirect($baseurl, get_string('membersremoved', 'block_workload', 1), null, \core\output\notification::NOTIFY_SUCCESS);
     }
 
-    // ---- Bulk-remove: execute confirmed (GET, reached via "Continue") ----
+    // Bulk-remove: execute confirmed (GET, reached via "Continue").
     $confirmbulkids = optional_param('confirmbulkids', '', PARAM_SEQUENCE);
-    $dobulkremove   = optional_param('dobulkremove',   0,  PARAM_BOOL);
+    $dobulkremove   = optional_param('dobulkremove', 0, PARAM_BOOL);
     if ($confirmbulkids !== '' && $dobulkremove && confirm_sesskey()) {
         $ids = array_filter(array_map('intval', explode(',', $confirmbulkids)));
         $removed = 0;
@@ -518,12 +556,15 @@ function action_members(int $id): void {
             'other'    => ['cohortname' => $cohort->name, 'count' => $removed],
         ])->trigger();
 
-        redirect($baseurl,
+        redirect(
+            $baseurl,
             get_string('membersremoved', 'block_workload', $removed),
-            null, \core\output\notification::NOTIFY_SUCCESS);
+            null,
+            \core\output\notification::NOTIFY_SUCCESS
+        );
     }
 
-    // ---- Bulk-remove: show Moodle confirmation page ----------------------
+    // Bulk-remove: show Moodle confirmation page.
     if ($confirmbulkids !== '' && !$dobulkremove) {
         $ids = array_filter(array_map('intval', explode(',', $confirmbulkids)));
         $yesurl = new moodle_url('/blocks/workload/manage.php', [
@@ -545,7 +586,7 @@ function action_members(int $id): void {
         return;
     }
 
-    // ---- Bulk-remove: intercept POST → redirect to confirmation ----------
+    // Bulk-remove: intercept POST → redirect to confirmation.
     $removeusers = optional_param_array('removeusers', [], PARAM_INT);
     if (!empty($removeusers)) {
         $idsstring = implode(',', array_filter(array_map('intval', $removeusers)));
@@ -556,7 +597,7 @@ function action_members(int $id): void {
         ]));
     }
 
-    // ---- Handle add members (POST) --------------------------------------
+    // Handle add members (POST).
     $addusers = optional_param_array('addusers', [], PARAM_INT);
     if (!empty($addusers) && confirm_sesskey()) {
         $added = 0;
@@ -579,37 +620,40 @@ function action_members(int $id): void {
             ])->trigger();
         }
 
-        redirect($baseurl,
+        redirect(
+            $baseurl,
             get_string('membersadded', 'block_workload', $added),
-            null, \core\output\notification::NOTIFY_SUCCESS);
+            null,
+            \core\output\notification::NOTIFY_SUCCESS
+        );
     }
 
-    // ---- Preload filter option lists ------------------------------------
-    $deptOpts = ['' => get_string('selectdepartment', 'block_workload')];
+    // Preload filter option lists.
+    $deptopts = ['' => get_string('selectdepartment', 'block_workload')];
     foreach (\block_workload\helper::get_distinct_departments() as $d) {
-        $deptOpts[$d] = $d;
+        $deptopts[$d] = $d;
     }
-    $instOpts = ['' => get_string('selectinstitution', 'block_workload')];
+    $instopts = ['' => get_string('selectinstitution', 'block_workload')];
     foreach (\block_workload\helper::get_distinct_institutions() as $i) {
-        $instOpts[$i] = $i;
+        $instopts[$i] = $i;
     }
-    $catOpts = [0 => get_string('selectcategory', 'block_workload')]
+    $catopts = [0 => get_string('selectcategory', 'block_workload')]
              + \block_workload\helper::get_category_options();
 
-    // ---- Members data ---------------------------------------------------
+    // Members data.
     $totalcount   = \block_workload\helper::get_cohort_members_count($id, $firstletter, $lastletter);
     $limit        = ($perpage > 0) ? $perpage : 0;
     $offset       = ($perpage > 0) ? $page * $perpage : 0;
     $members      = \block_workload\helper::get_cohort_members($id, $limit, $offset, $firstletter, $lastletter);
     $allmemberids = \block_workload\helper::get_all_cohort_member_ids($id);
 
-    // ---- AMD modules ----------------------------------------------------
+    // AMD modules.
     $PAGE->requires->js_call_amd('core/checkbox-toggleall', 'init');
 
     $PAGE->requires->js_amd_inline("
 require(['core/ajax', 'jquery'], function(Ajax, \$) {
 
-    // ---- Panel toggle (instant, no animation) ----
+    // Panel toggle (instant, no animation).
     var panel    = \$('#workload-addpanel');
     var btn      = \$('#workload-addpanel-toggle');
     var openLbl  = btn.data('label-open');
@@ -626,7 +670,7 @@ require(['core/ajax', 'jquery'], function(Ajax, \$) {
         }
     });
 
-    // ---- User search autocomplete ----
+    // User search autocomplete.
     var input    = \$('#wl-search');
     var form     = \$('#workload-filter-form');
     if (input.length) {
@@ -717,9 +761,7 @@ require(['core/ajax', 'jquery'], function(Ajax, \$) {
 });
     ");
 
-    // =========================================================================
-    // OUTPUT
-    // =========================================================================
+    // OUTPUT.
     echo $OUTPUT->header();
     echo $OUTPUT->heading(get_string('memberstitle', 'block_workload', format_string($cohort->name)));
 
@@ -729,9 +771,10 @@ require(['core/ajax', 'jquery'], function(Ajax, \$) {
         '&larr; ' . get_string('cohorts', 'block_workload'),
         ['class' => 'btn btn-secondary me-2 mb-4']
     );
-    $lblopen  = '+ '        . get_string('addmembers',      'block_workload');
+    $lblopen  = '+ '        . get_string('addmembers', 'block_workload');
     $lblclose = "\xc3\x97 " . get_string('closeaddpanel', 'block_workload');
-    echo html_writer::tag('button',
+    echo html_writer::tag(
+        'button',
         $panelopen ? $lblclose : $lblopen,
         [
             'type'             => 'button',
@@ -742,30 +785,31 @@ require(['core/ajax', 'jquery'], function(Ajax, \$) {
         ]
     );
 
-    // =========================================================================
     // ADD MEMBERS PANEL – always in DOM, shown/hidden by JS.
     // PHP opens it when filter results are already present ($panelopen).
-    // =========================================================================
-    $panelStyle = $panelopen ? 'display:block;' : 'display:none;';
+    $panelstyle = $panelopen ? 'display:block;' : 'display:none;';
     // Card-style panel matching Moodle's own filter panels (e.g. course participants).
-    echo '<div id="workload-addpanel" style="' . $panelStyle . 'margin-bottom:1.5rem;">';
+    echo '<div id="workload-addpanel" style="' . $panelstyle . 'margin-bottom:1.5rem;">';
     echo '<div class="card">';
     echo '<div class="card-body">';
     echo html_writer::tag('h5', get_string('addmembers', 'block_workload'), ['class' => 'card-title mt-0 mb-3']);
 
     // Filter form — flex row, all inputs same size class, no description text on category.
     echo html_writer::start_tag('form', ['method' => 'get', 'action' => '', 'id' => 'workload-filter-form']);
-    echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'action',  'value' => 'members']);
-    echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'id',      'value' => $id]);
-    echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'page',    'value' => $page]);
+    echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'action', 'value' => 'members']);
+    echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'id', 'value' => $id]);
+    echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'page', 'value' => $page]);
     echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'perpage', 'value' => $perpage]);
 
     $f = 'display:inline-block;width:200px;margin-right:16px;vertical-align:bottom;overflow:hidden;';
     echo '<div style="margin-bottom:1rem;">';
 
     echo '<div style="' . $f . 'position:relative;">';
-    echo html_writer::tag('label', get_string('searchusers', 'block_workload'),
-        ['for' => 'wl-search', 'class' => 'form-label fw-semibold mb-1 d-block']);
+    echo html_writer::tag(
+        'label',
+        get_string('searchusers', 'block_workload'),
+        ['for' => 'wl-search', 'class' => 'form-label fw-semibold mb-1 d-block']
+    );
     echo html_writer::empty_tag('input', [
         'type' => 'text', 'name' => 'search', 'id' => 'wl-search',
         'value' => s($search), 'class' => 'form-control', 'style' => 'width:100%;',
@@ -774,24 +818,48 @@ require(['core/ajax', 'jquery'], function(Ajax, \$) {
     echo '</div>';
 
     echo '<div style="' . $f . '">';
-    echo html_writer::tag('label', get_string('department'),
-        ['for' => 'wl-dept', 'class' => 'form-label fw-semibold mb-1 d-block']);
-    echo html_writer::select($deptOpts, 'filterdepartment', $filterdepartment, false,
-        ['id' => 'wl-dept', 'class' => 'form-select', 'style' => 'width:100%;']);
+    echo html_writer::tag(
+        'label',
+        get_string('department'),
+        ['for' => 'wl-dept', 'class' => 'form-label fw-semibold mb-1 d-block']
+    );
+    echo html_writer::select(
+        $deptopts,
+        'filterdepartment',
+        $filterdepartment,
+        false,
+        ['id' => 'wl-dept', 'class' => 'form-select', 'style' => 'width:100%;']
+    );
     echo '</div>';
 
     echo '<div style="' . $f . '">';
-    echo html_writer::tag('label', get_string('institution'),
-        ['for' => 'wl-inst', 'class' => 'form-label fw-semibold mb-1 d-block']);
-    echo html_writer::select($instOpts, 'filterinstitution', $filterinstitution, false,
-        ['id' => 'wl-inst', 'class' => 'form-select', 'style' => 'width:100%;']);
+    echo html_writer::tag(
+        'label',
+        get_string('institution'),
+        ['for' => 'wl-inst', 'class' => 'form-label fw-semibold mb-1 d-block']
+    );
+    echo html_writer::select(
+        $instopts,
+        'filterinstitution',
+        $filterinstitution,
+        false,
+        ['id' => 'wl-inst', 'class' => 'form-select', 'style' => 'width:100%;']
+    );
     echo '</div>';
 
     echo '<div style="' . $f . '">';
-    echo html_writer::tag('label', get_string('filterbycategory', 'block_workload'),
-        ['for' => 'wl-cat', 'class' => 'form-label fw-semibold mb-1 d-block']);
-    echo html_writer::select($catOpts, 'filtercategory', $filtercategory, false,
-        ['id' => 'wl-cat', 'class' => 'form-select', 'style' => 'width:100%;']);
+    echo html_writer::tag(
+        'label',
+        get_string('filterbycategory', 'block_workload'),
+        ['for' => 'wl-cat', 'class' => 'form-label fw-semibold mb-1 d-block']
+    );
+    echo html_writer::select(
+        $catopts,
+        'filtercategory',
+        $filtercategory,
+        false,
+        ['id' => 'wl-cat', 'class' => 'form-select', 'style' => 'width:100%;']
+    );
     echo '</div>';
 
     echo '</div>';
@@ -810,7 +878,7 @@ require(['core/ajax', 'jquery'], function(Ajax, \$) {
     }
     echo html_writer::end_tag('form');
 
-    // ---- Search results -------------------------------------------
+    // Search results.
     if ($hassearch) {
         $params = ['deleted' => 0, 'notsite' => SITEID];
         $where  = ['u.deleted = :deleted', 'u.id <> :notsite'];
@@ -855,7 +923,8 @@ require(['core/ajax', 'jquery'], function(Ajax, \$) {
             echo $OUTPUT->notification(get_string('nouserfound', 'block_workload'), 'info');
         } else {
             $alreadycount = count(array_filter($found, fn($u) => in_array((int)$u->id, $allmemberids)));
-            echo html_writer::tag('p',
+            echo html_writer::tag(
+                'p',
                 get_string('searchresultcount', 'block_workload', count($found))
                 . ($alreadycount ? ', ' . get_string('alreadymembercount', 'block_workload', $alreadycount) : '')
                 . (count($found) >= 200 ? ' ' . get_string('searchresultlimit', 'block_workload') : ''),
@@ -863,8 +932,8 @@ require(['core/ajax', 'jquery'], function(Ajax, \$) {
             );
 
             echo html_writer::start_tag('form', ['method' => 'post', 'action' => '']);
-            echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'action',  'value' => 'members']);
-            echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'id',      'value' => $id]);
+            echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'action', 'value' => 'members']);
+            echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'id', 'value' => $id]);
             echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()]);
 
             $table             = new html_table();
@@ -891,8 +960,11 @@ require(['core/ajax', 'jquery'], function(Ajax, \$) {
                 $cbcell = new html_table_cell();
                 $cbcell->attributes['class'] = 'c0 shrink';
                 $cbcell->text = $already
-                    ? html_writer::tag('span', '&#10003;',
-                        ['class' => 'text-success fw-bold', 'title' => get_string('alreadymember', 'block_workload')])
+                    ? html_writer::tag(
+                        'span',
+                        '&#10003;',
+                        ['class' => 'text-success fw-bold', 'title' => get_string('alreadymember', 'block_workload')]
+                    )
                     : html_writer::empty_tag('input', [
                         'type'             => 'checkbox',
                         'name'             => 'addusers[]',
@@ -921,10 +993,11 @@ require(['core/ajax', 'jquery'], function(Ajax, \$) {
         }
     }
 
-    // ---- Import from Moodle system cohort (optional, admin-controlled) ------
+    // Import from Moodle system cohort (optional, admin-controlled).
     if ($importenabled) {
         echo html_writer::tag('hr', '');
-        echo html_writer::tag('h5',
+        echo html_writer::tag(
+            'h5',
             get_string('importfrommoodlecohort', 'block_workload'),
             ['class' => 'card-title mt-0 mb-3']
         );
@@ -939,26 +1012,31 @@ require(['core/ajax', 'jquery'], function(Ajax, \$) {
                 'method' => 'get', 'action' => '',
                 'class'  => 'd-flex align-items-end gap-2 flex-wrap mb-3',
             ]);
-            echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'action',  'value' => 'members']);
-            echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'id',      'value' => $id]);
-            echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'page',    'value' => $page]);
+            echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'action', 'value' => 'members']);
+            echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'id', 'value' => $id]);
+            echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'page', 'value' => $page]);
             echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'perpage', 'value' => $perpage]);
 
-            $cohortOpts = [0 => get_string('selectmoodlecohort', 'block_workload')];
+            $cohortopts = [0 => get_string('selectmoodlecohort', 'block_workload')];
             foreach ($moodlecohorts as $mc) {
                 $label = format_string($mc->name);
                 if ($mc->idnumber !== '') {
                     $label .= ' [' . s($mc->idnumber) . ']';
                 }
-                $cohortOpts[$mc->id] = $label;
+                $cohortopts[$mc->id] = $label;
             }
 
             echo html_writer::start_div('d-flex flex-column');
-            echo html_writer::tag('label',
+            echo html_writer::tag(
+                'label',
                 get_string('moodlecohortlabel', 'block_workload'),
                 ['for' => 'wl-moodlecohort', 'class' => 'form-label fw-semibold mb-1 d-block']
             );
-            echo html_writer::select($cohortOpts, 'moodlecohortid', $moodlecohortid, false,
+            echo html_writer::select(
+                $cohortopts,
+                'moodlecohortid',
+                $moodlecohortid,
+                false,
                 ['id' => 'wl-moodlecohort', 'class' => 'form-select', 'style' => 'min-width:260px;']
             );
             echo html_writer::end_div();
@@ -988,11 +1066,13 @@ require(['core/ajax', 'jquery'], function(Ajax, \$) {
                 if (empty($moodlemembers)) {
                     echo $OUTPUT->notification(get_string('nomoodlecohortmembers', 'block_workload'), 'info');
                 } else {
-                    $alreadycount = count(array_filter($moodlemembers,
+                    $alreadycount = count(array_filter(
+                        $moodlemembers,
                         fn($u) => in_array((int)$u->id, $allmemberids)
                     ));
 
-                    echo html_writer::tag('p',
+                    echo html_writer::tag(
+                        'p',
                         get_string('moodlecohortmembers', 'block_workload', count($moodlemembers))
                         . ($alreadycount
                             ? ', ' . get_string('alreadymembercount', 'block_workload', $alreadycount)
@@ -1001,8 +1081,8 @@ require(['core/ajax', 'jquery'], function(Ajax, \$) {
                     );
 
                     echo html_writer::start_tag('form', ['method' => 'post', 'action' => '', 'id' => 'wl-mcimport-form']);
-                    echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'action',  'value' => 'members']);
-                    echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'id',      'value' => $id]);
+                    echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'action', 'value' => 'members']);
+                    echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'id', 'value' => $id]);
                     echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()]);
 
                     $mctable             = new html_table();
@@ -1029,9 +1109,15 @@ require(['core/ajax', 'jquery'], function(Ajax, \$) {
                         $cbcell = new html_table_cell();
                         $cbcell->attributes['class'] = 'c0 shrink';
                         $cbcell->text = $already
-                            ? html_writer::tag('span', '&#10003;',
+                            ? html_writer::tag(
+                                'span',
+                                '&#10003;',
                                 ['class' => 'text-success fw-bold',
-                                 'title' => get_string('alreadymember', 'block_workload')])
+                                'title' => get_string(
+                                    'alreadymember',
+                                    'block_workload'
+                                )]
+                            )
                             : html_writer::empty_tag('input', [
                                 'type'             => 'checkbox',
                                 'name'             => 'addusers[]',
@@ -1079,13 +1165,11 @@ require(['core/ajax', 'jquery'], function(Ajax, \$) {
         }
     }
 
-    echo '</div>'; // card-body
-    echo '</div>'; // card
-    echo '</div>'; // #workload-addpanel
+    echo '</div>';
+    echo '</div>';
+    echo '</div>';
 
-    // =========================================================================
-    // CURRENT MEMBERS TABLE
-    // =========================================================================
+    // CURRENT MEMBERS TABLE.
     echo html_writer::tag('h5', get_string('currentmembers', 'block_workload'));
 
     // A-Z first/last name filter bars (matching Moodle course participants style).
@@ -1097,28 +1181,38 @@ require(['core/ajax', 'jquery'], function(Ajax, \$) {
     ]);
 
     // A-Z bars using exact Moodle participants pagination markup.
-    foreach ([
+    foreach (
+        [
         ['firstinitial', get_string('firstname'), 'firstletter', $firstletter, $lastletter],
-        ['lastinitial',  get_string('lastname'),  'lastletter',  $lastletter,  $firstletter],
-    ] as [$bartype, $barlabel, $param, $current, $other]) {
+        ['lastinitial', get_string('lastname'), 'lastletter', $lastletter, $firstletter],
+        ] as [$bartype, $barlabel, $param, $current, $other]
+    ) {
         $otherparam = ($param === 'firstletter') ? 'lastletter' : 'firstletter';
         echo '<div class="initialbar ' . $bartype . ' d-flex flex-wrap justify-content-center justify-content-md-start mb-2">';
         echo '<span class="initialbarlabel me-2">' . $barlabel . '</span>';
         echo '<nav class="initialbargroups d-flex flex-wrap justify-content-center justify-content-md-start">';
 
-        // "All" in its own UL.
-        $u = clone $basealphaurl; $u->param($param, ''); $u->param($otherparam, $other);
+        // The "All" link in its own UL.
+        $u = clone $basealphaurl;
+        $u->param($param, '');
+        $u->param($otherparam, $other);
         echo '<ul class="pagination pagination-sm">';
         echo '<li id="' . $bartype . '_page-item_All" class="initialbarall page-item' . ($current === '' ? ' active' : '') . '">';
-        echo '<a data-initial="" class="page-link" href="' . $u->out() . '"' . ($current === '' ? ' aria-current="true"' : '') . '>' . get_string('all') . '</a>';
+        $ariacurrent = ($current === '') ? ' aria-current="true"' : '';
+        echo '<a data-initial="" class="page-link" href="' . $u->out() . '"'
+            . $ariacurrent . '>' . get_string('all') . '</a>';
         echo '</li></ul>';
 
         // Letters from the current language alphabet in a second UL.
         echo '<ul class="pagination pagination-sm">';
         foreach ($alphabet as $l) {
-            $u2 = clone $basealphaurl; $u2->param($param, $l); $u2->param($otherparam, $other);
+            $u2 = clone $basealphaurl;
+            $u2->param($param, $l);
+            $u2->param($otherparam, $other);
             $active = ($current === $l);
-            echo '<li id="' . $bartype . '_page-item_' . $l . '" data-initial="' . $l . '" class="page-item ' . $l . ($active ? ' active' : '') . '">';
+            $liclass = 'page-item ' . $l . ($active ? ' active' : '');
+            echo '<li id="' . $bartype . '_page-item_' . $l . '" data-initial="' . $l . '"'
+                . ' class="' . $liclass . '">';
             echo '<a class="page-link" href="' . $u2->out() . '"' . ($active ? ' aria-current="true"' : '') . '>' . $l . '</a>';
             echo '</li>';
         }
@@ -1132,20 +1226,26 @@ require(['core/ajax', 'jquery'], function(Ajax, \$) {
         $pplinks[] = ($pp == $perpage)
             ? html_writer::tag('strong', $pp)
             : html_writer::link(
-                new moodle_url('/blocks/workload/manage.php',
+                new moodle_url(
+                    '/blocks/workload/manage.php',
                     ['action' => 'members', 'id' => $id, 'perpage' => $pp, 'page' => 0,
-                     'firstletter' => $firstletter, 'lastletter' => $lastletter]),
+                    'firstletter' => $firstletter,
+                    'lastletter' => $lastletter]
+                ),
                 $pp
-              );
+            );
     }
     $pplinks[] = ($perpage === 0)
         ? html_writer::tag('strong', get_string('showall', 'block_workload', $totalcount))
         : html_writer::link(
-            new moodle_url('/blocks/workload/manage.php',
+            new moodle_url(
+                '/blocks/workload/manage.php',
                 ['action' => 'members', 'id' => $id, 'perpage' => 0, 'page' => 0,
-                 'firstletter' => $firstletter, 'lastletter' => $lastletter]),
+                'firstletter' => $firstletter,
+                'lastletter' => $lastletter]
+            ),
             get_string('showall', 'block_workload', $totalcount)
-          );
+        );
 
     echo html_writer::div(
         get_string('perpage', 'block_workload') . ': ' . implode(' | ', $pplinks),
@@ -1159,9 +1259,12 @@ require(['core/ajax', 'jquery'], function(Ajax, \$) {
     }
 
     // Paging bar (top).
-    $pagingurl = new moodle_url('/blocks/workload/manage.php',
+    $pagingurl = new moodle_url(
+        '/blocks/workload/manage.php',
         ['action' => 'members', 'id' => $id, 'perpage' => $perpage,
-         'firstletter' => $firstletter, 'lastletter' => $lastletter]);
+        'firstletter' => $firstletter,
+        'lastletter' => $lastletter]
+    );
     if ($perpage > 0 && $totalcount > $perpage) {
         echo $OUTPUT->paging_bar($totalcount, $page, $perpage, $pagingurl);
     }
@@ -1170,7 +1273,8 @@ require(['core/ajax', 'jquery'], function(Ajax, \$) {
     if (!empty($members)) {
         [$insql, $inparams] = $DB->get_in_or_equal(array_keys($members), SQL_PARAMS_NAMED, 'uid');
         $profiles = $DB->get_records_sql(
-            "SELECT id, department, institution FROM {user} WHERE id $insql", $inparams
+            "SELECT id, department, institution FROM {user} WHERE id $insql",
+            $inparams
         );
     } else {
         $profiles = [];
@@ -1178,8 +1282,8 @@ require(['core/ajax', 'jquery'], function(Ajax, \$) {
 
     // Bulk-remove form.
     echo html_writer::start_tag('form', ['method' => 'post', 'action' => '', 'id' => 'wl-members-form']);
-    echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'action',  'value' => 'members']);
-    echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'id',      'value' => $id]);
+    echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'action', 'value' => 'members']);
+    echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'id', 'value' => $id]);
     echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()]);
 
     $table             = new html_table();
@@ -1237,7 +1341,7 @@ require(['core/ajax', 'jquery'], function(Ajax, \$) {
             $cbcell,
             fullname($m),
             $m->email,
-            $profile ? s($profile->department)  : '',
+            $profile ? s($profile->department) : '',
             $profile ? s($profile->institution) : '',
             $removecell,
         ];
@@ -1278,9 +1382,12 @@ require(['core/ajax', 'jquery'], function(Ajax, \$) {
     echo $OUTPUT->footer();
 }
 
-// =========================================================================
 // Action: manage courses.
-// =========================================================================
+/**
+ * Render the manage courses page.
+ *
+ * @param int $id
+ */
 function action_courses(int $id): void {
     global $DB, $OUTPUT, $PAGE;
 
@@ -1300,7 +1407,8 @@ function action_courses(int $id): void {
         echo $OUTPUT->heading(get_string('coursestitle', 'block_workload', format_string($cohort->name)));
         echo $OUTPUT->confirm(
             get_string('confirmsingleremovecourse', 'block_workload', format_string($course->fullname)),
-            $yesurl, $nourl
+            $yesurl,
+            $nourl
         );
         echo $OUTPUT->footer();
         return;
@@ -1327,7 +1435,7 @@ function action_courses(int $id): void {
 
     // Bulk remove: execute confirmed (reached via "Continue" on confirmation page).
     $confirmbulkids = optional_param('confirmbulkids', '', PARAM_SEQUENCE);
-    $dobulkremove   = optional_param('dobulkremove',   0,  PARAM_BOOL);
+    $dobulkremove   = optional_param('dobulkremove', 0, PARAM_BOOL);
     if ($confirmbulkids !== '' && $dobulkremove && confirm_sesskey()) {
         $ids     = array_filter(array_map('intval', explode(',', $confirmbulkids)));
         $removed = 0;
@@ -1363,7 +1471,8 @@ function action_courses(int $id): void {
         echo $OUTPUT->heading(get_string('coursestitle', 'block_workload', format_string($cohort->name)));
         echo $OUTPUT->confirm(
             get_string('confirmbulkremovecourses', 'block_workload', count($ids)),
-            $yesurl, $nourl
+            $yesurl,
+            $nourl
         );
         echo $OUTPUT->footer();
         return;
@@ -1394,12 +1503,16 @@ function action_courses(int $id): void {
             'other'    => ['cohortname' => $cohort->name, 'coursename' => $coursename, 'active' => $rec->active],
         ])->trigger();
 
-        redirect(new moodle_url('/blocks/workload/manage.php', ['action' => 'courses', 'id' => $id]),
-            get_string('courseupdated', 'block_workload'), null, \core\output\notification::NOTIFY_SUCCESS);
+        redirect(
+            new moodle_url('/blocks/workload/manage.php', ['action' => 'courses', 'id' => $id]),
+            get_string('courseupdated', 'block_workload'),
+            null,
+            \core\output\notification::NOTIFY_SUCCESS
+        );
     }
 
     // Move a course up or down in the sort order.
-    $moveup   = optional_param('moveup',   0, PARAM_INT);
+    $moveup   = optional_param('moveup', 0, PARAM_INT);
     $movedown = optional_param('movedown', 0, PARAM_INT);
     $moveid   = $moveup ?: $movedown;
     if ($moveid && confirm_sesskey()) {
@@ -1419,7 +1532,7 @@ function action_courses(int $id): void {
                     $DB->set_field('block_workload_courses', 'sortorder', $j, ['id' => $r->id]);
                 }
                 $DB->set_field('block_workload_courses', 'sortorder', $swapidx, ['id' => $ordered[$i]->id]);
-                $DB->set_field('block_workload_courses', 'sortorder', $i,       ['id' => $ordered[$swapidx]->id]);
+                $DB->set_field('block_workload_courses', 'sortorder', $i, ['id' => $ordered[$swapidx]->id]);
             }
             break;
         }
@@ -1467,10 +1580,10 @@ function action_courses(int $id): void {
     $selectedcategory = optional_param('categoryid', 0, PARAM_INT);
     $assignedcourses  = \block_workload\helper::get_cohort_courses_all($id);
     $assignedids      = array_map(fn($c) => (int)$c->id, $assignedcourses);
-    $catOptions       = \block_workload\helper::get_category_options();
+    $catoptions       = \block_workload\helper::get_category_options();
 
-    // Hide sortorder controls when the block is set to "recently accessed" ordering,
-    // since the display order is then user-specific and manual ordering has no effect.
+    // Hide sortorder controls when the block is set to "recently accessed" ordering,.
+    // Since the display order is then user-specific and manual ordering has no effect.
     $showordercolumn = (get_config('block_workload', 'courseorder') ?: 'sortorder') === 'sortorder';
 
     echo $OUTPUT->header();
@@ -1484,15 +1597,31 @@ function action_courses(int $id): void {
     // Add courses: category browser.
     echo html_writer::tag('h5', get_string('addcourses', 'block_workload'));
 
-    echo html_writer::start_tag('form', ['method' => 'get', 'action' => '', 'class' => 'd-flex gap-2 align-items-end flex-wrap mb-3']);
+    echo html_writer::start_tag('form', [
+        'method' => 'get', 'action' => '', 'class' => 'd-flex gap-2 align-items-end flex-wrap mb-3',
+    ]);
     echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'action', 'value' => 'courses']);
-    echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'id',     'value' => $id]);
+    echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'id', 'value' => $id]);
     echo html_writer::start_div('d-flex flex-column');
-    echo html_writer::tag('label', get_string('filterbycategory', 'block_workload'), ['for' => 'catsel', 'class' => 'form-label small']);
-    $catopts = [0 => get_string('selectcategory', 'block_workload')] + $catOptions;
-    echo html_writer::select($catopts, 'categoryid', $selectedcategory, false, ['id' => 'catsel', 'class' => 'form-select form-select-sm', 'style' => 'min-width:250px;']);
+    echo html_writer::tag(
+        'label',
+        get_string('filterbycategory', 'block_workload'),
+        ['for' => 'catsel', 'class' => 'form-label small']
+    );
+    $catopts = [0 => get_string('selectcategory', 'block_workload')] + $catoptions;
+    echo html_writer::select(
+        $catopts,
+        'categoryid',
+        $selectedcategory,
+        false,
+        ['id' => 'catsel', 'class' => 'form-select form-select-sm', 'style' => 'min-width:250px;']
+    );
     echo html_writer::end_div();
-    echo html_writer::empty_tag('input', ['type' => 'submit', 'value' => get_string('filterresults', 'block_workload'), 'class' => 'btn btn-secondary align-self-end']);
+    echo html_writer::empty_tag('input', [
+        'type' => 'submit',
+        'value' => get_string('filterresults', 'block_workload'),
+        'class' => 'btn btn-secondary align-self-end',
+    ]);
     echo html_writer::end_tag('form');
 
     if ($selectedcategory) {
@@ -1501,13 +1630,14 @@ function action_courses(int $id): void {
             echo html_writer::tag('p', get_string('nocoursesincategory', 'block_workload'), ['class' => 'text-muted']);
         } else {
             echo html_writer::start_tag('form', ['method' => 'post', 'action' => '', 'id' => 'wl-addcourses-form']);
-            echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'action',  'value' => 'courses']);
-            echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'id',      'value' => $id]);
+            echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'action', 'value' => 'courses']);
+            echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'id', 'value' => $id]);
             echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()]);
 
             // Summary line: "X course(s) found, Y already assigned".
             $alreadycount = count(array_filter($catcourses, fn($c) => in_array((int)$c->id, $assignedids)));
-            echo html_writer::tag('p',
+            echo html_writer::tag(
+                'p',
                 get_string('courseresultcount', 'block_workload', count($catcourses))
                 . ($alreadycount ? ', ' . get_string('alreadyassignedcount', 'block_workload', $alreadycount) : ''),
                 ['class' => 'text-muted small mb-2']
@@ -1532,22 +1662,25 @@ function action_courses(int $id): void {
             $table = new html_table();
             $table->head       = [
                 $masterth,
-                get_string('course',          'block_workload'),
+                get_string('course', 'block_workload'),
                 get_string('coursestartdate', 'block_workload'),
-                get_string('courseenddate',   'block_workload'),
+                get_string('courseenddate', 'block_workload'),
             ];
             $table->attributes = ['class' => 'generaltable table-sm table-hover'];
 
             foreach ($catcourses as $c) {
                 $already = in_array((int)$c->id, $assignedids);
 
-                // Checkbox / tick cell – match members panel exactly: class only, no inline style,
-                // no form-check-input on the <input> (that adds Bootstrap margins that break alignment).
+                // Checkbox / tick cell – match members panel exactly: class only, no inline style,.
+                // No form-check-input on the <input> (that adds Bootstrap margins that break alignment).
                 $cbcell = new html_table_cell();
                 $cbcell->attributes['class'] = 'c0 shrink';
                 $cbcell->text = $already
-                    ? html_writer::tag('span', '&#10003;',
-                        ['class' => 'text-success fw-bold', 'title' => get_string('alreadymember', 'block_workload')])
+                    ? html_writer::tag(
+                        'span',
+                        '&#10003;',
+                        ['class' => 'text-success fw-bold', 'title' => get_string('alreadymember', 'block_workload')]
+                    )
                     : html_writer::empty_tag('input', [
                         'type'             => 'checkbox',
                         'name'             => 'addcourseids[]',
@@ -1564,7 +1697,8 @@ function action_courses(int $id): void {
                 $namecell->text = html_writer::link($courseurl, format_string($c->fullname), ['target' => '_blank'])
                     . html_writer::tag('span', ' (' . $c->shortname . ')', ['class' => 'text-muted small']);
 
-                $disabled = html_writer::tag('span',
+                $disabled = html_writer::tag(
+                    'span',
                     get_string('datedisabled', 'block_workload'),
                     ['class' => 'text-muted small']
                 );
@@ -1612,13 +1746,18 @@ function action_courses(int $id): void {
     }
 
     // Assigned courses table.
-    echo html_writer::tag('h5',
+    echo html_writer::tag(
+        'h5',
         get_string('assignedcourses', 'block_workload') .
         (!empty($assignedcourses)
-            ? html_writer::tag('span', ' (' . count($assignedcourses) . ')',
-                ['class' => 'text-muted fw-normal small ms-1'])
+            ? html_writer::tag(
+                'span',
+                ' (' . count($assignedcourses) . ')',
+                ['class' => 'text-muted fw-normal small ms-1']
+            )
             : ''),
-        ['class' => 'mt-4']);
+        ['class' => 'mt-4']
+    );
     if (empty($assignedcourses)) {
         echo html_writer::tag('p', get_string('nocoursesincategory', 'block_workload'), ['class' => 'text-muted']);
     } else {
@@ -1640,10 +1779,10 @@ function action_courses(int $id): void {
         $table = new html_table();
         $tableheads = [
             $masterth,
-            get_string('course',          'block_workload'),
+            get_string('course', 'block_workload'),
             get_string('coursestartdate', 'block_workload'),
-            get_string('courseenddate',   'block_workload'),
-            get_string('activecourse',    'block_workload'),
+            get_string('courseenddate', 'block_workload'),
+            get_string('activecourse', 'block_workload'),
         ];
         if ($showordercolumn) {
             $tableheads[] = get_string('order', 'block_workload');
@@ -1685,7 +1824,8 @@ function action_courses(int $id): void {
                 'data-toggle'      => 'slave',
             ]);
 
-            $disabled = html_writer::tag('span',
+            $disabled = html_writer::tag(
+                'span',
                 get_string('datedisabled', 'block_workload'),
                 ['class' => 'text-muted small']
             );
@@ -1707,12 +1847,12 @@ function action_courses(int $id): void {
                 $enddate,
                 $c->active
                     ? $OUTPUT->action_icon($toggleurl, new pix_icon('t/hide', get_string('deactivate', 'block_workload')))
-                    : $OUTPUT->action_icon($toggleurl, new pix_icon('t/show', get_string('activate',   'block_workload'))),
+                    : $OUTPUT->action_icon($toggleurl, new pix_icon('t/show', get_string('activate', 'block_workload'))),
             ];
 
             if ($showordercolumn) {
                 $upicon   = ($idx > 0)
-                    ? $OUTPUT->action_icon($moveupurl,   new pix_icon('t/up',   get_string('moveup',   'moodle')))
+                    ? $OUTPUT->action_icon($moveupurl, new pix_icon('t/up', get_string('moveup', 'moodle')))
                     : $spacer;
                 $downicon = ($idx < $lastidx)
                     ? $OUTPUT->action_icon($movedownurl, new pix_icon('t/down', get_string('movedown', 'moodle')))
@@ -1720,7 +1860,10 @@ function action_courses(int $id): void {
                 $cells[] = $upicon . $downicon;
             }
 
-            $cells[] = $OUTPUT->action_icon($confirmremoveurl, new pix_icon('t/delete', get_string('removecourse', 'block_workload')));
+            $cells[] = $OUTPUT->action_icon(
+                $confirmremoveurl,
+                new pix_icon('t/delete', get_string('removecourse', 'block_workload'))
+            );
 
             $row = new html_table_row();
             $row->cells    = $cells;
@@ -1728,8 +1871,8 @@ function action_courses(int $id): void {
         }
 
         echo html_writer::start_tag('form', ['method' => 'post', 'action' => '', 'id' => 'wl-removecourses-form']);
-        echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'action',  'value' => 'courses']);
-        echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'id',      'value' => $id]);
+        echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'action', 'value' => 'courses']);
+        echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'id', 'value' => $id]);
         echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()]);
         echo html_writer::table($table);
         echo html_writer::tag('button', get_string('bulkremovecourses', 'block_workload'), [
@@ -1761,11 +1904,13 @@ function action_courses(int $id): void {
     echo $OUTPUT->footer();
 }
 
-// =========================================================================
 // Action: activation settings.
-// =========================================================================
 // Action: activation settings.
-// =========================================================================
+/**
+ * Render the activation settings page.
+ *
+ * @param int $id
+ */
 function action_activation(int $id): void {
     global $DB, $OUTPUT, $PAGE;
 
@@ -1777,8 +1922,8 @@ function action_activation(int $id): void {
     }
 
     // Derive the current mode from stored values.
-    // 'inactive' | 'always' | 'period'
-    $currentMode = !$cohort->active ? 'inactive'
+    // 'inactive' | 'always' | 'period'.
+    $currentmode = !$cohort->active ? 'inactive'
         : (!$cohort->week_from && !$cohort->week_to ? 'always' : 'period');
 
     // Handle save.
@@ -1786,14 +1931,14 @@ function action_activation(int $id): void {
         $mode     = optional_param('activation_mode', 'always', PARAM_ALPHA);
         $weekfrom = optional_param('week_from', 0, PARAM_INT);
         $yearfrom = optional_param('year_from', 0, PARAM_INT);
-        $weekto   = optional_param('week_to',   0, PARAM_INT);
-        $yearto   = optional_param('year_to',   0, PARAM_INT);
+        $weekto   = optional_param('week_to', 0, PARAM_INT);
+        $yearto   = optional_param('year_to', 0, PARAM_INT);
 
         $cohort->active    = ($mode !== 'inactive') ? 1 : 0;
         $cohort->week_from = ($mode === 'period') ? ($weekfrom ?: null) : null;
         $cohort->year_from = ($mode === 'period') ? ($yearfrom ?: null) : null;
-        $cohort->week_to   = ($mode === 'period') ? ($weekto   ?: null) : null;
-        $cohort->year_to   = ($mode === 'period') ? ($yearto   ?: null) : null;
+        $cohort->week_to   = ($mode === 'period') ? ($weekto ?: null) : null;
+        $cohort->year_to   = ($mode === 'period') ? ($yearto ?: null) : null;
         $cohort->timemodified = time();
         $DB->update_record('block_workload_cohorts', $cohort);
 
@@ -1815,9 +1960,9 @@ function action_activation(int $id): void {
         );
     }
 
-    $isActive    = \block_workload\helper::is_workload_active($id);
-    $currentWeek = (int) date('W');
-    $currentYear = (int) date('o');
+    $isactive    = \block_workload\helper::is_workload_active($id);
+    $currentweek = (int) date('W');
+    $currentyear = (int) date('o');
 
     echo $OUTPUT->header();
     if (!$modal) {
@@ -1828,9 +1973,11 @@ function action_activation(int $id): void {
             ['class' => 'btn btn-outline-secondary mb-3']
         );
     } else {
-        echo html_writer::tag('p',
+        echo html_writer::tag(
+            'p',
             html_writer::tag('strong', format_string($cohort->name)) .
-            html_writer::tag('span',
+            html_writer::tag(
+                'span',
                 ' &ndash; ' . format_string($cohort->degree_program),
                 ['class' => 'text-muted']
             ),
@@ -1841,26 +1988,27 @@ function action_activation(int $id): void {
     // Current status badge.
     echo html_writer::div(
         get_string('currentstatus', 'block_workload') . ': ' .
-        html_writer::tag('span',
-            $isActive ? get_string('statusactive', 'block_workload') : get_string('statusinactive', 'block_workload'),
-            ['class' => 'badge rounded-pill ' . ($isActive ? 'bg-success text-white' : 'bg-secondary text-white')]
+        html_writer::tag(
+            'span',
+            $isactive ? get_string('statusactive', 'block_workload') : get_string('statusinactive', 'block_workload'),
+            ['class' => 'badge rounded-pill ' . ($isactive ? 'bg-success text-white' : 'bg-secondary text-white')]
         ),
         'mb-3'
     );
 
     $formclass = $modal ? 'p-3' : 'card p-3';
     echo html_writer::start_tag('form', ['method' => 'post', 'action' => '', 'class' => $formclass, 'style' => 'max-width:480px;']);
-    echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'action',         'value' => 'activation']);
-    echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'id',             'value' => $id]);
-    echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'modal',          'value' => (int)$modal]);
-    echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey',        'value' => sesskey()]);
+    echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'action', 'value' => 'activation']);
+    echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'id', 'value' => $id]);
+    echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'modal', 'value' => (int)$modal]);
+    echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()]);
     echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'saveactivation', 'value' => '1']);
 
-    // --- Radio buttons: three explicit states ---
+    // Radio buttons: three explicit states.
     $radios = [
-        'inactive' => get_string('statusinactive',  'block_workload'),
-        'always'   => get_string('alwaysactive',    'block_workload'),
-        'period'   => get_string('activationperiod','block_workload'),
+        'inactive' => get_string('statusinactive', 'block_workload'),
+        'always'   => get_string('alwaysactive', 'block_workload'),
+        'period'   => get_string('activationperiod', 'block_workload'),
     ];
     echo html_writer::tag('p', get_string('activationperiod', 'block_workload') . ':', ['class' => 'fw-semibold mb-2']);
     foreach ($radios as $val => $label) {
@@ -1871,7 +2019,7 @@ function action_activation(int $id): void {
             'id'    => 'mode_' . $val,
             'class' => 'form-check-input',
         ];
-        if ($currentMode === $val) {
+        if ($currentmode === $val) {
             $attrs['checked'] = 'checked';
         }
         echo html_writer::start_div('form-check mb-2');
@@ -1880,14 +2028,16 @@ function action_activation(int $id): void {
         echo html_writer::end_div();
     }
 
-    // --- Period fields (shown only when 'period' radio is selected) ---
-    $periodStyle = ($currentMode === 'period') ? '' : 'display:none;';
-    echo html_writer::start_div('mt-3 ps-4 border-start border-2', ['id' => 'wl-period-fields', 'style' => $periodStyle]);
+    // Period fields (shown only when 'period' radio is selected).
+    $periodstyle = ($currentmode === 'period') ? '' : 'display:none;';
+    echo html_writer::start_div('mt-3 ps-4 border-start border-2', ['id' => 'wl-period-fields', 'style' => $periodstyle]);
     echo html_writer::start_div('row g-2 mb-2');
-    foreach ([
-        ['week_from', 'weekfrom', $cohort->week_from ?? $currentWeek],
-        ['year_from', 'yearfrom', $cohort->year_from ?? $currentYear],
-    ] as [$name, $strkey, $val]) {
+    foreach (
+        [
+        ['week_from', 'weekfrom', $cohort->week_from ?? $currentweek],
+        ['year_from', 'yearfrom', $cohort->year_from ?? $currentyear],
+        ] as [$name, $strkey, $val]
+    ) {
         echo html_writer::start_div('col-auto');
         echo html_writer::tag('label', get_string($strkey, 'block_workload'), ['for' => $name, 'class' => 'form-label small mb-1']);
         echo html_writer::empty_tag('input', [
@@ -1897,13 +2047,15 @@ function action_activation(int $id): void {
         ]);
         echo html_writer::end_div();
     }
-    echo html_writer::end_div(); // row
+    echo html_writer::end_div();
 
     echo html_writer::start_div('row g-2');
-    foreach ([
-        ['week_to', 'weekto', $cohort->week_to ?? $currentWeek],
-        ['year_to', 'yearto', $cohort->year_to ?? $currentYear],
-    ] as [$name, $strkey, $val]) {
+    foreach (
+        [
+        ['week_to', 'weekto', $cohort->week_to ?? $currentweek],
+        ['year_to', 'yearto', $cohort->year_to ?? $currentyear],
+        ] as [$name, $strkey, $val]
+    ) {
         echo html_writer::start_div('col-auto');
         echo html_writer::tag('label', get_string($strkey, 'block_workload'), ['for' => $name, 'class' => 'form-label small mb-1']);
         echo html_writer::empty_tag('input', [
@@ -1913,10 +2065,14 @@ function action_activation(int $id): void {
         ]);
         echo html_writer::end_div();
     }
-    echo html_writer::end_div(); // row
-    echo html_writer::end_div(); // period fields
+    echo html_writer::end_div();
+    echo html_writer::end_div(); // Period fields.
 
-    echo html_writer::empty_tag('input', ['type' => 'submit', 'value' => get_string('save', 'block_workload'), 'class' => 'btn btn-primary mt-3']);
+    echo html_writer::empty_tag('input', [
+        'type' => 'submit',
+        'value' => get_string('save', 'block_workload'),
+        'class' => 'btn btn-primary mt-3',
+    ]);
     echo html_writer::end_tag('form');
 
     // Show/hide period fields based on radio selection.

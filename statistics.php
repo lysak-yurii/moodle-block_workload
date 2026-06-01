@@ -1,10 +1,18 @@
 <?php
-// This file is part of Moodle - http://moodle.org/
+// This file is part of Moodle - http://moodle.org/.
 //
-// Moodle is free software: you can redistribute it and/or modify
+// Moodle is free software: you can redistribute it and/or modify.
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,.
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the.
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License.
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
  * Quality Manager – workload statistics overview.
@@ -25,23 +33,23 @@
 
 require_once('../../config.php');
 
-// ---- Parameters -----------------------------------------------------------
-$cohortid    = optional_param('cohortid',    0,                PARAM_INT);
-$weekfrom    = optional_param('weekfrom',    (int)date('W'),   PARAM_INT);
-$yearfrom    = optional_param('yearfrom',    (int)date('o'),   PARAM_INT);
-$weekto      = optional_param('weekto',      (int)date('W'),   PARAM_INT);
-$yearto      = optional_param('yearto',      (int)date('o'),   PARAM_INT);
-$export      = optional_param('export',      0,                PARAM_BOOL);
-$exporttype  = optional_param('exporttype',  'quick',          PARAM_ALPHA);
-$submitted   = 1; // data always loads; defaults to current week
+// Parameters.
+$cohortid    = optional_param('cohortid', 0, PARAM_INT);
+$weekfrom    = optional_param('weekfrom', (int)date('W'), PARAM_INT);
+$yearfrom    = optional_param('yearfrom', (int)date('o'), PARAM_INT);
+$weekto      = optional_param('weekto', (int)date('W'), PARAM_INT);
+$yearto      = optional_param('yearto', (int)date('o'), PARAM_INT);
+$export      = optional_param('export', 0, PARAM_BOOL);
+$exporttype  = optional_param('exporttype', 'quick', PARAM_ALPHA);
+$submitted   = 1; // Data always loads; defaults to current week.
 // Table filters.
 $alphabet    = explode(',', get_string('alphabet', 'langconfig'));
 $firstletter = optional_param('firstletter', '', PARAM_RAW);
-$lastletter  = optional_param('lastletter',  '', PARAM_RAW);
+$lastletter  = optional_param('lastletter', '', PARAM_RAW);
 $firstletter = (in_array($firstletter, $alphabet, true)) ? $firstletter : '';
-$lastletter  = (in_array($lastletter,  $alphabet, true)) ? $lastletter  : '';
-$perpage     = optional_param('perpage',     25,  PARAM_INT);  // 0 = show all
-$page        = optional_param('page',        0,   PARAM_INT);
+$lastletter  = (in_array($lastletter, $alphabet, true)) ? $lastletter : '';
+$perpage     = optional_param('perpage', 25, PARAM_INT);  // 0 = show all
+$page        = optional_param('page', 0, PARAM_INT);
 
 $syscontext = context_system::instance();
 require_login();
@@ -53,10 +61,10 @@ $PAGE->set_title(get_string('statisticstitle', 'block_workload'));
 $PAGE->set_heading(get_string('statisticstitle', 'block_workload'));
 $PAGE->set_url('/blocks/workload/statistics.php', array_filter([
     'cohortid'    => $cohortid,
-    'weekfrom'    => $weekfrom,    'yearfrom'    => $yearfrom,
-    'weekto'      => $weekto,      'yearto'      => $yearto,
+    'weekfrom'    => $weekfrom, 'yearfrom'    => $yearfrom,
+    'weekto'      => $weekto, 'yearto'      => $yearto,
     'firstletter' => $firstletter, 'lastletter'  => $lastletter,
-    'perpage'     => ($perpage !== 25) ? $perpage : 0, // omit default
+    'perpage'     => ($perpage !== 25) ? $perpage : 0, // Omit default.
     'page'        => $page,
 ]));
 
@@ -69,23 +77,23 @@ if ($coursemode === 'enrollment') {
     $cohortid = 0;
 }
 
-// ---- Cohort options (cohort mode only) ------------------------------------
+// Cohort options (cohort mode only).
 $allcohorts = ($coursemode === 'cohort') ? $DB->get_records('block_workload_cohorts', null, 'name ASC') : [];
 $cohortopts = [0 => get_string('allcohorts', 'block_workload')];
 foreach ($allcohorts as $c) {
     $cohortopts[$c->id] = format_string($c->name) . ' – ' . format_string($c->degree_program);
 }
 
-// ---- Shared filter shortcuts ----------------------------------------------
+// Shared filter shortcuts.
 $wf = $weekfrom ?: null;
 $yf = $yearfrom ?: null;
-$wt = $weekto   ?: null;
-$yt = $yearto   ?: null;
+$wt = $weekto ?: null;
+$yt = $yearto ?: null;
 
-// ---- CSV Export (fetch all, ignore letter/page filters) -------------------
+// CSV Export (fetch all, ignore letter/page filters).
 if ($export && has_capability('block/workload:export', $syscontext)) {
     if ($exporttype === 'detailed') {
-        $exportRows = \block_workload\helper::get_cohort_detailed_export($cohortid, $wf, $yf, $wt, $yt);
+        $exportrows = \block_workload\helper::get_cohort_detailed_export($cohortid, $wf, $yf, $wt, $yt);
 
         $filename = get_string('exportfilenamedetailed', 'block_workload') . '_' . date('Ymd_His') . '.csv';
         header('Content-Type: text/csv; charset=utf-8');
@@ -93,17 +101,17 @@ if ($export && has_capability('block/workload:export', $syscontext)) {
         header('Pragma: no-cache');
 
         $out = fopen('php://output', 'w');
-        fwrite($out, "\xEF\xBB\xBF"); // UTF-8 BOM for Excel
+        fwrite($out, "\xEF\xBB\xBF"); // UTF-8 BOM for Excel.
         fputcsv($out, [
-            get_string('student',     'block_workload'),
+            get_string('student', 'block_workload'),
             get_string('email'),
             get_string('department'),
             get_string('institution'),
-            get_string('course',      'block_workload'),
-            get_string('role',        'block_workload'),
+            get_string('course', 'block_workload'),
+            get_string('role', 'block_workload'),
             get_string('coursehours', 'block_workload'),
         ]);
-        foreach ($exportRows as $r) {
+        foreach ($exportrows as $r) {
             fputcsv($out, [
                 $r->firstname . ' ' . $r->lastname,
                 $r->email,
@@ -116,7 +124,7 @@ if ($export && has_capability('block/workload:export', $syscontext)) {
         }
         fclose($out);
     } else {
-        $exportUsers = \block_workload\helper::get_cohort_top_users($cohortid, 0, $wf, $yf, $wt, $yt);
+        $exportusers = \block_workload\helper::get_cohort_top_users($cohortid, 0, $wf, $yf, $wt, $yt);
 
         $filename = get_string('exportfilename', 'block_workload') . '_' . date('Ymd_His') . '.csv';
         header('Content-Type: text/csv; charset=utf-8');
@@ -124,17 +132,17 @@ if ($export && has_capability('block/workload:export', $syscontext)) {
         header('Pragma: no-cache');
 
         $out = fopen('php://output', 'w');
-        fwrite($out, "\xEF\xBB\xBF"); // UTF-8 BOM for Excel
+        fwrite($out, "\xEF\xBB\xBF"); // UTF-8 BOM for Excel.
         fputcsv($out, [
-            get_string('student',      'block_workload'),
+            get_string('student', 'block_workload'),
             get_string('email'),
             get_string('department'),
             get_string('institution'),
-            get_string('totalhours',   'block_workload'),
-            get_string('weeksactive',  'block_workload'),
+            get_string('totalhours', 'block_workload'),
+            get_string('weeksactive', 'block_workload'),
             get_string('averagehours', 'block_workload'),
         ]);
-        foreach ($exportUsers as $r) {
+        foreach ($exportusers as $r) {
             $avg = $r->weeksactive > 0 ? round((float)$r->totalhours / (int)$r->weeksactive, 2) : 0;
             fputcsv($out, [
                 $r->firstname . ' ' . $r->lastname,
@@ -151,98 +159,110 @@ if ($export && has_capability('block/workload:export', $syscontext)) {
     exit;
 }
 
-// ---- Fetch display data (only after filter form submitted) ----------------
-$weeklyTotals = [];
-$topUsers     = [];   // top 10 for pie chart (no letter filter)
-$tableUsers   = [];   // paginated + letter-filtered for the table
-$totalcount   = 0;    // total matching table rows (for paging bar)
+// Fetch display data (only after filter form submitted).
+$weeklytotals = [];
+$topusers     = [];
+$tableusers   = [];
+$totalcount   = 0;
 $kpis         = null;
 
 if ($submitted) {
     // Charts & KPIs: always full/unfiltered aggregate.
-    $weeklyTotals = \block_workload\helper::get_cohort_weekly_totals($cohortid, $wf, $yf, $wt, $yt);
-    $topUsers     = \block_workload\helper::get_cohort_top_users($cohortid, 10, $wf, $yf, $wt, $yt);
+    $weeklytotals = \block_workload\helper::get_cohort_weekly_totals($cohortid, $wf, $yf, $wt, $yt);
+    $topusers     = \block_workload\helper::get_cohort_top_users($cohortid, 10, $wf, $yf, $wt, $yt);
     $kpis         = \block_workload\helper::get_cohort_overview_kpis($cohortid, $wf, $yf, $wt, $yt);
 
     // Table: letter-filtered, paginated – only load what we actually display.
     $totalcount   = \block_workload\helper::get_cohort_top_users_count(
-        $cohortid, $wf, $yf, $wt, $yt, $firstletter, $lastletter
+        $cohortid,
+        $wf,
+        $yf,
+        $wt,
+        $yt,
+        $firstletter,
+        $lastletter
     );
     $perpageeff   = ($perpage > 0) ? $perpage : 0;
     $offseteff    = ($perpage > 0) ? max(0, $page) * $perpage : 0;
-    $tableUsers   = \block_workload\helper::get_cohort_top_users(
-        $cohortid, $perpageeff, $wf, $yf, $wt, $yt, $firstletter, $lastletter, $offseteff
+    $tableusers   = \block_workload\helper::get_cohort_top_users(
+        $cohortid,
+        $perpageeff,
+        $wf,
+        $yf,
+        $wt,
+        $yt,
+        $firstletter,
+        $lastletter,
+        $offseteff
     );
 }
 
-// ---- Build charts ---------------------------------------------------------
-$chartWeekAvg   = null;   // avg hrs per active student per week
-$chartWeekUsers = null;   // active student count per week
-$chartTopUsers  = null;
+// Build charts.
+$chartweekavg   = null;
+$chartweekusers = null;
+$charttopusers  = null;
 
-if ($submitted && !empty($weeklyTotals)) {
-    $weekLabels = [];
-    $avgValues  = [];
-    $userValues = [];
+if ($submitted && !empty($weeklytotals)) {
+    $weeklabels = [];
+    $avgvalues  = [];
+    $uservalues = [];
 
-    foreach ($weeklyTotals as $row) {
-        $weekLabels[] = sprintf('%04d-%02d', (int)$row->year, (int)$row->weeknumber);
+    foreach ($weeklytotals as $row) {
+        $weeklabels[] = sprintf('%04d-%02d', (int)$row->year, (int)$row->weeknumber);
         $uc           = max(1, (int)$row->usercount);
-        $avgValues[]  = round((float)$row->totalhours / $uc, 2);
-        $userValues[] = $uc;
+        $avgvalues[]  = round((float)$row->totalhours / $uc, 2);
+        $uservalues[] = $uc;
     }
 
-    $multiWeek = count($weekLabels) > 12;
+    $multiweek = count($weeklabels) > 12;
 
     // Chart 1 – avg hrs / student.
-    if ($multiWeek) {
-        $chartWeekAvg = new \core\chart_line();
-        $chartWeekAvg->set_smooth(true);
+    if ($multiweek) {
+        $chartweekavg = new \core\chart_line();
+        $chartweekavg->set_smooth(true);
     } else {
-        $chartWeekAvg = new \core\chart_bar();
+        $chartweekavg = new \core\chart_bar();
     }
-    $chartWeekAvg->set_title(get_string('avghrsperstudent', 'block_workload'));
-    $seriesAvg = new \core\chart_series(get_string('avghrsperstudent', 'block_workload'), $avgValues);
-    $yAvg = new \core\chart_axis();
-    $yAvg->set_min(0);
-    $chartWeekAvg->add_series($seriesAvg);
-    $chartWeekAvg->set_labels($weekLabels);
-    $chartWeekAvg->set_yaxis($yAvg, 0);
+    $chartweekavg->set_title(get_string('avghrsperstudent', 'block_workload'));
+    $seriesavg = new \core\chart_series(get_string('avghrsperstudent', 'block_workload'), $avgvalues);
+    $yavg = new \core\chart_axis();
+    $yavg->set_min(0);
+    $chartweekavg->add_series($seriesavg);
+    $chartweekavg->set_labels($weeklabels);
+    $chartweekavg->set_yaxis($yavg, 0);
 
     // Chart 2 – active students.
-    if ($multiWeek) {
-        $chartWeekUsers = new \core\chart_line();
-        $chartWeekUsers->set_smooth(true);
+    if ($multiweek) {
+        $chartweekusers = new \core\chart_line();
+        $chartweekusers->set_smooth(true);
     } else {
-        $chartWeekUsers = new \core\chart_bar();
+        $chartweekusers = new \core\chart_bar();
     }
-    $chartWeekUsers->set_title(get_string('activestudents', 'block_workload'));
-    $seriesUsers = new \core\chart_series(get_string('activestudents', 'block_workload'), $userValues);
-    $yUsers = new \core\chart_axis();
-    $yUsers->set_min(0);
-    $chartWeekUsers->add_series($seriesUsers);
-    $chartWeekUsers->set_labels($weekLabels);
-    $chartWeekUsers->set_yaxis($yUsers, 0);
+    $chartweekusers->set_title(get_string('activestudents', 'block_workload'));
+    $seriesusers = new \core\chart_series(get_string('activestudents', 'block_workload'), $uservalues);
+    $yusers = new \core\chart_axis();
+    $yusers->set_min(0);
+    $chartweekusers->add_series($seriesusers);
+    $chartweekusers->set_labels($weeklabels);
+    $chartweekusers->set_yaxis($yusers, 0);
 }
 
-if ($submitted && !empty($topUsers)) {
+if ($submitted && !empty($topusers)) {
     $truncate  = fn($s) => mb_strlen($s) > 35 ? mb_substr($s, 0, 33) . "\xe2\x80\xa6" : $s;
-    $pieLabels = [];
-    $pieValues = [];
-    foreach ($topUsers as $r) {
-        $pieLabels[] = $truncate($r->firstname . ' ' . $r->lastname);
-        $pieValues[] = (float) $r->totalhours;
+    $pielabels = [];
+    $pievalues = [];
+    foreach ($topusers as $r) {
+        $pielabels[] = $truncate($r->firstname . ' ' . $r->lastname);
+        $pievalues[] = (float) $r->totalhours;
     }
-    $chartTopUsers = new \core\chart_pie();
-    $chartTopUsers->set_title(get_string('topstudents', 'block_workload', count($topUsers)));
-    $seriesTop = new \core\chart_series(get_string('totalhours', 'block_workload'), $pieValues);
-    $chartTopUsers->add_series($seriesTop);
-    $chartTopUsers->set_labels($pieLabels);
+    $charttopusers = new \core\chart_pie();
+    $charttopusers->set_title(get_string('topstudents', 'block_workload', count($topusers)));
+    $seriestop = new \core\chart_series(get_string('totalhours', 'block_workload'), $pievalues);
+    $charttopusers->add_series($seriestop);
+    $charttopusers->set_labels($pielabels);
 }
 
-// ==========================================================================
-// HTML Output
-// ==========================================================================
+// HTML Output.
 echo $OUTPUT->header();
 
 echo html_writer::link(
@@ -252,9 +272,9 @@ echo html_writer::link(
 );
 
 
-// ---- Live student search (above filter panel) ----------------------------
-$noResultsJson = json_encode(get_string('nouserfound', 'block_workload'));
-$viewStudentJson = json_encode(get_string('viewstudent', 'block_workload') . ' →');
+// Live student search (above filter panel).
+$noresultsjson = json_encode(get_string('nouserfound', 'block_workload'));
+$viewstudentjson = json_encode(get_string('viewstudent', 'block_workload') . ' →');
 
 echo '<div class="card p-3 mb-3">';
 echo '<label class="form-label small fw-semibold mb-2" for="wl-usersearch">'
@@ -284,7 +304,7 @@ echo html_writer::script(
     "btn=document.getElementById('wl-usersearch-btn')," .
     "clr=document.getElementById('wl-usersearch-clear')," .
     "timer=null," .
-    "noRes=" . $noResultsJson . ";" .
+    "noRes=" . $noresultsjson . ";" .
 
     "function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;');}" .
 
@@ -376,7 +396,7 @@ echo html_writer::script(
     "})()"
 );
 
-// ---- Filter form ----------------------------------------------------------
+// Filter form.
 echo html_writer::start_tag('form', [
     'method' => 'get', 'action' => '',
     'class'  => 'card p-3 mb-4',
@@ -387,10 +407,18 @@ echo html_writer::start_div('row g-3 align-items-end');
 // Cohort selector (cohort mode only).
 if ($coursemode === 'cohort') {
     echo html_writer::start_div('col-12 col-sm-auto');
-    echo html_writer::tag('label', get_string('selectcohort', 'block_workload'),
-        ['for' => 'wl-cohortid', 'class' => 'form-label small fw-semibold']);
-    echo html_writer::select($cohortopts, 'cohortid', $cohortid, false,
-        ['id' => 'wl-cohortid', 'class' => 'form-select', 'style' => 'min-width:220px;']);
+    echo html_writer::tag(
+        'label',
+        get_string('selectcohort', 'block_workload'),
+        ['for' => 'wl-cohortid', 'class' => 'form-label small fw-semibold']
+    );
+    echo html_writer::select(
+        $cohortopts,
+        'cohortid',
+        $cohortid,
+        false,
+        ['id' => 'wl-cohortid', 'class' => 'form-select', 'style' => 'min-width:220px;']
+    );
     echo html_writer::end_div();
 } else {
     echo html_writer::empty_tag('input', ['type' => 'hidden', 'id' => 'wl-cohortid', 'value' => '0']);
@@ -398,8 +426,11 @@ if ($coursemode === 'cohort') {
 
 // From week / year.
 echo html_writer::start_div('col-auto');
-echo html_writer::tag('label', get_string('datefrom', 'block_workload'),
-    ['class' => 'form-label small fw-semibold d-block']);
+echo html_writer::tag(
+    'label',
+    get_string('datefrom', 'block_workload'),
+    ['class' => 'form-label small fw-semibold d-block']
+);
 echo html_writer::start_div('d-flex align-items-center gap-1');
 echo html_writer::empty_tag('input', [
     'type' => 'number', 'name' => 'weekfrom', 'id' => 'weekfrom',
@@ -418,8 +449,11 @@ echo html_writer::end_div();
 
 // To week / year.
 echo html_writer::start_div('col-auto');
-echo html_writer::tag('label', get_string('dateto', 'block_workload'),
-    ['class' => 'form-label small fw-semibold d-block']);
+echo html_writer::tag(
+    'label',
+    get_string('dateto', 'block_workload'),
+    ['class' => 'form-label small fw-semibold d-block']
+);
 echo html_writer::start_div('d-flex align-items-center gap-1');
 echo html_writer::empty_tag('input', [
     'type' => 'number', 'name' => 'weekto', 'id' => 'weekto',
@@ -446,26 +480,29 @@ echo html_writer::empty_tag('input', [
 ]);
 echo html_writer::end_div();
 
-echo html_writer::end_div(); // .row
+echo html_writer::end_div();
 echo html_writer::end_tag('form');
 
-// ---- Results area ---------------------------------------------------------
-if (empty($tableUsers) && empty($weeklyTotals)) {
+// Results area.
+if (empty($tableusers) && empty($weeklytotals)) {
     echo $OUTPUT->notification(get_string('nostatsfound', 'block_workload'), 'info');
 } else {
-
     // Export button – opens a native Moodle modal (same as Edit Cohort) to choose export type.
     if (has_capability('block/workload:export', $syscontext)) {
         $exportbase = [
             'cohortid' => $cohortid,
             'weekfrom' => $weekfrom, 'yearfrom' => $yearfrom,
-            'weekto'   => $weekto,   'yearto'   => $yearto,
+            'weekto'   => $weekto, 'yearto'   => $yearto,
             'export'   => 1,
         ];
-        $quickurl    = (new moodle_url('/blocks/workload/statistics.php',
-                           array_merge($exportbase, ['exporttype' => 'quick'])))->out(false);
-        $detailedurl = (new moodle_url('/blocks/workload/statistics.php',
-                           array_merge($exportbase, ['exporttype' => 'detailed'])))->out(false);
+        $quickurl    = (new moodle_url(
+            '/blocks/workload/statistics.php',
+            array_merge($exportbase, ['exporttype' => 'quick'])
+        ))->out(false);
+        $detailedurl = (new moodle_url(
+            '/blocks/workload/statistics.php',
+            array_merge($exportbase, ['exporttype' => 'detailed'])
+        ))->out(false);
 
         $PAGE->requires->js_amd_inline("
 require(['core/modal_factory', 'jquery'], function(ModalFactory, \$) {
@@ -490,7 +527,8 @@ require(['core/modal_factory', 'jquery'], function(ModalFactory, \$) {
         ");
 
         echo html_writer::div(
-            html_writer::tag('button',
+            html_writer::tag(
+                'button',
                 '&#8595;&nbsp;' . get_string('exportcsv', 'block_workload'),
                 [
                     'type'                => 'button',
@@ -498,10 +536,10 @@ require(['core/modal_factory', 'jquery'], function(ModalFactory, \$) {
                     'data-wl-exportmodal' => '1',
                     'data-quick-url'      => $quickurl,
                     'data-detail-url'     => $detailedurl,
-                    'data-title'          => get_string('exportchoice',        'block_workload'),
-                    'data-label-quick'    => get_string('exportquick',         'block_workload'),
-                    'data-label-detail'   => get_string('exportdetailed',      'block_workload'),
-                    'data-desc-quick'     => get_string('exportquick_desc',    'block_workload'),
+                    'data-title'          => get_string('exportchoice', 'block_workload'),
+                    'data-label-quick'    => get_string('exportquick', 'block_workload'),
+                    'data-label-detail'   => get_string('exportdetailed', 'block_workload'),
+                    'data-desc-quick'     => get_string('exportquick_desc', 'block_workload'),
                     'data-desc-detail'    => get_string('exportdetailed_desc', 'block_workload'),
                 ]
             ),
@@ -509,19 +547,24 @@ require(['core/modal_factory', 'jquery'], function(ModalFactory, \$) {
         );
     }
 
-    // ---- KPI cards ---------------------------------------------------------
+    // KPI cards.
     if ($kpis) {
         echo html_writer::start_div('row g-3 mb-4');
-        foreach ([
-            [(string)(int)$kpis->usercount,             get_string('students',    'block_workload')],
-            [(string)(int)$kpis->coursecount,            get_string('courses',     'block_workload')],
-            [(string)(int)$kpis->weekcount,              get_string('weeksactive', 'block_workload')],
-            [number_format((float)$kpis->totalhours, 1), get_string('totalhours',  'block_workload')],
-        ] as [$val, $lbl]) {
+        foreach (
+            [
+            [(string)(int)$kpis->usercount, get_string('students', 'block_workload')],
+            [(string)(int)$kpis->coursecount, get_string('courses', 'block_workload')],
+            [(string)(int)$kpis->weekcount, get_string('weeksactive', 'block_workload')],
+            [number_format((float)$kpis->totalhours, 1), get_string('totalhours', 'block_workload')],
+            ] as [$val, $lbl]
+        ) {
             echo html_writer::start_div('col-6 col-md-3');
             echo '<div class="card text-center p-3 h-100 shadow-sm wl-kpi-card">';
-            echo html_writer::tag('div', $val,
-                ['class' => 'display-6 fw-bold text-primary lh-1 mb-1']);
+            echo html_writer::tag(
+                'div',
+                $val,
+                ['class' => 'display-6 fw-bold text-primary lh-1 mb-1']
+            );
             echo html_writer::tag('div', $lbl, ['class' => 'text-muted small']);
             echo '</div>';
             echo html_writer::end_div();
@@ -529,61 +572,67 @@ require(['core/modal_factory', 'jquery'], function(ModalFactory, \$) {
         echo html_writer::end_div();
     }
 
-    // ---- Weekly charts (side by side) -------------------------------------
-    if ($chartWeekAvg !== null || $chartWeekUsers !== null) {
+    // Weekly charts (side by side).
+    if ($chartweekavg !== null || $chartweekusers !== null) {
         echo html_writer::start_div('row g-4 mb-4');
-        foreach ([$chartWeekAvg, $chartWeekUsers] as $wChart) {
-            if ($wChart === null) continue;
+        foreach ([$chartweekavg, $chartweekusers] as $wchart) {
+            if ($wchart === null) {
+                continue;
+            }
             echo html_writer::start_div('col-12 col-md-6');
             echo '<div class="wl-chart-card card shadow-sm" style="overflow:hidden;">';
             echo '<div class="card-body p-3">';
-            echo $OUTPUT->render($wChart);
+            echo $OUTPUT->render($wchart);
             echo '</div></div>';
             echo html_writer::end_div();
         }
         echo html_writer::end_div();
     }
 
-    // ---- Top students pie chart -------------------------------------------
-    if ($chartTopUsers !== null) {
+    // Top students pie chart.
+    if ($charttopusers !== null) {
         echo '<div class="wl-chart-card card shadow-sm mb-4" style="overflow:hidden;">';
         echo '<div class="card-body p-3">';
-        echo $OUTPUT->render($chartTopUsers);
+        echo $OUTPUT->render($charttopusers);
         echo '</div></div>';
     }
 
-    // ---- Students table with A-Z filters and pagination -------------------
-    $tableHeading = get_string('students', 'block_workload');
+    // Students table with A-Z filters and pagination.
+    $tableheading = get_string('students', 'block_workload');
     if ($totalcount > 0) {
-        $tableHeading .= ' (' . $totalcount . ')';
+        $tableheading .= ' (' . $totalcount . ')';
     }
-    echo html_writer::tag('h5', $tableHeading, ['class' => 'mt-2 mb-3']);
+    echo html_writer::tag('h5', $tableheading, ['class' => 'mt-2 mb-3']);
 
     // Base URL for letter-filter and per-page links.
     // These preserve cohort + date range + submitted flag but reset page to 0.
     $filterbase = new moodle_url('/blocks/workload/statistics.php', [
         'cohortid'  => $cohortid,
         'weekfrom'  => $weekfrom, 'yearfrom' => $yearfrom,
-        'weekto'    => $weekto,   'yearto'   => $yearto,
+        'weekto'    => $weekto, 'yearto'   => $yearto,
         'submitted' => 1,
     ]);
 
     // A-Z letter bars – same initialbar / pagination markup as manage.php members.
-    foreach ([
+    foreach (
+        [
         ['firstinitial', get_string('firstname'), 'firstletter', $firstletter, $lastletter],
-        ['lastinitial',  get_string('lastname'),  'lastletter',  $lastletter,  $firstletter],
-    ] as [$bartype, $barlabel, $param, $current, $other]) {
+        ['lastinitial', get_string('lastname'), 'lastletter', $lastletter, $firstletter],
+        ] as [$bartype, $barlabel, $param, $current, $other]
+    ) {
         $otherparam = ($param === 'firstletter') ? 'lastletter' : 'firstletter';
 
         echo '<div class="initialbar ' . $bartype . ' d-flex flex-wrap justify-content-center justify-content-md-start mb-2">';
         echo '<span class="initialbarlabel me-2">' . $barlabel . '</span>';
         echo '<nav class="initialbargroups d-flex flex-wrap justify-content-center justify-content-md-start">';
 
-        // "All" in its own UL.
+        // The "All" link in its own UL.
         $u = new moodle_url($filterbase, [$param => '', $otherparam => $other, 'perpage' => $perpage, 'page' => 0]);
         echo '<ul class="pagination pagination-sm">';
         echo '<li id="' . $bartype . '_page-item_All" class="initialbarall page-item' . ($current === '' ? ' active' : '') . '">';
-        echo '<a data-initial="" class="page-link" href="' . $u->out() . '"' . ($current === '' ? ' aria-current="true"' : '') . '>' . get_string('all') . '</a>';
+        $ariacurrent = ($current === '') ? ' aria-current="true"' : '';
+        echo '<a data-initial="" class="page-link" href="' . $u->out() . '"'
+            . $ariacurrent . '>' . get_string('all') . '</a>';
         echo '</li></ul>';
 
         // Letters from the current language alphabet in a second UL.
@@ -591,8 +640,11 @@ require(['core/modal_factory', 'jquery'], function(ModalFactory, \$) {
         foreach ($alphabet as $l) {
             $u2     = new moodle_url($filterbase, [$param => $l, $otherparam => $other, 'perpage' => $perpage, 'page' => 0]);
             $active = ($current === $l);
-            echo '<li id="' . $bartype . '_page-item_' . $l . '" data-initial="' . $l . '" class="page-item ' . $l . ($active ? ' active' : '') . '">';
-            echo '<a class="page-link" href="' . $u2->out() . '"' . ($active ? ' aria-current="true"' : '') . '>' . $l . '</a>';
+            $liclass = 'page-item ' . $l . ($active ? ' active' : '');
+            echo '<li id="' . $bartype . '_page-item_' . $l . '" data-initial="' . $l . '"'
+                . ' class="' . $liclass . '">';
+            $ariacurrentl = $active ? ' aria-current="true"' : '';
+            echo '<a class="page-link" href="' . $u2->out() . '"' . $ariacurrentl . '>' . $l . '</a>';
             echo '</li>';
         }
         echo '</ul>';
@@ -600,7 +652,8 @@ require(['core/modal_factory', 'jquery'], function(ModalFactory, \$) {
     }
 
     // Per-page selector.
-    $perpageHtml = html_writer::tag('span',
+    $perpagehtml = html_writer::tag(
+        'span',
         get_string('perpage', 'block_workload') . ': ',
         ['class' => 'small fw-semibold me-1']
     );
@@ -613,35 +666,35 @@ require(['core/modal_factory', 'jquery'], function(ModalFactory, \$) {
             'lastletter'  => $lastletter,
         ];
         if ($active) {
-            $perpageHtml .= html_writer::tag('strong', $lbl, ['class' => 'me-2']);
+            $perpagehtml .= html_writer::tag('strong', $lbl, ['class' => 'me-2']);
         } else {
-            $perpageHtml .= html_writer::link(
+            $perpagehtml .= html_writer::link(
                 new moodle_url($filterbase, $ppparams),
                 $lbl,
                 ['class' => 'me-2 small']
             );
         }
     }
-    echo html_writer::div($perpageHtml, 'mb-3 small');
+    echo html_writer::div($perpagehtml, 'mb-3 small');
 
     // Table.
     $viewbase = new moodle_url('/blocks/workload/mystats.php', array_filter([
         'weekfrom' => $weekfrom, 'yearfrom' => $yearfrom,
-        'weekto'   => $weekto,   'yearto'   => $yearto,
+        'weekto'   => $weekto, 'yearto'   => $yearto,
     ]));
 
     $table             = new html_table();
     $table->head       = [
-        get_string('student',      'block_workload'),
+        get_string('student', 'block_workload'),
         get_string('email'),
-        get_string('totalhours',   'block_workload'),
-        get_string('weeksactive',  'block_workload'),
+        get_string('totalhours', 'block_workload'),
+        get_string('weeksactive', 'block_workload'),
         get_string('averagehours', 'block_workload'),
         '',
     ];
     $table->attributes = ['class' => 'generaltable table-sm table-striped table-hover'];
 
-    if (empty($tableUsers)) {
+    if (empty($tableusers)) {
         $emptyrow = new html_table_row();
         $emptycel = new html_table_cell();
         $emptycel->colspan = 6;
@@ -650,7 +703,7 @@ require(['core/modal_factory', 'jquery'], function(ModalFactory, \$) {
         $emptyrow->cells   = [$emptycel];
         $table->data[]     = $emptyrow;
     } else {
-        foreach ($tableUsers as $r) {
+        foreach ($tableusers as $r) {
             $avg      = $r->weeksactive > 0
                 ? round((float)$r->totalhours / (int)$r->weeksactive, 1)
                 : 0;
@@ -662,7 +715,8 @@ require(['core/modal_factory', 'jquery'], function(ModalFactory, \$) {
                 number_format((float)$r->totalhours, 1),
                 (int)$r->weeksactive,
                 number_format($avg, 1),
-                html_writer::link($viewurl,
+                html_writer::link(
+                    $viewurl,
                     get_string('viewstudent', 'block_workload') . ' &rarr;',
                     ['class' => 'btn btn-outline-secondary btn-sm text-nowrap']
                 ),

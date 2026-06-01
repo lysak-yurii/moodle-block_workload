@@ -1,10 +1,18 @@
 <?php
-// This file is part of Moodle - http://moodle.org/
+// This file is part of Moodle - http://moodle.org/.
 //
-// Moodle is free software: you can redistribute it and/or modify
+// Moodle is free software: you can redistribute it and/or modify.
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,.
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the.
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License.
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
  * Quality Manager – enrollment-mode student course management.
@@ -25,22 +33,22 @@
 
 require_once('../../config.php');
 
-$userid   = optional_param('userid',   0, PARAM_INT);
-$action   = optional_param('action',   '', PARAM_ALPHA);
+$userid   = optional_param('userid', 0, PARAM_INT);
+$action   = optional_param('action', '', PARAM_ALPHA);
 $courseid = optional_param('courseid', 0, PARAM_INT);
 
 // A-Z filters for the student list.
 $alphabet    = explode(',', get_string('alphabet', 'langconfig'));
 $firstletter = optional_param('firstletter', '', PARAM_RAW);
-$lastletter  = optional_param('lastletter',  '', PARAM_RAW);
+$lastletter  = optional_param('lastletter', '', PARAM_RAW);
 $firstletter = in_array($firstletter, $alphabet, true) ? $firstletter : '';
-$lastletter  = in_array($lastletter,  $alphabet, true) ? $lastletter  : '';
+$lastletter  = in_array($lastletter, $alphabet, true) ? $lastletter : '';
 $perpage     = optional_param('perpage', 25, PARAM_INT);
-$page        = optional_param('page',    0,  PARAM_INT);
+$page        = optional_param('page', 0, PARAM_INT);
 
 // Category browser (for add-course panel in detail view).
-$catid   = optional_param('catid',    0, PARAM_INT);
-$confirm = optional_param('confirm',  0, PARAM_BOOL);
+$catid   = optional_param('catid', 0, PARAM_INT);
+$confirm = optional_param('confirm', 0, PARAM_BOOL);
 
 $syscontext = context_system::instance();
 require_login();
@@ -68,11 +76,9 @@ $PAGE->navbar->add(
 );
 $PAGE->navbar->add(get_string('enrollmentmodemanage', 'block_workload'));
 
-// =========================================================================
 // State-changing actions – Moodle confirm() pattern.
-// Actions that are destructive (exclude, removecourse) show a Moodle
-// confirmation page first; safe actions (restore, addcourse) execute directly.
-// =========================================================================
+// Actions that are destructive (exclude, removecourse) show a Moodle.
+// Confirmation page first; safe actions (restore, addcourse) execute directly.
 if ($action && $userid && $courseid) {
     global $OUTPUT, $DB;
 
@@ -81,13 +87,15 @@ if ($action && $userid && $courseid) {
     $course    = $DB->get_record('course', ['id' => $courseid], 'id, fullname', MUST_EXIST);
 
     switch ($action) {
-
         case 'exclude':
             if ($confirm && confirm_sesskey()) {
                 \block_workload\helper::save_user_course_override($userid, $courseid, 0);
-                redirect($detailurl,
+                redirect(
+                    $detailurl,
                     get_string('courseexcluded', 'block_workload'),
-                    null, \core\output\notification::NOTIFY_SUCCESS);
+                    null,
+                    \core\output\notification::NOTIFY_SUCCESS
+                );
             }
             $PAGE->set_title(get_string('excludecourse', 'block_workload'));
             $PAGE->set_heading(get_string('excludecourse', 'block_workload'));
@@ -106,9 +114,12 @@ if ($action && $userid && $courseid) {
         case 'removecourse':
             if ($confirm && confirm_sesskey()) {
                 \block_workload\helper::remove_user_course_override($userid, $courseid);
-                redirect($detailurl,
+                redirect(
+                    $detailurl,
                     get_string('courseremoved', 'block_workload'),
-                    null, \core\output\notification::NOTIFY_SUCCESS);
+                    null,
+                    \core\output\notification::NOTIFY_SUCCESS
+                );
             }
             $PAGE->set_title(get_string('removecourse', 'block_workload'));
             $PAGE->set_heading(get_string('removecourse', 'block_workload'));
@@ -127,22 +138,27 @@ if ($action && $userid && $courseid) {
         case 'restore':
             require_sesskey();
             \block_workload\helper::remove_user_course_override($userid, $courseid);
-            redirect($detailurl,
+            redirect(
+                $detailurl,
                 get_string('courserestored', 'block_workload'),
-                null, \core\output\notification::NOTIFY_SUCCESS);
+                null,
+                \core\output\notification::NOTIFY_SUCCESS
+            );
 
+            // No break needed: fall through.
         case 'addcourse':
             require_sesskey();
             \block_workload\helper::save_user_course_override($userid, $courseid, 1);
-            redirect(new moodle_url($detailurl, ['catid' => $catid]),
+            redirect(
+                new moodle_url($detailurl, ['catid' => $catid]),
                 get_string('courseadded', 'block_workload'),
-                null, \core\output\notification::NOTIFY_SUCCESS);
+                null,
+                \core\output\notification::NOTIFY_SUCCESS
+            );
     }
 }
 
-// =========================================================================
 // Bulk-add courses (POST form with checkboxes).
-// =========================================================================
 $bulkaddcourses = optional_param('bulkaddcourses', 0, PARAM_BOOL);
 if ($bulkaddcourses && $userid && confirm_sesskey()) {
     $addcourseids = optional_param_array('addcourseids', [], PARAM_INT);
@@ -157,20 +173,19 @@ if ($bulkaddcourses && $userid && confirm_sesskey()) {
     redirect(
         new moodle_url('/blocks/workload/manage_enrollment.php', ['userid' => $userid, 'catid' => $catid]),
         get_string('coursesadded', 'block_workload', $added),
-        null, \core\output\notification::NOTIFY_SUCCESS
+        null,
+        \core\output\notification::NOTIFY_SUCCESS
     );
 }
 
-// =========================================================================
 // Unified bulk action handler (exclude / restore / remove).
 //
-// IDs are pre-filtered by course type at intercept time so that:
-//  - exclude  → only enrolled courses that are currently included
-//  - restore  → only enrolled courses that are currently excluded
-//  - remove   → only manager-added courses (not enrolled)
-// This means the confirm page always shows the true affected count, and
-// selecting "all" can never accidentally touch the wrong course type.
-// =========================================================================
+// IDs are pre-filtered by course type at intercept time so that:.
+// Exclude  → only enrolled courses that are currently included.
+// Restore  → only enrolled courses that are currently excluded.
+// - remove   → only manager-added courses (not enrolled)
+// This means the confirm page always shows the true affected count, and.
+// Selecting "all" can never accidentally touch the wrong course type.
 $bulkaction = optional_param('bulkaction', '', PARAM_ALPHA);
 $courseids  = optional_param_array('courseids', [], PARAM_INT);
 
@@ -190,8 +205,12 @@ if ($bulkaction && $userid && !empty($courseids)) {
                     $affected++;
                 }
             }
-            redirect($detailurl, get_string('coursesrestored', 'block_workload', $affected),
-                null, \core\output\notification::NOTIFY_SUCCESS);
+            redirect(
+                $detailurl,
+                get_string('coursesrestored', 'block_workload', $affected),
+                null,
+                \core\output\notification::NOTIFY_SUCCESS
+            );
         }
     }
 
@@ -243,21 +262,29 @@ if ($confirmbulkids !== '' && $confirmbulkact) {
             foreach ($ids as $cid) {
                 \block_workload\helper::save_user_course_override($userid, $cid, 0);
             }
-            redirect($detailurl, get_string('coursesexcluded', 'block_workload', count($ids)),
-                null, \core\output\notification::NOTIFY_SUCCESS);
+            redirect(
+                $detailurl,
+                get_string('coursesexcluded', 'block_workload', count($ids)),
+                null,
+                \core\output\notification::NOTIFY_SUCCESS
+            );
         }
         if ($confirmbulkact === 'remove') {
             foreach ($ids as $cid) {
                 \block_workload\helper::remove_user_course_override($userid, $cid);
             }
-            redirect($detailurl, get_string('coursesremoved', 'block_workload', count($ids)),
-                null, \core\output\notification::NOTIFY_SUCCESS);
+            redirect(
+                $detailurl,
+                get_string('coursesremoved', 'block_workload', count($ids)),
+                null,
+                \core\output\notification::NOTIFY_SUCCESS
+            );
         }
     }
 
     // Show Moodle confirm page.
     $confirmstr = ($confirmbulkact === 'exclude')
-        ? get_string('confirmbulkexclude',     'block_workload', count($ids))
+        ? get_string('confirmbulkexclude', 'block_workload', count($ids))
         : get_string('confirmbulkremoveadded', 'block_workload', count($ids));
 
     $PAGE->set_title(get_string('enrollmenttitle_student', 'block_workload', ''));
@@ -278,22 +305,25 @@ if ($confirmbulkids !== '' && $confirmbulkact) {
     exit;
 }
 
-// =========================================================================
 // Detail view: one student's courses.
-// =========================================================================
 if ($userid) {
     render_student_detail($userid, $catid);
     exit;
 }
 
-// =========================================================================
 // List view: all students.
-// =========================================================================
 render_student_list($firstletter, $lastletter, $perpage, $page, $alphabet);
 
-// =========================================================================
 // List view renderer.
-// =========================================================================
+/**
+ * Render the enrollment mode student list page.
+ *
+ * @param string $firstletter
+ * @param string $lastletter
+ * @param int $perpage
+ * @param int $page
+ * @param array $alphabet
+ */
 function render_student_list(
     string $firstletter,
     string $lastletter,
@@ -310,7 +340,10 @@ function render_student_list(
     $perpageeff = ($perpage > 0) ? $perpage : 0;
     $offseteff  = ($perpage > 0) ? max(0, $page) * $perpage : 0;
     $students = \block_workload\helper::get_enrollment_mode_students(
-        $perpageeff, $offseteff, $firstletter, $lastletter
+        $perpageeff,
+        $offseteff,
+        $firstletter,
+        $lastletter
     );
 
     echo $OUTPUT->header();
@@ -324,9 +357,9 @@ function render_student_list(
         'mb-3 text-end'
     );
 
-    // ---- Live student search --------------------------------------------
-    $noResultsJson   = json_encode(get_string('nouserfound',  'block_workload'));
-    $manageCoursesJson = json_encode(get_string('managecourses', 'block_workload') . ' →');
+    // Live student search.
+    $noresultsjson   = json_encode(get_string('nouserfound', 'block_workload'));
+    $managecoursesjson = json_encode(get_string('managecourses', 'block_workload') . ' →');
 
     echo '<div class="card p-3 mb-3">';
     echo '<label class="form-label small fw-semibold mb-2" for="wl-enrol-search">'
@@ -355,7 +388,7 @@ function render_student_list(
         "btn=document.getElementById('wl-enrol-btn')," .
         "clr=document.getElementById('wl-enrol-clear')," .
         "timer=null," .
-        "noRes=" . $noResultsJson . ";" .
+        "noRes=" . $noresultsjson . ";" .
 
         "function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;');}" .
 
@@ -440,10 +473,12 @@ function render_student_list(
     $filterbase = new moodle_url('/blocks/workload/manage_enrollment.php');
 
     // A-Z letter bars.
-    foreach ([
+    foreach (
+        [
         ['firstinitial', get_string('firstname'), 'firstletter', $firstletter, $lastletter],
-        ['lastinitial',  get_string('lastname'),  'lastletter',  $lastletter,  $firstletter],
-    ] as [$bartype, $barlabel, $param, $current, $other]) {
+        ['lastinitial', get_string('lastname'), 'lastletter', $lastletter, $firstletter],
+        ] as [$bartype, $barlabel, $param, $current, $other]
+    ) {
         $otherparam = ($param === 'firstletter') ? 'lastletter' : 'firstletter';
 
         echo '<div class="initialbar ' . $bartype
@@ -466,25 +501,29 @@ function render_student_list(
     }
 
     // Per-page selector.
-    $ppHtml = html_writer::tag('span', get_string('perpage', 'block_workload') . ': ',
-        ['class' => 'small fw-semibold me-1']);
+    $pphtml = html_writer::tag(
+        'span',
+        get_string('perpage', 'block_workload') . ': ',
+        ['class' => 'small fw-semibold me-1']
+    );
     foreach ([25 => '25', 50 => '50', 100 => '100', 0 => get_string('showall', 'block_workload', $total)] as $opt => $lbl) {
         $active = ($opt == $perpage);
         $ppparams = ['perpage' => $opt, 'page' => 0, 'firstletter' => $firstletter, 'lastletter' => $lastletter];
         if ($active) {
-            $ppHtml .= html_writer::tag('strong', $lbl, ['class' => 'me-2']);
+            $pphtml .= html_writer::tag('strong', $lbl, ['class' => 'me-2']);
         } else {
-            $ppHtml .= html_writer::link(new moodle_url($filterbase, $ppparams), $lbl, ['class' => 'me-2 small']);
+            $pphtml .= html_writer::link(new moodle_url($filterbase, $ppparams), $lbl, ['class' => 'me-2 small']);
         }
     }
-    echo html_writer::div($ppHtml, 'mb-3 small');
+    echo html_writer::div($pphtml, 'mb-3 small');
 
     if (empty($students)) {
         echo $OUTPUT->notification(get_string('nostudentsfound', 'block_workload'), 'info');
     } else {
         $table             = new html_table();
         $colhead = function (string $colkey): string {
-            return html_writer::tag('span',
+            return html_writer::tag(
+                'span',
                 get_string($colkey, 'block_workload'),
                 ['title' => get_string($colkey . '_title', 'block_workload'),
                  'style' => 'cursor:help; border-bottom:1px dotted currentColor;']
@@ -517,7 +556,8 @@ function render_student_list(
                 $excluded,
                 $added,
                 $total,
-                html_writer::link($manageurl,
+                html_writer::link(
+                    $manageurl,
                     get_string('managecourses', 'block_workload') . ' &rarr;',
                     ['class' => 'btn btn-outline-secondary btn-sm text-nowrap']
                 ),
@@ -537,10 +577,14 @@ function render_student_list(
     echo $OUTPUT->footer();
 }
 
-// =========================================================================
 // Detail view renderer.
-// =========================================================================
 
+/**
+ * Render the enrollment mode student detail page.
+ *
+ * @param int $userid
+ * @param int $catid
+ */
 function render_student_detail(int $userid, int $catid): void {
     global $OUTPUT, $PAGE, $DB;
 
@@ -571,7 +615,7 @@ function render_student_detail(int $userid, int $catid): void {
     );
     echo html_writer::end_div();
 
-    // ---- Add Course(s) panel first (matches cohort courses page layout) --
+    // Add Course(s) panel first (matches cohort courses page layout).
     echo html_writer::tag('h5', get_string('addcoursesforstudent', 'block_workload'), ['class' => 'mt-2 mb-2']);
 
     // Category selector (GET form – just updates the page to show the category).
@@ -582,10 +626,18 @@ function render_student_detail(int $userid, int $catid): void {
     echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'userid', 'value' => $userid]);
     echo html_writer::start_div('d-flex align-items-end gap-2 flex-wrap');
     echo html_writer::start_div();
-    echo html_writer::tag('label', get_string('filterbycategory', 'block_workload'),
-        ['for' => 'wl-catid', 'class' => 'form-label small fw-semibold']);
-    echo html_writer::select($catopts, 'catid', $catid, false,
-        ['id' => 'wl-catid', 'class' => 'form-select', 'style' => 'min-width:260px;']);
+    echo html_writer::tag(
+        'label',
+        get_string('filterbycategory', 'block_workload'),
+        ['for' => 'wl-catid', 'class' => 'form-label small fw-semibold']
+    );
+    echo html_writer::select(
+        $catopts,
+        'catid',
+        $catid,
+        false,
+        ['id' => 'wl-catid', 'class' => 'form-select', 'style' => 'min-width:260px;']
+    );
     echo html_writer::end_div();
     echo html_writer::start_div('align-self-end');
     echo html_writer::empty_tag('input', [
@@ -603,25 +655,26 @@ function render_student_detail(int $userid, int $catid): void {
             echo $OUTPUT->notification(get_string('nocoursesincategory', 'block_workload'), 'info');
         } else {
             // Courses already shown (enrolled+not-excluded or force-added with active=1).
-            $shownIds = array_keys(array_filter(
+            $shownids = array_keys(array_filter(
                 $courses,
                 fn($c) => $c->enrolled
                     ? ($c->override_active === null || (int)$c->override_active === 1)
                     : (int)$c->override_active === 1
             ));
 
-            $alreadyCount = count(array_filter($available, fn($c) => in_array((int)$c->id, $shownIds)));
-            echo html_writer::tag('p',
+            $alreadycount = count(array_filter($available, fn($c) => in_array((int)$c->id, $shownids)));
+            echo html_writer::tag(
+                'p',
                 get_string('courseresultcount', 'block_workload', count($available))
-                . ($alreadyCount ? ', ' . get_string('alreadyassignedcount', 'block_workload', $alreadyCount) : ''),
+                . ($alreadycount ? ', ' . get_string('alreadyassignedcount', 'block_workload', $alreadycount) : ''),
                 ['class' => 'small text-muted mb-2']
             );
 
             // POST form for bulk-add.
             echo html_writer::start_tag('form', ['method' => 'post', 'action' => '']);
-            echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'userid',         'value' => $userid]);
-            echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'catid',          'value' => $catid]);
-            echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey',        'value' => sesskey()]);
+            echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'userid', 'value' => $userid]);
+            echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'catid', 'value' => $catid]);
+            echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()]);
             echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'bulkaddcourses', 'value' => '1']);
 
             // Master checkbox header cell.
@@ -638,27 +691,37 @@ function render_student_detail(int $userid, int $catid): void {
                 'checked'          => 'checked',
             ]);
 
-            $tableAdd             = new html_table();
-            $tableAdd->head       = [
+            $tableadd             = new html_table();
+            $tableadd->head       = [
                 $masterth,
-                get_string('course',          'block_workload'),
+                get_string('course', 'block_workload'),
                 get_string('coursestartdate', 'block_workload'),
-                get_string('courseenddate',   'block_workload'),
+                get_string('courseenddate', 'block_workload'),
             ];
-            $tableAdd->attributes = ['class' => 'generaltable table-sm table-hover mb-3'];
+            $tableadd->attributes = ['class' => 'generaltable table-sm table-hover mb-3'];
 
-            $disabled = html_writer::tag('span',
-                get_string('datedisabled', 'block_workload'), ['class' => 'text-muted small']);
+            $disabled = html_writer::tag(
+                'span',
+                get_string('datedisabled', 'block_workload'),
+                ['class' => 'text-muted small']
+            );
 
             foreach ($available as $c) {
-                $already = in_array((int)$c->id, $shownIds);
+                $already = in_array((int)$c->id, $shownids);
 
                 $cbcell = new html_table_cell();
                 $cbcell->attributes['class'] = 'c0 shrink';
                 $cbcell->text = $already
-                    ? html_writer::tag('span', '&#10003;',
+                    ? html_writer::tag(
+                        'span',
+                        '&#10003;',
                         ['class' => 'text-success fw-bold',
-                         'title' => get_string('alreadyassignedcount', 'block_workload', 1)])
+                        'title' => get_string(
+                            'alreadyassignedcount',
+                            'block_workload',
+                            1
+                        )]
+                    )
                     : html_writer::empty_tag('input', [
                         'type'             => 'checkbox',
                         'name'             => 'addcourseids[]',
@@ -689,10 +752,10 @@ function render_student_detail(int $userid, int $catid): void {
                     $row->attributes['class'] = 'text-muted';
                 }
                 $row->cells    = [$cbcell, $namecell, $startcell, $endcell];
-                $tableAdd->data[] = $row;
+                $tableadd->data[] = $row;
             }
 
-            echo html_writer::table($tableAdd);
+            echo html_writer::table($tableadd);
             echo html_writer::empty_tag('input', [
                 'type'  => 'submit',
                 'value' => get_string('addcourses', 'block_workload'),
@@ -702,20 +765,25 @@ function render_student_detail(int $userid, int $catid): void {
         }
     }
 
-    // ---- Assigned Courses (unified enrolled + manager-added) ---------------
-    echo html_writer::tag('h5',
+    // Assigned courses: unified enrolled + manager-added.
+    echo html_writer::tag(
+        'h5',
         get_string('assignedcourses', 'block_workload') .
         (!empty($courses)
-            ? html_writer::tag('span', ' (' . count($courses) . ')',
-                ['class' => 'text-muted fw-normal small ms-1'])
+            ? html_writer::tag(
+                'span',
+                ' (' . count($courses) . ')',
+                ['class' => 'text-muted fw-normal small ms-1']
+            )
             : ''),
-        ['class' => 'mt-4 mb-2']);
+        ['class' => 'mt-4 mb-2']
+    );
 
     if (empty($courses)) {
         echo html_writer::div(get_string('noenrolledcourses', 'block_workload'), 'text-muted small mb-3');
     } else {
         echo html_writer::start_tag('form', ['method' => 'post', 'action' => '', 'id' => 'wl-assigned-form']);
-        echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'userid',  'value' => $userid]);
+        echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'userid', 'value' => $userid]);
         echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()]);
 
         $masterth = new html_table_cell();
@@ -733,19 +801,22 @@ function render_student_detail(int $userid, int $catid): void {
         $table             = new html_table();
         $table->head       = [
             $masterth,
-            get_string('course',          'block_workload'),
+            get_string('course', 'block_workload'),
             get_string('coursestartdate', 'block_workload'),
-            get_string('courseenddate',   'block_workload'),
-            get_string('activecourse',    'block_workload'),
-            get_string('actions',         'block_workload'),
+            get_string('courseenddate', 'block_workload'),
+            get_string('activecourse', 'block_workload'),
+            get_string('actions', 'block_workload'),
         ];
         $table->attributes = ['class' => 'generaltable table-sm table-striped table-hover mb-2'];
 
-        $disabled = html_writer::tag('span',
-            get_string('datedisabled', 'block_workload'), ['class' => 'text-muted small']);
+        $disabled = html_writer::tag(
+            'span',
+            get_string('datedisabled', 'block_workload'),
+            ['class' => 'text-muted small']
+        );
 
         foreach ($courses as $course) {
-            $isAdded  = !$course->enrolled;
+            $isadded  = !$course->enrolled;
             $excluded = $course->enrolled
                 && $course->override_active !== null
                 && (int)$course->override_active === 0;
@@ -777,28 +848,34 @@ function render_student_detail(int $userid, int $catid): void {
                 : $disabled;
 
             $activecell = new html_table_cell();
-            if ($isAdded) {
-                $activecell->text = html_writer::tag('span',
+            if ($isadded) {
+                $activecell->text = html_writer::tag(
+                    'span',
                     get_string('statusadded', 'block_workload'),
-                    ['class' => 'badge bg-primary text-white']);
-            } elseif ($excluded) {
-                $activecell->text = html_writer::tag('span',
+                    ['class' => 'badge bg-primary text-white']
+                );
+            } else if ($excluded) {
+                $activecell->text = html_writer::tag(
+                    'span',
                     get_string('statusexcluded', 'block_workload'),
-                    ['class' => 'badge bg-secondary text-white']);
+                    ['class' => 'badge bg-secondary text-white']
+                );
             } else {
-                $activecell->text = html_writer::tag('span',
+                $activecell->text = html_writer::tag(
+                    'span',
                     get_string('statusincluded', 'block_workload'),
-                    ['class' => 'badge bg-success text-white']);
+                    ['class' => 'badge bg-success text-white']
+                );
             }
 
             $actioncell = new html_table_cell();
-            if ($isAdded) {
+            if ($isadded) {
                 $actioncell->text = html_writer::link(
                     new moodle_url($baseurl, ['userid' => $userid, 'courseid' => $course->id, 'action' => 'removecourse']),
                     get_string('removecourse', 'block_workload'),
                     ['class' => 'btn btn-outline-secondary btn-sm']
                 );
-            } elseif ($excluded) {
+            } else if ($excluded) {
                 $actioncell->text = html_writer::link(
                     new moodle_url($baseurl, ['userid' => $userid, 'courseid' => $course->id,
                         'action' => 'restore', 'sesskey' => sesskey()]),
@@ -823,15 +900,27 @@ function render_student_detail(int $userid, int $catid): void {
 
         echo html_writer::table($table);
 
-        echo html_writer::tag('button', get_string('excludeselected', 'block_workload'),
+        echo html_writer::tag(
+            'button',
+            get_string('excludeselected', 'block_workload'),
             ['type' => 'submit', 'name' => 'bulkaction', 'value' => 'exclude',
-             'class' => 'btn btn-secondary me-2', 'disabled' => 'disabled']);
-        echo html_writer::tag('button', get_string('restoreselected', 'block_workload'),
+            'class' => 'btn btn-secondary me-2',
+            'disabled' => 'disabled']
+        );
+        echo html_writer::tag(
+            'button',
+            get_string('restoreselected', 'block_workload'),
             ['type' => 'submit', 'name' => 'bulkaction', 'value' => 'restore',
-             'class' => 'btn btn-secondary me-2', 'disabled' => 'disabled']);
-        echo html_writer::tag('button', get_string('bulkremovecourses', 'block_workload'),
+            'class' => 'btn btn-secondary me-2',
+            'disabled' => 'disabled']
+        );
+        echo html_writer::tag(
+            'button',
+            get_string('bulkremovecourses', 'block_workload'),
             ['type' => 'submit', 'name' => 'bulkaction', 'value' => 'remove',
-             'class' => 'btn btn-secondary', 'disabled' => 'disabled']);
+            'class' => 'btn btn-secondary',
+            'disabled' => 'disabled']
+        );
 
         echo html_writer::end_tag('form');
 

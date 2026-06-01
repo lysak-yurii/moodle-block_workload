@@ -5,18 +5,16 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-
-/**
- * Privacy provider for block_workload (GDPR compliance).
- *
- * @package   block_workload
- * @copyright  2026 Yurii Lysak
- * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- */
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 namespace block_workload\privacy;
-
-defined('MOODLE_INTERNAL') || die();
 
 use core_privacy\local\metadata\collection;
 use core_privacy\local\request\approved_contextlist;
@@ -25,11 +23,23 @@ use core_privacy\local\request\contextlist;
 use core_privacy\local\request\userlist;
 use core_privacy\local\request\writer;
 
+/**
+ * Privacy provider for block_workload (GDPR compliance).
+ *
+ * @package   block_workload
+ * @copyright 2026 Yurii Lysak
+ * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
 class provider implements
     \core_privacy\local\metadata\provider,
-    \core_privacy\local\request\plugin\provider,
-    \core_privacy\local\request\core_userlist_provider {
-
+    \core_privacy\local\request\core_userlist_provider,
+    \core_privacy\local\request\plugin\provider {
+    /**
+     * Return the metadata about the data this plugin stores.
+     *
+     * @param collection $collection
+     * @return collection
+     */
     public static function get_metadata(collection $collection): collection {
         $collection->add_database_table('block_workload_entries', [
             'userid'     => 'privacy:metadata:block_workload_entries:userid',
@@ -47,6 +57,12 @@ class provider implements
         return $collection;
     }
 
+    /**
+     * Get the list of contexts that contain user information for the given user.
+     *
+     * @param int $userid
+     * @return contextlist
+     */
     public static function get_contexts_for_userid(int $userid): contextlist {
         $contextlist = new contextlist();
         // All data lives at system context.
@@ -65,6 +81,11 @@ class provider implements
         return $contextlist;
     }
 
+    /**
+     * Get the list of users who have data within a context.
+     *
+     * @param userlist $userlist
+     */
     public static function get_users_in_context(userlist $userlist): void {
         if ($userlist->get_context()->contextlevel !== CONTEXT_SYSTEM) {
             return;
@@ -73,6 +94,11 @@ class provider implements
         $userlist->add_from_table('block_workload_members', 'userid');
     }
 
+    /**
+     * Export personal data for the given approved contextlist.
+     *
+     * @param approved_contextlist $contextlist
+     */
     public static function export_user_data(approved_contextlist $contextlist): void {
         global $DB;
 
@@ -96,6 +122,11 @@ class provider implements
         }
     }
 
+    /**
+     * Delete all personal data for all users in the specified context.
+     *
+     * @param \context $context
+     */
     public static function delete_data_for_all_users_in_context(\context $context): void {
         if ($context->contextlevel !== CONTEXT_SYSTEM) {
             return;
@@ -105,6 +136,11 @@ class provider implements
         $DB->delete_records('block_workload_members');
     }
 
+    /**
+     * Delete all user data for the approved contextlist.
+     *
+     * @param approved_contextlist $contextlist
+     */
     public static function delete_data_for_user(approved_contextlist $contextlist): void {
         global $DB;
         $userid = $contextlist->get_user()->id;
@@ -112,6 +148,11 @@ class provider implements
         $DB->delete_records('block_workload_members', ['userid' => $userid]);
     }
 
+    /**
+     * Delete multiple users within a single context.
+     *
+     * @param approved_userlist $userlist
+     */
     public static function delete_data_for_users(approved_userlist $userlist): void {
         global $DB;
         $userids = $userlist->get_userids();

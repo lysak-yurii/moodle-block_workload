@@ -1,10 +1,18 @@
 <?php
-// This file is part of Moodle - http://moodle.org/
+// This file is part of Moodle - http://moodle.org/.
 //
-// Moodle is free software: you can redistribute it and/or modify
+// Moodle is free software: you can redistribute it and/or modify.
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,.
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the.
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License.
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
  * External function: get workload entries for the current week.
@@ -27,8 +35,15 @@ use external_single_structure;
 use external_multiple_structure;
 use context_system;
 
+/**
+ * External API: retrieve a student's weekly hour entries.
+ */
 class get_week_data extends external_api {
-
+    /**
+     * Return the parameters for execute().
+     *
+     * @return external_function_parameters
+     */
     public static function execute_parameters(): external_function_parameters {
         return new external_function_parameters([
             'weeknumber' => new external_value(PARAM_INT, 'ISO week number'),
@@ -36,6 +51,13 @@ class get_week_data extends external_api {
         ]);
     }
 
+    /**
+     * Return the student's entries for a given week.
+     *
+     * @param int $weeknumber
+     * @param int $year
+     * @return array
+     */
     public static function execute(int $weeknumber, int $year): array {
         global $USER;
 
@@ -64,11 +86,16 @@ class get_week_data extends external_api {
         return ['courses' => $result];
     }
 
+    /**
+     * Return the structure of the return value.
+     *
+     * @return external_single_structure
+     */
     public static function execute_returns(): external_single_structure {
         return new external_single_structure([
             'courses' => new external_multiple_structure(
                 new external_single_structure([
-                    'courseid' => new external_value(PARAM_INT,   'Course ID'),
+                    'courseid' => new external_value(PARAM_INT, 'Course ID'),
                     'hours'    => new external_value(PARAM_FLOAT, 'Hours entered this week'),
                 ])
             ),

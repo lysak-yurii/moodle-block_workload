@@ -5,27 +5,38 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Workload Assessment block – main class.
+ * Workload Assessment block main class.
  *
  * Students see a weekly hour-entry form for each course in their cohort.
  * Quality Managers see links to the management dashboard and statistics.
  *
  * @package   block_workload
- * @copyright  2026 Yurii Lysak
+ * @copyright 2026 Yurii Lysak
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-
-defined('MOODLE_INTERNAL') || die();
-
 class block_workload extends block_base {
-
+    /**
+     * Initialise the block title.
+     */
     public function init(): void {
         $this->title = get_string('pluginname', 'block_workload');
     }
 
-    /** Only show on the user dashboard. */
+    /**
+     * Only show on the user dashboard.
+     *
+     * @return array
+     */
     public function applicable_formats(): array {
         return [
             'my'   => true,
@@ -33,16 +44,31 @@ class block_workload extends block_base {
         ];
     }
 
+    /**
+     * Return true if the block has a config form.
+     *
+     * @return bool
+     */
     public function has_config(): bool {
         return true;
     }
 
+    /**
+     * Return false to prevent multiple instances per page.
+     *
+     * @return bool
+     */
     public function instance_allow_multiple(): bool {
         return false;
     }
 
+    /**
+     * Return the block content.
+     *
+     * @return stdClass
+     */
     public function get_content(): stdClass {
-        global $USER, $PAGE, $OUTPUT;
+        global $USER, $OUTPUT;
 
         if ($this->content !== null) {
             return $this->content;
@@ -54,9 +80,7 @@ class block_workload extends block_base {
 
         $syscontext = context_system::instance();
 
-        // -----------------------------------------------------------------
         // Quality Manager footer links.
-        // -----------------------------------------------------------------
         if (has_capability('block/workload:manage', $syscontext)) {
             $links = [];
             $links[] = html_writer::link(
@@ -70,9 +94,7 @@ class block_workload extends block_base {
             $this->content->footer = implode(' &middot; ', $links);
         }
 
-        // -----------------------------------------------------------------
         // Student block content.
-        // -----------------------------------------------------------------
         if (!has_capability('block/workload:submit', $syscontext)) {
             return $this->content;
         }
@@ -84,7 +106,7 @@ class block_workload extends block_base {
 
         // Current ISO week/year.
         $weeknumber = (int) date('W');
-        $year       = (int) date('o'); // ISO year – differs from calendar year in edge weeks.
+        $year       = (int) date('o'); // ISO year: differs from calendar year in edge weeks.
 
         if ($coursemode === 'enrollment') {
             // Enrollment mode: show courses the student is enrolled in (+ manager overrides).
@@ -117,14 +139,14 @@ class block_workload extends block_base {
             $courses   = \block_workload\helper::get_merged_cohort_courses($cohortids, $courseorder, (int)$USER->id);
         }
 
-        // No courses assigned → render nothing so the block is hidden entirely.
+        // No courses assigned: render nothing so the block is hidden entirely.
         if (empty($courses)) {
             return $this->content;
         }
 
-        $entries   = \block_workload\helper::get_week_entries($USER->id, $weeknumber, $year);
-        $maxhours = (int)(get_config('block_workload', 'maxhours') ?: 40);
-        // hourstep: stored as whole minutes (1–60). Default 60 (= 1 h).
+        $entries      = \block_workload\helper::get_week_entries($USER->id, $weeknumber, $year);
+        $maxhours     = (int)(get_config('block_workload', 'maxhours') ?: 40);
+        // Hourstep: stored as whole minutes (1-60), default 60 (= 1 h).
         $rawstep     = get_config('block_workload', 'hourstep');
         $hourstepmin = ($rawstep !== false) ? max(1, (int) $rawstep) : 60;
         $hourstep    = $hourstepmin / 60;
@@ -133,7 +155,10 @@ class block_workload extends block_base {
         $hhmm = static function (float $dec): string {
             $h = (int) floor($dec);
             $m = (int) round(($dec - $h) * 60);
-            if ($m >= 60) { $h++; $m = 0; }
+            if ($m >= 60) {
+                $h++;
+                $m = 0;
+            }
             return sprintf('%d:%02d', $h, $m);
         };
 
@@ -158,21 +183,22 @@ class block_workload extends block_base {
         $haspagination = ($coursesperpage > 0 && count($coursedata) > $coursesperpage);
 
         $templatecontext = [
-            'courses'           => array_values($coursedata),
-            'weeknumber'        => $weeknumber,
-            'year'              => $year,
-            'weeknumber_tooltip'=> get_string('weeknumber_tooltip', 'block_workload',
-                                      (object)['week' => $weeknumber, 'year' => $year]),
-            'mystatsurl'        => (new moodle_url('/blocks/workload/mystats.php'))->out(false),
-            'hascourses'        => !empty($coursedata),
-            'haspagination'     => $haspagination,
-            'hourstep'          => $hourstep,
+            'courses'            => array_values($coursedata),
+            'weeknumber'         => $weeknumber,
+            'year'               => $year,
+            'weeknumber_tooltip' => get_string(
+                'weeknumber_tooltip',
+                'block_workload',
+                (object)['week' => $weeknumber, 'year' => $year]
+            ),
+            'mystatsurl'         => (new moodle_url('/blocks/workload/mystats.php'))->out(false),
+            'hascourses'         => !empty($coursedata),
+            'haspagination'      => $haspagination,
+            'hourstep'           => $hourstep,
         ];
 
         // Load AMD module for the +/- button interactivity and pagination.
-        // cohortid is no longer passed since a student can be in multiple cohorts;
-        // the server determines cohort membership when saving.
-        $PAGE->requires->js_call_amd('block_workload/workload', 'init', [[
+        $this->page->requires->js_call_amd('block_workload/workload', 'init', [[
             'weeknumber'     => $weeknumber,
             'year'           => $year,
             'coursesperpage' => $haspagination ? $coursesperpage : 0,

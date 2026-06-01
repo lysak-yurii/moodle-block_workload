@@ -1,10 +1,18 @@
 <?php
-// This file is part of Moodle - http://moodle.org/
+// This file is part of Moodle - http://moodle.org/.
 //
-// Moodle is free software: you can redistribute it and/or modify
+// Moodle is free software: you can redistribute it and/or modify.
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,.
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the.
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License.
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
  * Admin settings for block_workload.
@@ -21,6 +29,12 @@ if (!class_exists('admin_setting_workload_posint')) {
      * Integer setting that rejects values below 1.
      */
     class admin_setting_workload_posint extends admin_setting_configtext {
+        /**
+         * Validate that the value is a positive integer.
+         *
+         * @param mixed $data
+         * @return bool|string
+         */
         public function validate($data) {
             if (!is_numeric($data) || (int) $data < 1) {
                 return get_string('hourstep_invalid', 'block_workload');
@@ -61,7 +75,7 @@ if ($ADMIN->fulltree) {
         get_string('courseorder_desc', 'block_workload'),
         'recentaccess',
         [
-            'sortorder'    => get_string('courseorder_sortorder',    'block_workload'),
+            'sortorder'    => get_string('courseorder_sortorder', 'block_workload'),
             'recentaccess' => get_string('courseorder_recentaccess', 'block_workload'),
         ]
     ));
@@ -72,8 +86,8 @@ if ($ADMIN->fulltree) {
         get_string('coursemode_desc', 'block_workload'),
         'cohort',
         [
-            'cohort'     => get_string('coursemode_cohort',      'block_workload'),
-            'enrollment' => get_string('coursemode_enrollment',  'block_workload'),
+            'cohort'     => get_string('coursemode_cohort', 'block_workload'),
+            'enrollment' => get_string('coursemode_enrollment', 'block_workload'),
         ]
     ));
 

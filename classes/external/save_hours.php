@@ -1,10 +1,18 @@
 <?php
-// This file is part of Moodle - http://moodle.org/
+// This file is part of Moodle - http://moodle.org/.
 //
-// Moodle is free software: you can redistribute it and/or modify
+// Moodle is free software: you can redistribute it and/or modify.
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,.
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the.
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License.
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
  * External function: save workload hours.
@@ -26,23 +34,44 @@ use external_value;
 use external_single_structure;
 use context_system;
 
+/**
+ * External API: save a student's workload hours for a course and week.
+ */
 class save_hours extends external_api {
-
+    /**
+     * Return the parameters for execute().
+     *
+     * @return external_function_parameters
+     */
     public static function execute_parameters(): external_function_parameters {
         return new external_function_parameters([
-            'cohortid'   => new external_value(PARAM_INT,   'Cohort ID (ignored; kept for client compatibility)', VALUE_DEFAULT, 0),
-            'courseid'   => new external_value(PARAM_INT,   'Course ID'),
-            'weeknumber' => new external_value(PARAM_INT,   'ISO week number (1-53)'),
-            'year'       => new external_value(PARAM_INT,   'ISO year'),
+            'cohortid'   => new external_value(PARAM_INT, 'Cohort ID (ignored; kept for client compatibility)', VALUE_DEFAULT, 0),
+            'courseid'   => new external_value(PARAM_INT, 'Course ID'),
+            'weeknumber' => new external_value(PARAM_INT, 'ISO week number (1-53)'),
+            'year'       => new external_value(PARAM_INT, 'ISO year'),
             'hours'      => new external_value(PARAM_FLOAT, 'Hours spent (0 – max configured)'),
         ]);
     }
 
+    /**
+     * Save the given number of hours for a course and week.
+     *
+     * @param int $cohortid
+     * @param int $courseid
+     * @param int $weeknumber
+     * @param int $year
+     * @param float $hours
+     * @return array
+     */
     public static function execute(int $cohortid, int $courseid, int $weeknumber, int $year, float $hours): array {
         global $USER, $DB, $CFG;
 
         $params = self::validate_parameters(self::execute_parameters(), compact(
-            'cohortid', 'courseid', 'weeknumber', 'year', 'hours'
+            'cohortid',
+            'courseid',
+            'weeknumber',
+            'year',
+            'hours'
         ));
 
         $syscontext = context_system::instance();
@@ -66,11 +95,11 @@ class save_hours extends external_api {
                 'userid'   => $USER->id,
                 'courseid' => $params['courseid'],
             ]);
-            $forceExcluded = $override && (int)$override->active === 0;
-            $forceIncluded = $override && (int)$override->active === 1;
+            $forceexcluded = $override && (int)$override->active === 0;
+            $forceincluded = $override && (int)$override->active === 1;
             $enrolled      = is_enrolled($coursecontext, $USER->id);
 
-            if ($forceExcluded || (!$enrolled && !$forceIncluded)) {
+            if ($forceexcluded || (!$enrolled && !$forceincluded)) {
                 throw new \moodle_exception('invalidcourse', 'block_workload');
             }
         } else {
@@ -85,10 +114,12 @@ class save_hours extends external_api {
             $cohortids = array_keys($activecohorts);
             [$insql, $inparams] = $DB->get_in_or_equal($cohortids, SQL_PARAMS_NAMED, 'coh');
             $inparams['courseid'] = $params['courseid'];
-            if (!$DB->record_exists_sql(
-                "SELECT 1 FROM {block_workload_courses} WHERE courseid = :courseid AND active = 1 AND cohortid $insql",
-                $inparams
-            )) {
+            if (
+                !$DB->record_exists_sql(
+                    "SELECT 1 FROM {block_workload_courses} WHERE courseid = :courseid AND active = 1 AND cohortid $insql",
+                    $inparams
+                )
+            ) {
                 throw new \moodle_exception('invalidcourse', 'block_workload');
             }
         }
@@ -106,9 +137,14 @@ class save_hours extends external_api {
         return ['success' => true, 'hours' => $hours];
     }
 
+    /**
+     * Return the structure of the return value.
+     *
+     * @return external_single_structure
+     */
     public static function execute_returns(): external_single_structure {
         return new external_single_structure([
-            'success' => new external_value(PARAM_BOOL,  'Whether the save succeeded'),
+            'success' => new external_value(PARAM_BOOL, 'Whether the save succeeded'),
             'hours'   => new external_value(PARAM_FLOAT, 'The saved hours value (after clamping)'),
         ]);
     }
