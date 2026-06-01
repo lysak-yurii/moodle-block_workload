@@ -1,0 +1,151 @@
+/**
+ * Workload Assessment block styles.
+ *
+ * @package   block_workload
+ * @copyright  2026 Yurii Lysak
+ * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+/* ---- Block container ---- */
+.block-workload {
+    font-size: 0.875rem;
+}
+
+/* ---- Column header + course rows share the same two-column grid ---- */
+.workload-colheader,
+.workload-course-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+}
+
+.workload-course-row {
+    transition: background-color 0.15s ease;
+    min-height: 2.8rem;
+}
+
+/* Pagination hide: must beat Bootstrap's d-flex !important. */
+.workload-hidden {
+    display: none !important;
+}
+
+.workload-course-row:last-child {
+    border-bottom: none !important;
+}
+
+.workload-course-row:hover {
+    background-color: var(--bs-gray-100, #f8f9fa);
+}
+
+/* ---- Course name link ---- */
+.workload-course-name a {
+    color: var(--bs-link-color);
+    font-weight: 500;
+}
+
+.workload-course-name a:hover {
+    color: var(--bs-link-hover-color);
+    text-decoration: underline !important;
+}
+
+/* ---- +/- buttons ---- */
+.workload-btn-plus,
+.workload-btn-minus {
+    line-height: 1 !important;
+    font-size: 1rem;
+    user-select: none;
+}
+
+.workload-btn-plus:focus,
+.workload-btn-minus:focus {
+    box-shadow: 0 0 0 0.15rem rgba(var(--bs-primary-rgb), 0.25);
+}
+
+/* ---- Hours input ---- */
+.workload-hours-input {
+    text-align: center;
+    font-weight: 600;
+    padding-left: 0.25rem;
+    padding-right: 0.25rem;
+    /* Hide browser spin buttons */
+    -moz-appearance: textfield;
+}
+
+.workload-hours-input::-webkit-outer-spin-button,
+.workload-hours-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+/* ---- Warning badge ---- */
+.workload-warning {
+    font-size: 0.65rem;
+    font-weight: 700;
+    cursor: default;
+}
+
+/* ---- Statistics page ---- */
+.workload-stat-card {
+    border-radius: 0.5rem;
+}
+
+.wl-chart-card {
+    border-radius: 0.5rem;
+}
+
+.wl-kpi-card {
+    border-radius: 0.5rem;
+    transition: box-shadow 0.15s ease;
+}
+
+.wl-kpi-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12) !important;
+}
+
+/* ---- Department autocomplete: label the blank "deselect" entry ---- */
+/* Moodle always prepends a blank <option> on single-select autocompletes so the     */
+/* user can clear their selection. The suggestions list ID uses a runtime counter     */
+/* (form_autocomplete_suggestions-N), so it is targeted with a starts-with selector. */
+/* ::before adds visible label text to the otherwise empty <li data-value="">.        */
+#fitem_workload_department [id^="form_autocomplete_suggestions"] li[data-value=""]::before {
+    content: "No selection";
+    color: var(--bs-secondary-color, #6c757d);
+    font-style: italic;
+}
+
+/* ---- Member search autocomplete dropdown ---- */
+.workload-suggest {
+    list-style:    none;
+    margin:        0;
+    padding:       0;
+    position:      absolute;
+    z-index:       1055;
+    background:    var(--bs-body-bg, #fff);
+    border:        1px solid var(--bs-border-color, #ced4da);
+    border-top:    none;
+    border-radius: 0 0 .375rem .375rem;
+    box-shadow:    0 4px 10px rgba(0,0,0,.12);
+    max-height:    260px;
+    overflow-y:    auto;
+}
+
+.workload-suggest li {
+    padding:       .45rem .75rem;
+    cursor:        pointer;
+    font-size:     .875rem;
+    border-bottom: 1px solid var(--bs-gray-200, #e9ecef);
+    white-space:   nowrap;
+    overflow:      hidden;
+    text-overflow: ellipsis;
+    color:         var(--bs-body-color, #212529);
+}
+
+.workload-suggest li:last-child {
+    border-bottom: none;
+}
+
+.workload-suggest li:hover,
+.workload-suggest li.active {
+    background-color: rgba(var(--bs-primary-rgb), 0.08);
+    color:            var(--bs-primary);
+}

@@ -1,0 +1,91 @@
+{{!
+    Workload Assessment – student block template.
+
+    Context variables:
+      - courses: array of {courseid, coursename, courseurl, hours, not_entered, maxhours}
+      - weeknumber: int
+      - year: int
+      - mystatsurl: string
+      - hascourses: bool
+
+    @package   block_workload
+    @copyright  2026 Yurii Lysak
+    @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+}}
+
+<div class="block-workload">
+
+    {{! Week header }}
+    <div class="workload-header d-flex justify-content-between align-items-center px-3 py-2 rounded-top bg-primary text-white">
+        <span class="fw-semibold small"
+              title="{{#str}}blocktitle_tooltip, block_workload{{/str}}"
+              style="cursor:help;">{{#str}}blocktitle, block_workload{{/str}}</span>
+        <span class="badge rounded-pill text-bg-secondary ms-2"
+              title="{{weeknumber_tooltip}}"
+              style="cursor:help;">{{#str}}weeknumber, block_workload, {{weeknumber}}{{/str}}</span>
+    </div>
+
+    {{#hascourses}}
+    {{! Column headers }}
+    <div class="workload-colheader px-3 py-1 border-bottom bg-light">
+        <span class="text-muted small fw-semibold">{{#str}}columnlecture, block_workload{{/str}}</span>
+        <span class="text-muted small fw-semibold" style="min-width:8.1rem;text-align:center;">{{#str}}columnhours, block_workload{{/str}}</span>
+    </div>
+
+    {{! Course rows }}
+    {{#courses}}
+    <div class="workload-course-row px-3 py-2 border-bottom"
+         data-courseid="{{courseid}}"{{#initiallyhidden}} style="display:none!important"{{/initiallyhidden}}>
+
+        {{! Course name }}
+        <div class="workload-course-name text-truncate me-2" style="min-width:0;">
+            <a href="{{courseurl}}" class="text-decoration-none small" title="{{coursename}}">{{coursename}}</a>
+        </div>
+
+        {{! Hours control }}
+        <div class="workload-hours-control d-flex align-items-center gap-1">
+            {{! Warning badge – hidden once hours > 0 }}
+            <span class="workload-warning badge rounded-circle bg-danger{{^not_entered}} d-none{{/not_entered}}"
+                  style="width:1.3rem;height:1.3rem;line-height:1.3rem;font-size:.7rem;padding:0;"
+                  title="{{#str}}notsubmitted, block_workload{{/str}}">!</span>
+
+            <button type="button"
+                    class="workload-btn-minus btn btn-sm btn-outline-secondary rounded-circle"
+                    style="width:1.8rem;height:1.8rem;padding:0;line-height:1;"
+                    aria-label="{{#str}}decrease, block_workload{{/str}}">&#8722;</button>
+
+            <input type="text"
+                   class="workload-hours-input form-control form-control-sm text-center"
+                   style="width:4rem;"
+                   value="{{hours_display}}"
+                   data-hours="{{hours_raw}}"
+                   data-step="{{hourstep}}"
+                   data-max="{{maxhours}}"
+                   placeholder="0:00"
+                   aria-label="{{#str}}hours, block_workload{{/str}}">
+
+            <button type="button"
+                    class="workload-btn-plus btn btn-sm btn-primary rounded-circle"
+                    style="width:1.8rem;height:1.8rem;padding:0;line-height:1;"
+                    aria-label="{{#str}}increase, block_workload{{/str}}">+</button>
+        </div>
+    </div>
+    {{/courses}}
+
+    {{#haspagination}}
+    <div class="workload-pagination d-flex justify-content-between align-items-center px-3 py-2 border-top bg-light">
+        <button type="button"
+                class="workload-btn-prev btn btn-sm btn-outline-secondary"
+                aria-label="{{#str}}pageprev, block_workload{{/str}}"
+                disabled>&#8592;</button>
+        <span class="workload-page-info small text-muted"></span>
+        <button type="button"
+                class="workload-btn-next btn btn-sm btn-outline-secondary"
+                aria-label="{{#str}}pagenext, block_workload{{/str}}">&#8594;</button>
+    </div>
+    {{/haspagination}}
+
+    {{/hascourses}}
+
+
+</div>
