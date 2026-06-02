@@ -18,7 +18,7 @@
  * AJAX user-search endpoint for the workload statistics page.
  *
  * Returns a JSON array of up to 20 matching users:
- *   [{"id": 42, "fullname": "Jane Doe", "email": "jane@example.com"}, …]
+ *   [{"id": 42, "fullname": "Jane Doe", "email": "jane.doe@uni.de"}, ...]
  *
  * GET parameters:
  *   q        – search string (min 2 chars; matched against firstname, lastname,

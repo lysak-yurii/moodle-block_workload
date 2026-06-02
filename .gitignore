@@ -9,3 +9,6 @@ moodledata/
 tests/
 phpcs.xml
 .moodle-plugin-ci.yml
+
+# Node modules created by local grunt build
+moodlenode/

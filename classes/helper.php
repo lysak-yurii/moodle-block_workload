@@ -35,6 +35,9 @@ class helper {
     /**
      * Return the first active cohort the given user belongs to.
      * Kept for backward compatibility; prefer get_user_active_cohorts() for new code.
+     *
+     * @param int $userid
+     * @return \stdClass|null
      */
     public static function get_user_cohort(int $userid): ?\stdClass {
         global $DB;
@@ -50,6 +53,9 @@ class helper {
 
     /**
      * Return ALL active cohorts the given user belongs to, ordered by id ASC.
+     *
+     * @param int $userid
+     * @return array
      */
     public static function get_user_active_cohorts(int $userid): array {
         global $DB;
@@ -106,9 +112,13 @@ class helper {
     /**
      * Return all active courses assigned to a cohort.
      *
-     * $order = 'sortorder'    → Quality-Manager sort order, then name (default).
-     * $order = 'recentaccess' → Most-recently visited by $userid first (COALESCE 0
-     *                           puts never-visited courses last), then name.
+     * $order = 'sortorder'    — quality-manager sort order, then name (default).
+     * $order = 'recentaccess' — most-recently visited by $userid first, then name.
+     *
+     * @param int    $cohortid
+     * @param string $order    'sortorder' or 'recentaccess'
+     * @param int    $userid   Required when $order === 'recentaccess'.
+     * @return array
      */
     public static function get_cohort_courses(int $cohortid, string $order = 'sortorder', int $userid = 0): array {
         global $DB;
@@ -135,6 +145,9 @@ class helper {
 
     /**
      * Return all courses assigned to a cohort (including inactive), for management UI.
+     *
+     * @param int $cohortid
+     * @return array
      */
     public static function get_cohort_courses_all(int $cohortid): array {
         global $DB;
@@ -150,6 +163,13 @@ class helper {
     /**
      * Return paged members of a cohort with basic user info.
      * $limit = 0 means no limit (show all).
+     *
+     * @param int    $cohortid
+     * @param int    $limit       0 = no limit.
+     * @param int    $offset
+     * @param string $firstletter A-Z filter on firstname, or empty string.
+     * @param string $lastletter  A-Z filter on lastname, or empty string.
+     * @return array
      */
     public static function get_cohort_members(
         int $cohortid,
@@ -172,6 +192,11 @@ class helper {
 
     /**
      * Return the total count of (non-deleted) members in a cohort, with optional letter filters.
+     *
+     * @param int    $cohortid
+     * @param string $firstletter A-Z filter on firstname, or empty string.
+     * @param string $lastletter  A-Z filter on lastname, or empty string.
+     * @return int
      */
     public static function get_cohort_members_count(
         int $cohortid,
@@ -191,6 +216,11 @@ class helper {
 
     /**
      * Build the WHERE clause + params for members queries, optionally filtered by A-Z letters.
+     *
+     * @param int    $cohortid
+     * @param string $firstletter
+     * @param string $lastletter
+     * @return array [string $where, array $params]
      */
     private static function members_where(
         int $cohortid,
@@ -213,6 +243,9 @@ class helper {
 
     /**
      * Return a flat array of all user IDs in a cohort (for "already member" checks).
+     *
+     * @param int $cohortid
+     * @return array
      */
     public static function get_all_cohort_member_ids(int $cohortid): array {
         global $DB;
@@ -232,8 +265,11 @@ class helper {
     /**
      * Check whether workload is currently active for a cohort.
      * Active means: cohort.active = 1, and the current ISO week falls within the
-     * optional date range stored on the cohort (week_from/year_from → week_to/year_to).
+     * optional date range stored on the cohort (week_from/year_from to week_to/year_to).
      * If no range is set the cohort is always active when active = 1.
+     *
+     * @param int $cohortid
+     * @return bool
      */
     public static function is_workload_active(int $cohortid): bool {
         global $DB;
@@ -262,6 +298,11 @@ class helper {
 
     /**
      * Return workload entries for a user in a given week, indexed by courseid.
+     *
+     * @param int $userid
+     * @param int $week ISO week number.
+     * @param int $year
+     * @return array
      */
     public static function get_week_entries(int $userid, int $week, int $year): array {
         global $DB;
@@ -279,6 +320,13 @@ class helper {
 
     /**
      * Insert or update a single workload entry.
+     *
+     * @param int      $userid
+     * @param int|null $cohortid
+     * @param int      $courseid
+     * @param int      $week ISO week number.
+     * @param int      $year
+     * @param float    $hours
      */
     public static function save_entry(int $userid, ?int $cohortid, int $courseid, int $week, int $year, float $hours): void {
         global $DB;
@@ -318,6 +366,13 @@ class helper {
      * Return detailed entries for a cohort, optionally filtered by week range.
      * Each row: userid, firstname, lastname, email, courseid, coursename,
      *           weeknumber, year, hours.
+     *
+     * @param int      $cohortid
+     * @param int|null $weekfrom
+     * @param int|null $yearfrom
+     * @param int|null $weekto
+     * @param int|null $yearto
+     * @return array
      */
     public static function get_statistics(
         int $cohortid,
@@ -363,6 +418,13 @@ class helper {
 
     /**
      * Return per-student aggregated totals for a cohort.
+     *
+     * @param int      $cohortid
+     * @param int|null $weekfrom
+     * @param int|null $yearfrom
+     * @param int|null $weekto
+     * @param int|null $yearto
+     * @return array
      */
     public static function get_aggregated_statistics(
         int $cohortid,
@@ -413,6 +475,13 @@ class helper {
      *
      * Pass weekfrom+yearfrom and/or weekto+yearto to restrict results.
      * Both halves of a range pair must be non-null to take effect.
+     *
+     * @param int      $userid
+     * @param int|null $weekfrom
+     * @param int|null $yearfrom
+     * @param int|null $weekto
+     * @param int|null $yearto
+     * @return array
      */
     public static function get_student_entries(
         int $userid,
@@ -460,8 +529,12 @@ class helper {
      * - Moodle-enrolled courses that the manager has NOT excluded (active=0 override)
      * - PLUS courses the manager force-added (active=1 override, not enrolled)
      *
-     * $order = 'fullname'     → alphabetical (default)
-     * $order = 'recentaccess' → most-recently visited first, then alphabetical
+     * $order = 'fullname'     — alphabetical (default)
+     * $order = 'recentaccess' — most-recently visited first, then alphabetical
+     *
+     * @param int    $userid
+     * @param string $order 'fullname' or 'recentaccess'
+     * @return array
      */
     public static function get_user_enrolled_courses(int $userid, string $order = 'fullname'): array {
         global $DB;
@@ -525,6 +598,9 @@ class helper {
      *  - manager-added courses (not enrolled, active=1 override)
      *
      * Each record: id, fullname, shortname, enrolled (bool), override_active (int|null)
+     *
+     * @param int $userid
+     * @return array
      */
     public static function get_user_courses_for_management(int $userid): array {
         global $DB;
@@ -594,8 +670,12 @@ class helper {
 
     /**
      * Upsert a per-student course override.
-     * active=1 → force-include  (shown even if not enrolled)
-     * active=0 → force-exclude  (hidden even if enrolled)
+     * active=1 — force-include (shown even if not enrolled)
+     * active=0 — force-exclude (hidden even if enrolled)
+     *
+     * @param int $userid
+     * @param int $courseid
+     * @param int $active 1 to include, 0 to exclude.
      */
     public static function save_user_course_override(int $userid, int $courseid, int $active): void {
         global $DB;
@@ -620,6 +700,9 @@ class helper {
 
     /**
      * Remove a per-student course override, restoring default enrollment behaviour.
+     *
+     * @param int $userid
+     * @param int $courseid
      */
     public static function remove_user_course_override(int $userid, int $courseid): void {
         global $DB;
@@ -630,7 +713,13 @@ class helper {
      * Return all users enrolled in at least one visible non-site course, for the
      * enrollment-mode management list.
      *
-     * $limit = 0 → no limit (show all).
+     * $limit = 0 means no limit (show all).
+     *
+     * @param int    $limit      0 = no limit.
+     * @param int    $offset
+     * @param string $firstletter A-Z filter on firstname, or empty string.
+     * @param string $lastletter  A-Z filter on lastname, or empty string.
+     * @return array
      */
     public static function get_enrollment_mode_students(
         int $limit = 0,
@@ -674,6 +763,10 @@ class helper {
 
     /**
      * Total count of enrollment-mode students (for pagination).
+     *
+     * @param string $firstletter A-Z filter on firstname, or empty string.
+     * @param string $lastletter  A-Z filter on lastname, or empty string.
+     * @return int
      */
     public static function get_enrollment_mode_students_count(
         string $firstletter = '',
@@ -807,6 +900,9 @@ class helper {
 
     /**
      * Return courses in a category (non-site courses).
+     *
+     * @param int $categoryid
+     * @return array
      */
     public static function get_courses_in_category(int $categoryid): array {
         global $DB;
@@ -826,6 +922,9 @@ class helper {
     /**
      * Return the given category ID plus all descendant category IDs (BFS).
      * Used so filtering by a faculty also matches all sub-semester categories.
+     *
+     * @param int $categoryid
+     * @return array
      */
     public static function get_all_subcategory_ids(int $categoryid): array {
         global $DB;
@@ -885,8 +984,15 @@ class helper {
 
     /**
      * Weekly hour totals across a cohort (or all cohorts when cohortid = 0).
-     * Uses a single GROUP BY query – never loads individual entry rows.
+     * Uses a single GROUP BY query — never loads individual entry rows.
      * Returns array of stdClass {year, weeknumber, totalhours}, sorted asc.
+     *
+     * @param int      $cohortid 0 = all cohorts.
+     * @param int|null $weekfrom
+     * @param int|null $yearfrom
+     * @param int|null $weekto
+     * @param int|null $yearto
+     * @return array
      */
     public static function get_cohort_weekly_totals(
         int $cohortid,
@@ -938,12 +1044,20 @@ class helper {
     /**
      * Top N users by total hours in a cohort (or all cohorts when cohortid = 0).
      *
-     * $limit = 0  → no limit (all matching users).
-     * $offset     → for pagination.
-     * $firstletter / $lastletter → A-Z filter on firstname / lastname.
-     *
+     * $limit = 0 means no limit (all matching users).
      * Returns array keyed by userid: {userid, firstname, lastname, email,
-     *                                  totalhours, weeksactive}.
+     * totalhours, weeksactive}.
+     *
+     * @param int      $cohortid    0 = all cohorts.
+     * @param int      $limit       0 = no limit.
+     * @param int|null $weekfrom
+     * @param int|null $yearfrom
+     * @param int|null $weekto
+     * @param int|null $yearto
+     * @param string   $firstletter A-Z filter on firstname, or empty string.
+     * @param string   $lastletter  A-Z filter on lastname, or empty string.
+     * @param int      $offset      Pagination offset.
+     * @return array
      */
     public static function get_cohort_top_users(
         int $cohortid,
@@ -1011,8 +1125,17 @@ class helper {
     }
 
     /**
-     * Count of users matching the filters – used for pagination of the table.
+     * Count of users matching the filters — used for pagination of the table.
      * Accepts the same letter filters as get_cohort_top_users().
+     *
+     * @param int      $cohortid    0 = all cohorts.
+     * @param int|null $weekfrom
+     * @param int|null $yearfrom
+     * @param int|null $weekto
+     * @param int|null $yearto
+     * @param string   $firstletter A-Z filter on firstname, or empty string.
+     * @param string   $lastletter  A-Z filter on lastname, or empty string.
+     * @return int
      */
     public static function get_cohort_top_users_count(
         int $cohortid,
@@ -1073,6 +1196,13 @@ class helper {
      * Overview KPIs for a cohort (or all cohorts when cohortid = 0).
      * Single aggregate query: no per-row data returned.
      * Returns stdClass {usercount, coursecount, weekcount, totalhours}.
+     *
+     * @param int      $cohortid 0 = all cohorts.
+     * @param int|null $weekfrom
+     * @param int|null $yearfrom
+     * @param int|null $weekto
+     * @param int|null $yearto
+     * @return \stdClass
      */
     public static function get_cohort_overview_kpis(
         int $cohortid,
@@ -1130,6 +1260,13 @@ class helper {
      *
      * Returns array of stdClass with fields: userid, courseid, firstname, lastname,
      * email, department, institution, coursename, coursehours, roles (comma-separated).
+     *
+     * @param int      $cohortid 0 = all cohorts.
+     * @param int|null $weekfrom
+     * @param int|null $yearfrom
+     * @param int|null $weekto
+     * @param int|null $yearto
+     * @return array
      */
     public static function get_cohort_detailed_export(
         int $cohortid,
