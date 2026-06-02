@@ -12,3 +12,7 @@ phpcs.xml
 
 # Node modules created by local grunt build
 moodlenode/
+
+# moodle-plugin-ci runtime status files (created during local test runs)
+Linted
+Running

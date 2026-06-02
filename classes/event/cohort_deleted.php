@@ -29,8 +29,8 @@ class cohort_deleted extends base {
      */
     protected function init(): void {
         parent::init();
-        $this->data['crud'] = 'd';
-        // No objecttable: the record is already gone when the event fires.
+        $this->data['crud']        = 'd';
+        $this->data['objecttable'] = 'block_workload_cohorts';
     }
     /**
      * Return the event name.
