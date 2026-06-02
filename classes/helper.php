@@ -529,14 +529,14 @@ class helper {
      * - Moodle-enrolled courses that the manager has NOT excluded (active=0 override)
      * - PLUS courses the manager force-added (active=1 override, not enrolled)
      *
-     * $order = 'fullname'     — alphabetical (default)
-     * $order = 'recentaccess' — most-recently visited first, then alphabetical
+     * $order = 'sortorder'    — per-student manual order set by the QM, then name (default)
+     * $order = 'recentaccess' — most-recently visited first, then name
      *
      * @param int    $userid
-     * @param string $order 'fullname' or 'recentaccess'
+     * @param string $order 'sortorder' or 'recentaccess'
      * @return array
      */
-    public static function get_user_enrolled_courses(int $userid, string $order = 'fullname'): array {
+    public static function get_user_enrolled_courses(int $userid, string $order = 'sortorder'): array {
         global $DB;
 
         // Enrolled and not force-excluded.
@@ -586,7 +586,21 @@ class helper {
                 return strcasecmp($a->fullname, $b->fullname);
             });
         } else {
-            uasort($merged, fn($a, $b) => strcasecmp($a->fullname, $b->fullname));
+            // Per-student QM-defined order. Courses without an override record sort last.
+            $sortorders = $DB->get_records_menu(
+                'block_workload_user_courses',
+                ['userid' => $userid],
+                '',
+                'courseid, sortorder'
+            );
+            uasort($merged, function ($a, $b) use ($sortorders) {
+                $sa = isset($sortorders[$a->id]) ? (int)$sortorders[$a->id] : 99999;
+                $sb = isset($sortorders[$b->id]) ? (int)$sortorders[$b->id] : 99999;
+                if ($sa !== $sb) {
+                    return $sa - $sb;
+                }
+                return strcasecmp($a->fullname, $b->fullname);
+            });
         }
 
         return $merged;
@@ -617,7 +631,7 @@ class helper {
         );
 
         // All overrides for this user.
-        $overrides = $DB->get_records('block_workload_user_courses', ['userid' => $userid], '', 'courseid, active');
+        $overrides = $DB->get_records('block_workload_user_courses', ['userid' => $userid], '', 'courseid, active, sortorder');
 
         // Force-added (active=1) and NOT enrolled.
         $added = $DB->get_records_sql(
@@ -648,10 +662,12 @@ class helper {
                 'enddate'         => $course->enddate,
                 'enrolled'        => true,
                 'override_active' => $ov !== null ? (int)$ov->active : null,
+                'sortorder'       => $ov !== null ? (int)$ov->sortorder : 99999,
             ];
         }
 
         foreach ($added as $course) {
+            $ov = $overrides[$course->id] ?? null;
             $result[$course->id] = (object)[
                 'id'              => $course->id,
                 'fullname'        => $course->fullname,
@@ -660,10 +676,16 @@ class helper {
                 'enddate'         => $course->enddate,
                 'enrolled'        => false,
                 'override_active' => 1,
+                'sortorder'       => $ov !== null ? (int)$ov->sortorder : 99999,
             ];
         }
 
-        uasort($result, fn($a, $b) => strcasecmp($a->fullname, $b->fullname));
+        uasort($result, function ($a, $b) {
+            if ($a->sortorder !== $b->sortorder) {
+                return $a->sortorder - $b->sortorder;
+            }
+            return strcasecmp($a->fullname, $b->fullname);
+        });
 
         return $result;
     }
@@ -688,10 +710,15 @@ class helper {
             $existing->timemodified = $now;
             $DB->update_record('block_workload_user_courses', $existing);
         } else {
+            $nextsort = 1 + (int)$DB->get_field_sql(
+                'SELECT COALESCE(MAX(sortorder), -1) FROM {block_workload_user_courses} WHERE userid = :uid',
+                ['uid' => $userid]
+            );
             $DB->insert_record('block_workload_user_courses', (object)[
                 'userid'       => $userid,
                 'courseid'     => $courseid,
                 'active'       => $active,
+                'sortorder'    => $nextsort,
                 'timecreated'  => $now,
                 'timemodified' => $now,
             ]);
@@ -707,6 +734,71 @@ class helper {
     public static function remove_user_course_override(int $userid, int $courseid): void {
         global $DB;
         $DB->delete_records('block_workload_user_courses', ['userid' => $userid, 'courseid' => $courseid]);
+    }
+
+    /**
+     * Move a course up or down in the per-student sort order (enrollment mode).
+     *
+     * On first call for a student, lazily initialises sortorder records for every
+     * visible course so that the full list can be reordered.
+     *
+     * @param int  $userid
+     * @param int  $courseid  The course to move.
+     * @param bool $moveup    true = move up, false = move down.
+     */
+    public static function swap_user_course_sortorder(int $userid, int $courseid, bool $moveup): void {
+        global $DB;
+        $now = time();
+
+        // Full management list, currently sorted by (sortorder, fullname).
+        $all = array_values(self::get_user_courses_for_management($userid));
+
+        // Lazy-initialise: ensure every visible course has an override row with
+        // a valid, sequential sortorder so the whole list can be reordered.
+        foreach ($all as $i => $course) {
+            $existing = $DB->get_record(
+                'block_workload_user_courses',
+                ['userid' => $userid, 'courseid' => $course->id]
+            );
+            if (!$existing) {
+                // Enrolled course with no override yet — insert a tracking record.
+                // active=1 has no display effect for an enrolled course.
+                $DB->insert_record('block_workload_user_courses', (object)[
+                    'userid'        => $userid,
+                    'courseid'      => $course->id,
+                    'active'        => 1,
+                    'sortorder'     => $i,
+                    'timecreated'   => $now,
+                    'timemodified'  => $now,
+                ]);
+            } else {
+                $DB->set_field('block_workload_user_courses', 'sortorder', $i, ['id' => $existing->id]);
+            }
+        }
+
+        // Reload after normalisation so positions are sequential 0…n-1.
+        $all   = array_values(self::get_user_courses_for_management($userid));
+        $count = count($all);
+
+        foreach ($all as $i => $course) {
+            if ((int)$course->id !== $courseid) {
+                continue;
+            }
+            $swapidx = $moveup ? $i - 1 : $i + 1;
+            if ($swapidx >= 0 && $swapidx < $count) {
+                $reca = $DB->get_record(
+                    'block_workload_user_courses',
+                    ['userid' => $userid, 'courseid' => $all[$i]->id]
+                );
+                $recb = $DB->get_record(
+                    'block_workload_user_courses',
+                    ['userid' => $userid, 'courseid' => $all[$swapidx]->id]
+                );
+                $DB->set_field('block_workload_user_courses', 'sortorder', $swapidx, ['id' => $reca->id]);
+                $DB->set_field('block_workload_user_courses', 'sortorder', $i, ['id' => $recb->id]);
+            }
+            break;
+        }
     }
 
     /**

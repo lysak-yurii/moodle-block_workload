@@ -112,7 +112,7 @@ class block_workload extends block_base {
             // Enrollment mode: show courses the student is enrolled in (+ manager overrides).
             $courses = \block_workload\helper::get_user_enrolled_courses(
                 (int)$USER->id,
-                ($courseorder === 'recentaccess') ? 'recentaccess' : 'fullname'
+                ($courseorder === 'recentaccess') ? 'recentaccess' : 'sortorder'
             );
 
             if (empty($courses)) {

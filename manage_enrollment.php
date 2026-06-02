@@ -36,6 +36,8 @@ require_once('../../config.php');
 $userid   = optional_param('userid', 0, PARAM_INT);
 $action   = optional_param('action', '', PARAM_ALPHA);
 $courseid = optional_param('courseid', 0, PARAM_INT);
+$moveup   = optional_param('moveup', 0, PARAM_INT);
+$movedown = optional_param('movedown', 0, PARAM_INT);
 
 // A-Z filters for the student list.
 $alphabet    = explode(',', get_string('alphabet', 'langconfig'));
@@ -303,6 +305,13 @@ if ($confirmbulkids !== '' && $confirmbulkact) {
     );
     echo $OUTPUT->footer();
     exit;
+}
+
+// Handle course reorder (move up / down) in the detail view.
+if ($userid && ($moveup || $movedown) && confirm_sesskey()) {
+    $moveid = $moveup ?: $movedown;
+    \block_workload\helper::swap_user_course_sortorder($userid, $moveid, (bool)$moveup);
+    redirect(new moodle_url('/blocks/workload/manage_enrollment.php', ['userid' => $userid]));
 }
 
 // Detail view: one student's courses.
@@ -595,8 +604,9 @@ function render_student_detail(int $userid, int $catid): void {
     $PAGE->set_heading(get_string('coursestitle', 'block_workload', $fullname));
     $PAGE->set_url('/blocks/workload/manage_enrollment.php', ['userid' => $userid]);
 
-    $courses = \block_workload\helper::get_user_courses_for_management($userid);
-    $baseurl = new moodle_url('/blocks/workload/manage_enrollment.php');
+    $courses          = \block_workload\helper::get_user_courses_for_management($userid);
+    $baseurl          = new moodle_url('/blocks/workload/manage_enrollment.php');
+    $showordercolumn  = (get_config('block_workload', 'courseorder') ?: 'sortorder') === 'sortorder';
 
     echo $OUTPUT->header();
     $PAGE->requires->js_call_amd('core/checkbox-toggleall', 'init');
@@ -799,14 +809,18 @@ function render_student_detail(int $userid, int $catid): void {
         ]);
 
         $table             = new html_table();
-        $table->head       = [
+        $headcols          = [
             $masterth,
             get_string('course', 'block_workload'),
             get_string('coursestartdate', 'block_workload'),
             get_string('courseenddate', 'block_workload'),
             get_string('activecourse', 'block_workload'),
-            get_string('actions', 'block_workload'),
         ];
+        if ($showordercolumn) {
+            $headcols[] = get_string('order', 'moodle');
+        }
+        $headcols[]        = get_string('actions', 'block_workload');
+        $table->head       = $headcols;
         $table->attributes = ['class' => 'generaltable table-sm table-striped table-hover mb-2'];
 
         $disabled = html_writer::tag(
@@ -890,11 +904,39 @@ function render_student_detail(int $userid, int $catid): void {
                 );
             }
 
+            $rowcells = [$cbcell, $namecell, $startcell, $endcell, $activecell];
+
+            if ($showordercolumn) {
+                $allcourses = array_values($courses);
+                $idx        = array_search($course, $allcourses, true);
+                $isfirst    = ($idx === 0);
+                $islast     = ($idx === count($allcourses) - 1);
+
+                $moveupurl   = new moodle_url('/blocks/workload/manage_enrollment.php', [
+                    'userid' => $userid, 'moveup' => $course->id, 'sesskey' => sesskey(),
+                ]);
+                $movedownurl = new moodle_url('/blocks/workload/manage_enrollment.php', [
+                    'userid' => $userid, 'movedown' => $course->id, 'sesskey' => sesskey(),
+                ]);
+
+                $ordercell       = new html_table_cell();
+                $ordercell->text = ($isfirst ? '' : $OUTPUT->action_icon(
+                    $moveupurl,
+                    new pix_icon('t/up', get_string('moveup', 'moodle'))
+                )) . ($islast ? '' : $OUTPUT->action_icon(
+                    $movedownurl,
+                    new pix_icon('t/down', get_string('movedown', 'moodle'))
+                ));
+                $rowcells[] = $ordercell;
+            }
+
+            $rowcells[] = $actioncell;
+
             $row = new html_table_row();
             if ($excluded) {
                 $row->attributes['class'] = 'text-muted';
             }
-            $row->cells    = [$cbcell, $namecell, $startcell, $endcell, $activecell, $actioncell];
+            $row->cells    = $rowcells;
             $table->data[] = $row;
         }
 
