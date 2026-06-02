@@ -90,8 +90,8 @@ class provider implements
         if ($userlist->get_context()->contextlevel !== CONTEXT_SYSTEM) {
             return;
         }
-        $userlist->add_from_table('block_workload_entries', 'userid');
-        $userlist->add_from_table('block_workload_members', 'userid');
+        $userlist->add_from_sql('userid', 'SELECT DISTINCT userid FROM {block_workload_entries}', []);
+        $userlist->add_from_sql('userid', 'SELECT DISTINCT userid FROM {block_workload_members}', []);
     }
 
     /**
