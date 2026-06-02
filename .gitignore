@@ -13,6 +13,9 @@ phpcs.xml
 # Node modules created by local grunt build
 moodlenode/
 
+# Local dev/demo utilities – not part of the plugin release
+cli/
+
 # moodle-plugin-ci runtime status files (created during local test runs)
 Linted
 Running
