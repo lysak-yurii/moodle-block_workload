@@ -41,6 +41,10 @@ class provider implements
      * @return collection
      */
     public static function get_metadata(collection $collection): collection {
+        $collection->add_database_table('block_workload_cohorts', [
+            'createdby' => 'privacy:metadata:block_workload_cohorts:createdby',
+        ], 'privacy:metadata:block_workload_cohorts');
+
         $collection->add_database_table('block_workload_entries', [
             'userid'     => 'privacy:metadata:block_workload_entries:userid',
             'courseid'   => 'privacy:metadata:block_workload_entries:courseid',
@@ -53,6 +57,13 @@ class provider implements
             'userid'   => 'privacy:metadata:block_workload_members:userid',
             'cohortid' => 'privacy:metadata:block_workload_members:cohortid',
         ], 'privacy:metadata:block_workload_members');
+
+        $collection->add_database_table('block_workload_user_courses', [
+            'userid'    => 'privacy:metadata:block_workload_user_courses:userid',
+            'courseid'  => 'privacy:metadata:block_workload_user_courses:courseid',
+            'active'    => 'privacy:metadata:block_workload_user_courses:active',
+            'sortorder' => 'privacy:metadata:block_workload_user_courses:sortorder',
+        ], 'privacy:metadata:block_workload_user_courses');
 
         return $collection;
     }
@@ -70,13 +81,17 @@ class provider implements
                   FROM {context} ctx
                  WHERE ctx.contextlevel = :ctxlevel
                    AND (
-                         EXISTS (SELECT 1 FROM {block_workload_entries} WHERE userid = :uid1)
-                      OR EXISTS (SELECT 1 FROM {block_workload_members} WHERE userid = :uid2)
+                         EXISTS (SELECT 1 FROM {block_workload_entries}     WHERE userid    = :uid1)
+                      OR EXISTS (SELECT 1 FROM {block_workload_members}     WHERE userid    = :uid2)
+                      OR EXISTS (SELECT 1 FROM {block_workload_user_courses} WHERE userid   = :uid3)
+                      OR EXISTS (SELECT 1 FROM {block_workload_cohorts}     WHERE createdby = :uid4)
                    )";
         $contextlist->add_from_sql($sql, [
             'ctxlevel' => CONTEXT_SYSTEM,
             'uid1'     => $userid,
             'uid2'     => $userid,
+            'uid3'     => $userid,
+            'uid4'     => $userid,
         ]);
         return $contextlist;
     }
@@ -90,8 +105,10 @@ class provider implements
         if ($userlist->get_context()->contextlevel !== CONTEXT_SYSTEM) {
             return;
         }
-        $userlist->add_from_sql('userid', 'SELECT DISTINCT userid FROM {block_workload_entries}', []);
-        $userlist->add_from_sql('userid', 'SELECT DISTINCT userid FROM {block_workload_members}', []);
+        $userlist->add_from_sql('userid', 'SELECT DISTINCT userid    FROM {block_workload_entries}', []);
+        $userlist->add_from_sql('userid', 'SELECT DISTINCT userid    FROM {block_workload_members}', []);
+        $userlist->add_from_sql('userid', 'SELECT DISTINCT userid    FROM {block_workload_user_courses}', []);
+        $userlist->add_from_sql('createdby', 'SELECT DISTINCT createdby FROM {block_workload_cohorts}', []);
     }
 
     /**
@@ -120,6 +137,22 @@ class provider implements
                 (object) ['memberships' => array_values($memberships)]
             );
         }
+
+        $courseoverrides = $DB->get_records('block_workload_user_courses', ['userid' => $userid]);
+        if ($courseoverrides) {
+            writer::with_context($context)->export_data(
+                [get_string('pluginname', 'block_workload'), 'course_overrides'],
+                (object) ['course_overrides' => array_values($courseoverrides)]
+            );
+        }
+
+        $cohorts = $DB->get_records('block_workload_cohorts', ['createdby' => $userid]);
+        if ($cohorts) {
+            writer::with_context($context)->export_data(
+                [get_string('pluginname', 'block_workload'), 'created_cohorts'],
+                (object) ['cohorts' => array_values($cohorts)]
+            );
+        }
     }
 
     /**
@@ -134,6 +167,9 @@ class provider implements
         global $DB;
         $DB->delete_records('block_workload_entries');
         $DB->delete_records('block_workload_members');
+        $DB->delete_records('block_workload_user_courses');
+        // Createdby is NOTNULL — anonymise rather than delete the cohort row.
+        $DB->set_field('block_workload_cohorts', 'createdby', 0);
     }
 
     /**
@@ -143,9 +179,21 @@ class provider implements
      */
     public static function delete_data_for_user(approved_contextlist $contextlist): void {
         global $DB;
+        $hassystemctx = false;
+        foreach ($contextlist->get_contexts() as $ctx) {
+            if ($ctx->contextlevel === CONTEXT_SYSTEM) {
+                $hassystemctx = true;
+                break;
+            }
+        }
+        if (!$hassystemctx) {
+            return;
+        }
         $userid = $contextlist->get_user()->id;
         $DB->delete_records('block_workload_entries', ['userid' => $userid]);
         $DB->delete_records('block_workload_members', ['userid' => $userid]);
+        $DB->delete_records('block_workload_user_courses', ['userid' => $userid]);
+        $DB->set_field('block_workload_cohorts', 'createdby', 0, ['createdby' => $userid]);
     }
 
     /**
@@ -154,6 +202,9 @@ class provider implements
      * @param approved_userlist $userlist
      */
     public static function delete_data_for_users(approved_userlist $userlist): void {
+        if ($userlist->get_context()->contextlevel !== CONTEXT_SYSTEM) {
+            return;
+        }
         global $DB;
         $userids = $userlist->get_userids();
         if (empty($userids)) {
@@ -162,5 +213,7 @@ class provider implements
         [$insql, $params] = $DB->get_in_or_equal($userids, SQL_PARAMS_NAMED);
         $DB->delete_records_select('block_workload_entries', "userid $insql", $params);
         $DB->delete_records_select('block_workload_members', "userid $insql", $params);
+        $DB->delete_records_select('block_workload_user_courses', "userid $insql", $params);
+        $DB->set_field_select('block_workload_cohorts', 'createdby', 0, "createdby $insql", $params);
     }
 }
