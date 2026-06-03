@@ -1012,6 +1012,87 @@ class helper {
 
 
     /**
+     * Search Moodle users to add to a workload cohort.
+     *
+     * Applies any combination of name/email search, department, institution,
+     * and course-category filters.  Returns at most 200 rows.
+     *
+     * @param string $search  Partial name or email match.
+     * @param string $dept    Exact department match, or '' to skip.
+     * @param string $inst    Exact institution match, or '' to skip.
+     * @param int    $catid   Course-category filter (0 = skip).
+     * @return array
+     */
+    public static function search_users_for_member_add(
+        string $search,
+        string $dept,
+        string $inst,
+        int $catid
+    ): array {
+        global $DB;
+
+        $params = ['deleted' => 0, 'notsite' => SITEID];
+        $where  = ['u.deleted = :deleted', 'u.id <> :notsite'];
+
+        if ($search !== '') {
+            $where[]         = '(' . $DB->sql_like(
+                $DB->sql_concat('u.firstname', "' '", 'u.lastname'),
+                ':name',
+                false
+            ) . ' OR ' . $DB->sql_like('u.email', ':email', false) . ')';
+            $params['name']  = '%' . $DB->sql_like_escape($search) . '%';
+            $params['email'] = '%' . $DB->sql_like_escape($search) . '%';
+        }
+        if ($dept !== '') {
+            $where[]        = 'u.department = :dept';
+            $params['dept'] = $dept;
+        }
+        if ($inst !== '') {
+            $where[]        = 'u.institution = :inst';
+            $params['inst'] = $inst;
+        }
+        if ($catid > 0) {
+            $catids = self::get_all_subcategory_ids($catid);
+            [$catsql, $catparams] = $DB->get_in_or_equal($catids, SQL_PARAMS_NAMED, 'ccat');
+            $where[]  = "EXISTS (
+                SELECT 1 FROM {user_enrolments} ue
+                  JOIN {enrol} en ON en.id = ue.enrolid
+                  JOIN {course} co ON co.id = en.courseid
+                 WHERE ue.userid = u.id AND co.category $catsql
+            )";
+            $params = array_merge($params, $catparams);
+        }
+
+        $sql = "SELECT u.id, u.firstname, u.lastname, u.email, u.department, u.institution,
+                       u.firstnamephonetic, u.lastnamephonetic, u.middlename, u.alternatename
+                  FROM {user} u
+                 WHERE " . implode(' AND ', $where) . "
+              ORDER BY u.lastname ASC, u.firstname ASC";
+
+        return $DB->get_records_sql($sql, $params, 0, 200);
+    }
+
+    /**
+     * Return members of a Moodle system cohort for bulk-import into a workload cohort.
+     *
+     * @param int $moodlecohortid
+     * @return array
+     */
+    public static function get_moodle_cohort_members(int $moodlecohortid): array {
+        global $DB;
+        $sql = "SELECT u.id, u.firstname, u.lastname, u.email, u.department, u.institution,
+                       u.firstnamephonetic, u.lastnamephonetic, u.middlename, u.alternatename
+                  FROM {user} u
+                  JOIN {cohort_members} cm ON cm.userid = u.id
+                 WHERE cm.cohortid = :cohortid
+                   AND u.deleted = 0
+                   AND u.id <> :siteid
+              ORDER BY u.lastname ASC, u.firstname ASC";
+        return $DB->get_records_sql($sql, ['cohortid' => $moodlecohortid, 'siteid' => SITEID]);
+    }
+
+
+    /**
      * Return the given category ID plus all descendant category IDs (BFS).
      * Used so filtering by a faculty also matches all sub-semester categories.
      *

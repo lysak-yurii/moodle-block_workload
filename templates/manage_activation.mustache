@@ -1,0 +1,178 @@
+{{!
+    This file is part of Moodle - http://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+}}
+{{!
+    @template block_workload/manage_activation
+
+    Activation settings page body (action=activation).
+
+    Context variables – see action_activation() in manage.php.
+
+    Example context (json):
+    {
+        "ismodal": false,
+        "backurl": "#",
+        "cohortname": "Cohort A",
+        "degree_program": "BSc CS",
+        "isactive": true,
+        "statuslabel": "Active",
+        "statusbadgeclass": "bg-success text-white",
+        "cohortid": 1,
+        "modal": 0,
+        "sesskey": "abc",
+        "formclass": "card p-3",
+        "mode_inactive": false,
+        "mode_always": true,
+        "mode_period": false,
+        "periodstyle": "display:none;",
+        "week_from": 22, "year_from": 2026,
+        "week_to": 52,   "year_to": 2026
+    }
+}}
+
+{{! Back button or modal cohort heading }}
+{{^ismodal}}
+<a href="{{{backurl}}}" class="btn btn-outline-secondary mb-3">
+    &larr; {{#str}}cohorts, block_workload{{/str}}
+</a>
+{{/ismodal}}
+
+{{#ismodal}}
+<p class="mb-3">
+    <strong>{{{cohortname}}}</strong>
+    <span class="text-muted"> &ndash; {{{degree_program}}}</span>
+</p>
+{{/ismodal}}
+
+{{! Current status badge }}
+<div class="mb-3">
+    {{#str}}currentstatus, block_workload{{/str}}:
+    <span class="badge rounded-pill {{statusbadgeclass}}">{{statuslabel}}</span>
+</div>
+
+{{! Activation form }}
+<form method="post" class="{{formclass}}" style="max-width:480px;">
+    <input type="hidden" name="action"         value="activation">
+    <input type="hidden" name="id"             value="{{cohortid}}">
+    <input type="hidden" name="modal"          value="{{modal}}">
+    <input type="hidden" name="sesskey"        value="{{sesskey}}">
+    <input type="hidden" name="saveactivation" value="1">
+
+    <p class="fw-semibold mb-2">{{#str}}activationperiod, block_workload{{/str}}:</p>
+
+    {{! Inactive }}
+    <div class="form-check mb-2">
+        <input type="radio"
+               class="form-check-input"
+               name="activation_mode"
+               id="mode_inactive"
+               value="inactive"
+               {{#mode_inactive}}checked{{/mode_inactive}}>
+        <label class="form-check-label" for="mode_inactive">
+            {{#str}}statusinactive, block_workload{{/str}}
+        </label>
+    </div>
+
+    {{! Always active }}
+    <div class="form-check mb-2">
+        <input type="radio"
+               class="form-check-input"
+               name="activation_mode"
+               id="mode_always"
+               value="always"
+               {{#mode_always}}checked{{/mode_always}}>
+        <label class="form-check-label" for="mode_always">
+            {{#str}}alwaysactive, block_workload{{/str}}
+        </label>
+    </div>
+
+    {{! Period }}
+    <div class="form-check mb-2">
+        <input type="radio"
+               class="form-check-input"
+               name="activation_mode"
+               id="mode_period"
+               value="period"
+               {{#mode_period}}checked{{/mode_period}}>
+        <label class="form-check-label" for="mode_period">
+            {{#str}}activationperiod, block_workload{{/str}}
+        </label>
+    </div>
+
+    {{! Date-range fields – shown only when "period" is selected }}
+    <div id="wl-period-fields"
+         class="mt-3 ps-4 border-start border-2"
+         style="{{periodstyle}}">
+
+        <div class="row g-2 mb-2">
+            <div class="col-auto">
+                <label for="week_from" class="form-label small mb-1">
+                    {{#str}}weekfrom, block_workload{{/str}}
+                </label>
+                <input type="number"
+                       name="week_from"
+                       id="week_from"
+                       value="{{week_from}}"
+                       min="1"
+                       class="form-control"
+                       style="width:7rem;">
+            </div>
+            <div class="col-auto">
+                <label for="year_from" class="form-label small mb-1">
+                    {{#str}}yearfrom, block_workload{{/str}}
+                </label>
+                <input type="number"
+                       name="year_from"
+                       id="year_from"
+                       value="{{year_from}}"
+                       min="1"
+                       class="form-control"
+                       style="width:7rem;">
+            </div>
+        </div>
+
+        <div class="row g-2">
+            <div class="col-auto">
+                <label for="week_to" class="form-label small mb-1">
+                    {{#str}}weekto, block_workload{{/str}}
+                </label>
+                <input type="number"
+                       name="week_to"
+                       id="week_to"
+                       value="{{week_to}}"
+                       min="1"
+                       class="form-control"
+                       style="width:7rem;">
+            </div>
+            <div class="col-auto">
+                <label for="year_to" class="form-label small mb-1">
+                    {{#str}}yearto, block_workload{{/str}}
+                </label>
+                <input type="number"
+                       name="year_to"
+                       id="year_to"
+                       value="{{year_to}}"
+                       min="1"
+                       class="form-control"
+                       style="width:7rem;">
+            </div>
+        </div>
+    </div>
+
+    <input type="submit"
+           value="{{#str}}save, block_workload{{/str}}"
+           class="btn btn-primary mt-3">
+</form>

@@ -1,0 +1,156 @@
+{{!
+    This file is part of Moodle - http://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+}}
+{{!
+    @template block_workload/manage_list
+
+    Cohort list – body of the manage.php?action=list page.
+
+    Context variables:
+        addurl          (string) URL for the add-cohort modal iframe
+        statisticsurl   (string) URL for the statistics page
+        hascohorts      (bool)   whether any cohorts exist
+        cohorts[]
+            id               (int)
+            name             (string) format_string() output
+            degree_program   (string) format_string() output
+            department       (string) format_string() output
+            active           (bool)
+            activelabel      (string) "Active" | "Inactive"
+            membercount      (int)
+            coursecount      (int)
+            memberurl        (string)
+            courseurl        (string)
+            delurl           (string)
+            editurl          (string)  modal URL
+            activurl         (string)  modal URL
+            toggleurl        (string)
+
+    Example context (json):
+    {
+        "addurl": "http://example.com/blocks/workload/manage.php?action=add&modal=1",
+        "statisticsurl": "http://example.com/blocks/workload/statistics.php",
+        "manageurl": "http://example.com/blocks/workload/manage.php",
+        "sesskey": "abc123",
+        "hascohorts": true,
+        "cohorts": [
+            {
+                "id": 1, "name": "Cohort A", "degree_program": "BSc CS",
+                "department": "CS", "active": true, "activelabel": "Active",
+                "membercount": 12, "coursecount": 4,
+                "memberurl": "#", "courseurl": "#", "delurl": "#",
+                "editurl": "#", "activurl": "#"
+            }
+        ]
+    }
+}}
+
+<div class="mb-3">
+    <button type="button"
+            class="btn btn-primary me-2"
+            data-modal-url="{{{addurl}}}"
+            data-modal-title="{{#str}}addcohort, block_workload{{/str}}"
+            data-modal-large="1">
+        {{#str}}addcohort, block_workload{{/str}}
+    </button>
+    <a href="{{{statisticsurl}}}" class="btn btn-outline-primary">
+        {{#str}}statisticstitle, block_workload{{/str}}
+    </a>
+</div>
+
+{{^hascohorts}}
+<div class="alert alert-info" role="alert">
+    {{#str}}nocohortsfound, block_workload{{/str}}
+</div>
+{{/hascohorts}}
+
+{{#hascohorts}}
+<div class="table-responsive">
+    <table class="table table-striped table-hover table-sm">
+        <thead>
+            <tr>
+                <th scope="col">{{#str}}cohortname, block_workload{{/str}}</th>
+                <th scope="col">{{#str}}degreeprogram, block_workload{{/str}}</th>
+                <th scope="col">{{#str}}department{{/str}}</th>
+                <th scope="col">{{#str}}active, block_workload{{/str}}</th>
+                <th scope="col">{{#str}}students, block_workload{{/str}}</th>
+                <th scope="col">{{#str}}courses, block_workload{{/str}}</th>
+                <th scope="col">{{#str}}actions, block_workload{{/str}}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{#cohorts}}
+            <tr>
+                <td>{{{name}}}</td>
+                <td>{{{degree_program}}}</td>
+                <td>{{{department}}}</td>
+                <td>
+                    <form method="post" action="{{{manageurl}}}" class="d-inline wl-toggle-form">
+                        <input type="hidden" name="action" value="togglecohort">
+                        <input type="hidden" name="id" value="{{id}}">
+                        <input type="hidden" name="sesskey" value="{{sesskey}}">
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox"
+                                   class="custom-control-input"
+                                   id="cohort-toggle-{{id}}"
+                                   {{#active}}checked{{/active}}>
+                            <label class="custom-control-label"
+                                   for="cohort-toggle-{{id}}"
+                                   title="{{activelabel}}"></label>
+                        </div>
+                    </form>
+                </td>
+                <td>{{membercount}}</td>
+                <td>{{coursecount}}</td>
+                <td class="text-nowrap">
+                    <a href="#"
+                       class="action-icon"
+                       title="{{#str}}editcohort, block_workload{{/str}}"
+                       data-modal-url="{{{editurl}}}"
+                       data-modal-title="{{#str}}editcohort, block_workload{{/str}}"
+                       data-modal-large="1">
+                        {{#pix}}t/edit, core, {{#str}}editcohort, block_workload{{/str}}{{/pix}}
+                    </a>
+                    <a href="{{{memberurl}}}"
+                       class="action-icon"
+                       title="{{#str}}cohortmembers, block_workload{{/str}}">
+                        {{#pix}}i/users, core, {{#str}}cohortmembers, block_workload{{/str}}{{/pix}}
+                    </a>
+                    <a href="{{{courseurl}}}"
+                       class="action-icon"
+                       title="{{#str}}cohortcourses, block_workload{{/str}}">
+                        {{#pix}}i/course, core, {{#str}}cohortcourses, block_workload{{/str}}{{/pix}}
+                    </a>
+                    <a href="#"
+                       class="action-icon"
+                       title="{{#str}}cohortactivation, block_workload{{/str}}"
+                       data-modal-url="{{{activurl}}}"
+                       data-modal-title="{{#str}}cohortactivation, block_workload{{/str}}"
+                       data-modal-maxwidth="460">
+                        {{#pix}}i/calendar, core, {{#str}}cohortactivation, block_workload{{/str}}{{/pix}}
+                    </a>
+                    <a href="{{{delurl}}}"
+                       class="action-icon"
+                       title="{{#str}}deletecohort, block_workload{{/str}}">
+                        {{#pix}}t/delete, core, {{#str}}deletecohort, block_workload{{/str}}{{/pix}}
+                    </a>
+                </td>
+            </tr>
+            {{/cohorts}}
+        </tbody>
+    </table>
+</div>
+{{/hascohorts}}

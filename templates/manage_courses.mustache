@@ -1,0 +1,239 @@
+{{!
+    This file is part of Moodle - http://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+}}
+{{!
+    @template block_workload/manage_courses
+
+    Manage-courses page body (action=courses).
+
+    Context variables – see action_courses() in manage.php.
+
+    Example context (json):
+    {
+        "backurl": "#", "cohortid": 1, "sesskey": "abc",
+        "selectedcategory": 0,
+        "catopts": [{"value":"0","text":"Select category","selected":true}],
+        "hascatcourses": false, "nocatcourses": false,
+        "catresultinfo": "", "catrows": [],
+        "showordercolumn": true,
+        "hasassigned": false,
+        "assignedcount": 0,
+        "assignedrows": []
+    }
+}}
+
+<a href="{{{backurl}}}" class="btn btn-outline-secondary mb-3">
+    &larr; {{#str}}cohorts, block_workload{{/str}}
+</a>
+
+{{! ── Add courses: category browser ─────────────────────────────────── }}
+<h5>{{#str}}addcourses, block_workload{{/str}}</h5>
+
+<form method="get"      class="d-flex gap-2 align-items-end flex-wrap mb-3">
+    <input type="hidden" name="action" value="courses">
+    <input type="hidden" name="id" value="{{cohortid}}">
+
+    <div class="d-flex flex-column">
+        <label for="catsel" class="form-label small">
+            {{#str}}filterbycategory, block_workload{{/str}}
+        </label>
+        <select name="categoryid" id="catsel"
+                class="select custom-select form-select form-select-sm" style="min-width:250px;">
+            {{#catopts}}
+            <option value="{{value}}"{{#selected}} selected{{/selected}}>{{{text}}}</option>
+            {{/catopts}}
+        </select>
+    </div>
+
+    <input type="submit"
+           value="{{#str}}filterresults, block_workload{{/str}}"
+           class="btn btn-secondary align-self-end">
+</form>
+
+{{#selectedcategory}}
+
+{{#nocatcourses}}
+<p class="text-muted">{{#str}}nocoursesincategory, block_workload{{/str}}</p>
+{{/nocatcourses}}
+
+{{#hascatcourses}}
+<p class="text-muted small mb-2">{{{catresultinfo}}}</p>
+
+<form method="post" id="wl-addcourses-form">
+    <input type="hidden" name="action" value="courses">
+    <input type="hidden" name="id" value="{{cohortid}}">
+    <input type="hidden" name="sesskey" value="{{sesskey}}">
+
+    <table class="generaltable table-sm table-hover">
+        <thead>
+            <tr>
+                <th class="c0 shrink" scope="col">
+                    <input type="checkbox"
+                           id="wl-addcourses-master"
+                           data-action="toggle"
+                           data-togglegroup="addcourses-group"
+                           data-toggle="master"
+                           title="{{#str}}selectall{{/str}}"
+                           checked>
+                </th>
+                <th scope="col">{{#str}}course, block_workload{{/str}}</th>
+                <th scope="col">{{#str}}coursestartdate, block_workload{{/str}}</th>
+                <th scope="col">{{#str}}courseenddate, block_workload{{/str}}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{#catrows}}
+            <tr{{#already}} class="text-muted"{{/already}}>
+                <td class="c0 shrink">
+                    {{#already}}
+                    <span class="text-success fw-bold"
+                          title="{{#str}}alreadymember, block_workload{{/str}}">&#10003;</span>
+                    {{/already}}
+                    {{^already}}
+                    <input type="checkbox"
+                           name="addcourseids[]"
+                           value="{{id}}"
+                           checked
+                           data-action="toggle"
+                           data-togglegroup="addcourses-group"
+                           data-toggle="slave">
+                    {{/already}}
+                </td>
+                <td>
+                    <a href="{{{courseurl}}}" target="_blank">{{{fullname}}}</a>
+                    <span class="text-muted small"> ({{shortname}})</span>
+                </td>
+                <td>
+                    {{#startdate_disabled}}<span class="text-muted small">{{{datedisabled}}}</span>{{/startdate_disabled}}
+                    {{^startdate_disabled}}{{startdate}}{{/startdate_disabled}}
+                </td>
+                <td>
+                    {{#enddate_disabled}}<span class="text-muted small">{{{datedisabled}}}</span>{{/enddate_disabled}}
+                    {{^enddate_disabled}}{{enddate}}{{/enddate_disabled}}
+                </td>
+            </tr>
+            {{/catrows}}
+        </tbody>
+    </table>
+
+    <button type="submit" class="btn btn-primary" disabled>
+        {{#str}}addcourses, block_workload{{/str}}
+    </button>
+</form>
+{{/hascatcourses}}
+
+{{/selectedcategory}}
+
+{{! ── Assigned courses ───────────────────────────────────────────────── }}
+<h5 class="mt-4">
+    {{#str}}assignedcourses, block_workload{{/str}}
+    {{#hasassigned}}
+    <span class="text-muted fw-normal small ms-1">({{assignedcount}})</span>
+    {{/hasassigned}}
+</h5>
+
+{{^hasassigned}}
+<p class="text-muted">{{#str}}nocoursesincategory, block_workload{{/str}}</p>
+{{/hasassigned}}
+
+{{#hasassigned}}
+<form method="post" id="wl-removecourses-form">
+    <input type="hidden" name="action" value="courses">
+    <input type="hidden" name="id" value="{{cohortid}}">
+    <input type="hidden" name="sesskey" value="{{sesskey}}">
+
+    <table class="generaltable table-sm table-striped">
+        <thead>
+            <tr>
+                <th class="c0 shrink" scope="col">
+                    <input type="checkbox"
+                           id="wl-courses-remove-master"
+                           data-action="toggle"
+                           data-togglegroup="removecourses-group"
+                           data-toggle="master"
+                           title="{{#str}}selectall{{/str}}">
+                </th>
+                <th scope="col">{{#str}}course, block_workload{{/str}}</th>
+                <th scope="col">{{#str}}coursestartdate, block_workload{{/str}}</th>
+                <th scope="col">{{#str}}courseenddate, block_workload{{/str}}</th>
+                <th scope="col">{{#str}}activecourse, block_workload{{/str}}</th>
+                {{#showordercolumn}}
+                <th scope="col">{{#str}}order, block_workload{{/str}}</th>
+                {{/showordercolumn}}
+                <th scope="col">{{#str}}actions, block_workload{{/str}}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{#assignedrows}}
+            <tr>
+                <td class="c0 shrink">
+                    <input type="checkbox"
+                           name="removecourseids[]"
+                           value="{{assignid}}"
+                           data-action="toggle"
+                           data-togglegroup="removecourses-group"
+                           data-toggle="slave">
+                </td>
+                <td>
+                    <a href="{{{courseurl}}}" target="_blank">{{{fullname}}}</a>
+                    <span class="text-muted small"> ({{shortname}})</span>
+                </td>
+                <td>
+                    {{#startdate_disabled}}<span class="text-muted small">{{{datedisabled}}}</span>{{/startdate_disabled}}
+                    {{^startdate_disabled}}{{startdate}}{{/startdate_disabled}}
+                </td>
+                <td>
+                    {{#enddate_disabled}}<span class="text-muted small">{{{datedisabled}}}</span>{{/enddate_disabled}}
+                    {{^enddate_disabled}}{{enddate}}{{/enddate_disabled}}
+                </td>
+                <td>
+                    <a href="{{{toggleurl}}}" title="{{togglelabel}}">
+                        {{#active}}{{#pix}}t/hide, core, {{togglelabel}}{{/pix}}{{/active}}
+                        {{^active}}{{#pix}}t/show, core, {{togglelabel}}{{/pix}}{{/active}}
+                    </a>
+                </td>
+                {{#showordercolumn}}
+                <td>
+                    {{#showup}}
+                    <a href="{{{moveupurl}}}" title="{{moveuplabel}}">
+                        {{#pix}}t/up, core, {{moveuplabel}}{{/pix}}
+                    </a>
+                    {{/showup}}
+                    {{^showup}}<span style="display:inline-block;width:1.4rem;"></span>{{/showup}}
+                    {{#showdown}}
+                    <a href="{{{movedownurl}}}" title="{{movedownlabel}}">
+                        {{#pix}}t/down, core, {{movedownlabel}}{{/pix}}
+                    </a>
+                    {{/showdown}}
+                    {{^showdown}}<span style="display:inline-block;width:1.4rem;"></span>{{/showdown}}
+                </td>
+                {{/showordercolumn}}
+                <td>
+                    <a href="{{{confirmremoveurl}}}"
+                       title="{{#str}}removecourse, block_workload{{/str}}">
+                        {{#pix}}t/delete, core, {{#str}}removecourse, block_workload{{/str}}{{/pix}}
+                    </a>
+                </td>
+            </tr>
+            {{/assignedrows}}
+        </tbody>
+    </table>
+
+    <button type="submit" class="btn btn-secondary mt-2" disabled>
+        {{#str}}bulkremovecourses, block_workload{{/str}}
+    </button>
+</form>
+{{/hasassigned}}

@@ -1,0 +1,436 @@
+{{!
+    This file is part of Moodle - http://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+}}
+{{!
+    @template block_workload/manage_members
+
+    Manage-members page body (action=members).
+
+    Context variables required by PHP – see action_members() in manage.php.
+
+    Example context (json):
+    {
+        "backurl": "#", "cohortid": 1, "sesskey": "abc",
+        "page": 0, "perpage": 25,
+        "panelopen": false, "panelstyle": "display:none;",
+        "lblopen": "+ Add members", "lblclose": "× Close",
+        "search": "", "filterdepartment": "", "filterinstitution": "", "filtercategory": 0,
+        "filterurl": "#",
+        "clearfiltersurl": "#",
+        "deptopts": [{"value":"","text":"Select…","selected":true}],
+        "instopts": [{"value":"","text":"Select…","selected":true}],
+        "catopts":  [{"value":"0","text":"Select…","selected":true}],
+        "hassearch": false,
+        "nouserfound": false,
+        "searchresultinfo": "",
+        "searchrows": [],
+        "importenabled": false,
+        "nomoodlecohorts": false,
+        "moodlecohortopts": [{"value":"0","text":"Select…","selected":true}],
+        "moodlecohortpickerurl": "#",
+        "hasmoodlecohortsection": false,
+        "nomoodlemembers": false,
+        "moodleimportinfo": "",
+        "moodlerows": [],
+        "alphabars": [],
+        "perpagetext": "Per page",
+        "pplinks": [{"label":"25","isbold":true,"islink":false,"url":null,"separator":true}],
+        "haspagingbar": false,
+        "pagingbar_top": "",
+        "pagingbar_bottom": "",
+        "hasmembers": false,
+        "memberrows": []
+    }
+}}
+
+{{! ── Top action bar ─────────────────────────────────────────────────── }}
+<a href="{{{backurl}}}" class="btn btn-secondary me-2 mb-4">
+    &larr; {{#str}}cohorts, block_workload{{/str}}
+</a>
+<button type="button"
+        id="workload-addpanel-toggle"
+        class="btn btn-primary mb-4"
+        data-label-open="{{{lblopen}}}"
+        data-label-close="{{{lblclose}}}">
+    {{{panelopen_btnlabel}}}
+</button>
+
+{{! ── Add-members panel ──────────────────────────────────────────────── }}
+<div id="workload-addpanel" style="{{panelstyle}}margin-bottom:1.5rem;">
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title mt-0 mb-3">{{#str}}addmembers, block_workload{{/str}}</h5>
+
+            {{! Filter form (GET) }}
+            <form method="get" id="workload-filter-form">
+                <input type="hidden" name="action" value="members">
+                <input type="hidden" name="id" value="{{cohortid}}">
+                <input type="hidden" name="page" value="{{page}}">
+                <input type="hidden" name="perpage" value="{{perpage}}">
+
+                <div style="margin-bottom:1rem;">
+
+                    <div style="display:inline-block;width:200px;margin-right:16px;vertical-align:bottom;overflow:hidden;position:relative;">
+                        <label for="wl-search"
+                               class="form-label fw-semibold mb-1 d-block">
+                            {{#str}}searchusers, block_workload{{/str}}
+                        </label>
+                        <input type="text"
+                               name="search"
+                               id="wl-search"
+                               value="{{search}}"
+                               class="form-control"
+                               style="width:100%;"
+                               placeholder="{{#str}}searchusers, block_workload{{/str}}"
+                               autocomplete="off">
+                    </div>
+
+                    <div style="display:inline-block;width:200px;margin-right:16px;vertical-align:bottom;overflow:hidden;">
+                        <label for="wl-dept"
+                               class="form-label fw-semibold mb-1 d-block">
+                            {{#str}}department{{/str}}
+                        </label>
+                        <select name="filterdepartment" id="wl-dept" class="select custom-select form-select" style="width:100%;">
+                            {{#deptopts}}
+                            <option value="{{value}}"{{#selected}} selected{{/selected}}>{{text}}</option>
+                            {{/deptopts}}
+                        </select>
+                    </div>
+
+                    <div style="display:inline-block;width:200px;margin-right:16px;vertical-align:bottom;overflow:hidden;">
+                        <label for="wl-inst"
+                               class="form-label fw-semibold mb-1 d-block">
+                            {{#str}}institution{{/str}}
+                        </label>
+                        <select name="filterinstitution" id="wl-inst" class="select custom-select form-select" style="width:100%;">
+                            {{#instopts}}
+                            <option value="{{value}}"{{#selected}} selected{{/selected}}>{{text}}</option>
+                            {{/instopts}}
+                        </select>
+                    </div>
+
+                    <div style="display:inline-block;width:200px;margin-right:16px;vertical-align:bottom;overflow:hidden;">
+                        <label for="wl-cat"
+                               class="form-label fw-semibold mb-1 d-block">
+                            {{#str}}filterbycategory, block_workload{{/str}}
+                        </label>
+                        <select name="filtercategory" id="wl-cat" class="select custom-select form-select" style="width:100%;">
+                            {{#catopts}}
+                            <option value="{{value}}"{{#selected}} selected{{/selected}}>{{text}}</option>
+                            {{/catopts}}
+                        </select>
+                    </div>
+
+                </div>
+
+                <input type="submit"
+                       value="{{#str}}filterresults, block_workload{{/str}}"
+                       class="btn btn-primary me-2">
+                {{#hassearch}}
+                <a href="{{{clearfiltersurl}}}" class="btn btn-outline-secondary">
+                    {{#str}}clearfilters, block_workload{{/str}}
+                </a>
+                {{/hassearch}}
+            </form>
+
+            {{! Search results }}
+            {{#hassearch}}
+            <hr>
+            {{#nouserfound}}
+            <div class="alert alert-info" role="alert">
+                {{#str}}nouserfound, block_workload{{/str}}
+            </div>
+            {{/nouserfound}}
+
+            {{^nouserfound}}
+            <p class="text-muted small mb-2">{{{searchresultinfo}}}</p>
+
+            <form method="post">
+                <input type="hidden" name="action" value="members">
+                <input type="hidden" name="id" value="{{cohortid}}">
+                <input type="hidden" name="sesskey" value="{{sesskey}}">
+
+                <table class="generaltable table-sm">
+                    <thead>
+                        <tr>
+                            <th class="c0 shrink" scope="col">
+                                <input type="checkbox"
+                                       id="wl-add-master"
+                                       data-action="toggle"
+                                       data-togglegroup="addmembers-group"
+                                       data-toggle="master"
+                                       title="{{#str}}selectall{{/str}}">
+                            </th>
+                            <th scope="col">{{#str}}fullnameuser{{/str}}</th>
+                            <th scope="col">{{#str}}email{{/str}}</th>
+                            <th scope="col">{{#str}}department{{/str}}</th>
+                            <th scope="col">{{#str}}institution{{/str}}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{#searchrows}}
+                        <tr{{#already}} class="text-muted"{{/already}}>
+                            <td class="c0 shrink">
+                                {{#already}}
+                                <span class="text-success fw-bold"
+                                      title="{{#str}}alreadymember, block_workload{{/str}}">&#10003;</span>
+                                {{/already}}
+                                {{^already}}
+                                <input type="checkbox"
+                                       name="addusers[]"
+                                       value="{{id}}"
+                                       checked
+                                       data-action="toggle"
+                                       data-togglegroup="addmembers-group"
+                                       data-toggle="slave">
+                                {{/already}}
+                            </td>
+                            <td>{{{fullname}}}</td>
+                            <td>{{email}}</td>
+                            <td>{{department}}</td>
+                            <td>{{institution}}</td>
+                        </tr>
+                        {{/searchrows}}
+                    </tbody>
+                </table>
+
+                <input type="submit"
+                       value="{{#str}}addselected, block_workload{{/str}}"
+                       class="btn btn-primary mt-2">
+            </form>
+            {{/nouserfound}}
+            {{/hassearch}}
+
+            {{! Import from Moodle system cohort }}
+            {{#importenabled}}
+            <hr>
+            <h5 class="card-title mt-0 mb-3">
+                {{#str}}importfrommoodlecohort, block_workload{{/str}}
+            </h5>
+
+            {{#nomoodlecohorts}}
+            <div class="alert alert-info" role="alert">
+                {{#str}}nomoodlecohorts, block_workload{{/str}}
+            </div>
+            {{/nomoodlecohorts}}
+
+            {{^nomoodlecohorts}}
+            {{! Cohort picker (GET) }}
+            <form method="get"                  class="d-flex align-items-end gap-2 flex-wrap mb-3">
+                <input type="hidden" name="action" value="members">
+                <input type="hidden" name="id" value="{{cohortid}}">
+                <input type="hidden" name="page" value="{{page}}">
+                <input type="hidden" name="perpage" value="{{perpage}}">
+
+                <div class="d-flex flex-column">
+                    <label for="wl-moodlecohort"
+                           class="form-label fw-semibold mb-1 d-block">
+                        {{#str}}moodlecohortlabel, block_workload{{/str}}
+                    </label>
+                    <select name="moodlecohortid" id="wl-moodlecohort"
+                            class="select custom-select form-select" style="min-width:260px;">
+                        {{#moodlecohortopts}}
+                        <option value="{{value}}"{{#selected}} selected{{/selected}}>{{{text}}}</option>
+                        {{/moodlecohortopts}}
+                    </select>
+                </div>
+
+                <input type="submit"
+                       value="{{#str}}filterresults, block_workload{{/str}}"
+                       class="btn btn-secondary align-self-end">
+            </form>
+
+            {{! Members of the selected Moodle cohort }}
+            {{#hasmoodlecohortsection}}
+            {{#nomoodlemembers}}
+            <div class="alert alert-info" role="alert">
+                {{#str}}nomoodlecohortmembers, block_workload{{/str}}
+            </div>
+            {{/nomoodlemembers}}
+
+            {{^nomoodlemembers}}
+            <p class="text-muted small mb-2">{{{moodleimportinfo}}}</p>
+
+            <form method="post" id="wl-mcimport-form">
+                <input type="hidden" name="action" value="members">
+                <input type="hidden" name="id" value="{{cohortid}}">
+                <input type="hidden" name="sesskey" value="{{sesskey}}">
+
+                <table class="generaltable table-sm">
+                    <thead>
+                        <tr>
+                            <th class="c0 shrink" scope="col">
+                                <input type="checkbox"
+                                       id="wl-mc-master"
+                                       data-action="toggle"
+                                       data-togglegroup="mcimport-group"
+                                       data-toggle="master"
+                                       title="{{#str}}selectall{{/str}}">
+                            </th>
+                            <th scope="col">{{#str}}fullnameuser{{/str}}</th>
+                            <th scope="col">{{#str}}email{{/str}}</th>
+                            <th scope="col">{{#str}}department{{/str}}</th>
+                            <th scope="col">{{#str}}institution{{/str}}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{#moodlerows}}
+                        <tr{{#already}} class="text-muted"{{/already}}>
+                            <td class="c0 shrink">
+                                {{#already}}
+                                <span class="text-success fw-bold"
+                                      title="{{#str}}alreadymember, block_workload{{/str}}">&#10003;</span>
+                                {{/already}}
+                                {{^already}}
+                                <input type="checkbox"
+                                       name="addusers[]"
+                                       value="{{id}}"
+                                       checked
+                                       data-action="toggle"
+                                       data-togglegroup="mcimport-group"
+                                       data-toggle="slave">
+                                {{/already}}
+                            </td>
+                            <td>{{{fullname}}}</td>
+                            <td>{{email}}</td>
+                            <td>{{department}}</td>
+                            <td>{{institution}}</td>
+                        </tr>
+                        {{/moodlerows}}
+                    </tbody>
+                </table>
+
+                <button type="submit" class="btn btn-primary mt-2" disabled>
+                    {{#str}}importselected, block_workload{{/str}}
+                </button>
+            </form>
+            {{/nomoodlemembers}}
+            {{/hasmoodlecohortsection}}
+            {{/nomoodlecohorts}}
+            {{/importenabled}}
+
+        </div>{{! /card-body }}
+    </div>{{! /card }}
+</div>{{! /workload-addpanel }}
+
+{{! ── Current members ────────────────────────────────────────────────── }}
+<h5>{{#str}}currentmembers, block_workload{{/str}}</h5>
+
+{{! A-Z initial bars (firstname / lastname) }}
+{{#alphabars}}
+<div class="initialbar {{bartype}} d-flex flex-wrap justify-content-center justify-content-md-start mb-2">
+    <span class="initialbarlabel me-2">{{barlabel}}</span>
+    <nav class="initialbargroups d-flex flex-wrap justify-content-center justify-content-md-start">
+        <ul class="pagination pagination-sm">
+            <li id="{{bartype}}_page-item_All"
+                class="initialbarall page-item{{#allactive}} active{{/allactive}}">
+                <a data-initial=""
+                   class="page-link"
+                   href="{{{allurl}}}"
+                   {{#allactive}}aria-current="true"{{/allactive}}>
+                    {{#str}}all{{/str}}
+                </a>
+            </li>
+        </ul>
+        <ul class="pagination pagination-sm">
+            {{#letters}}
+            <li id="{{bartype}}_page-item_{{letter}}"
+                data-initial="{{letter}}"
+                class="{{liclass}}">
+                <a class="page-link"
+                   href="{{{url}}}"
+                   {{#active}}aria-current="true"{{/active}}>{{letter}}</a>
+            </li>
+            {{/letters}}
+        </ul>
+    </nav>
+</div>
+{{/alphabars}}
+
+{{! Per-page switcher }}
+<div class="text-muted small mb-2">
+    {{{perpagetext}}}:
+    {{#pplinks}}{{#isbold}}<strong>{{label}}</strong>{{/isbold}}{{#islink}}<a href="{{{url}}}">{{label}}</a>{{/islink}}{{#separator}} | {{/separator}}{{/pplinks}}
+</div>
+
+{{^hasmembers}}
+<div class="alert alert-info" role="alert">
+    {{#str}}nouserfound, block_workload{{/str}}
+</div>
+{{/hasmembers}}
+
+{{#hasmembers}}
+
+{{! Paging bar – top }}
+{{{pagingbartop}}}
+
+<form method="post" id="wl-members-form">
+    <input type="hidden" name="action" value="members">
+    <input type="hidden" name="id" value="{{cohortid}}">
+    <input type="hidden" name="sesskey" value="{{sesskey}}">
+
+    <table class="generaltable table-sm">
+        <thead>
+            <tr>
+                <th class="c0 shrink" scope="col">
+                    <input type="checkbox"
+                           id="wl-remove-master"
+                           data-action="toggle"
+                           data-togglegroup="removemembers-group"
+                           data-toggle="master"
+                           title="{{#str}}selectall{{/str}}">
+                </th>
+                <th scope="col">{{#str}}fullnameuser{{/str}}</th>
+                <th scope="col">{{#str}}email{{/str}}</th>
+                <th scope="col">{{#str}}department{{/str}}</th>
+                <th scope="col">{{#str}}institution{{/str}}</th>
+                <th scope="col"></th>
+            </tr>
+        </thead>
+        <tbody>
+            {{#memberrows}}
+            <tr>
+                <td class="c0 shrink">
+                    <input type="checkbox"
+                           name="removeusers[]"
+                           value="{{id}}"
+                           data-action="toggle"
+                           data-togglegroup="removemembers-group"
+                           data-toggle="slave">
+                </td>
+                <td>{{{fullname}}}</td>
+                <td>{{email}}</td>
+                <td>{{department}}</td>
+                <td>{{institution}}</td>
+                <td class="shrink">
+                    <a href="{{{removeurl}}}" title="{{#str}}delete{{/str}}">
+                        {{#pix}}t/delete, core, {{#str}}delete{{/str}}{{/pix}}
+                    </a>
+                </td>
+            </tr>
+            {{/memberrows}}
+        </tbody>
+    </table>
+
+    <button type="submit" class="btn btn-secondary" disabled>
+        {{#str}}bulkremove, block_workload{{/str}}
+    </button>
+</form>
+
+{{! Paging bar – bottom }}
+{{{pagingbarbottom}}}
+
+{{/hasmembers}}
