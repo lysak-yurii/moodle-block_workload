@@ -249,13 +249,13 @@ class helper {
      */
     public static function get_all_cohort_member_ids(int $cohortid): array {
         global $DB;
-        return $DB->get_fieldset_sql(
+        return array_map('intval', $DB->get_fieldset_sql(
             "SELECT u.id
                FROM {block_workload_members} m
                JOIN {user} u ON u.id = m.userid
               WHERE m.cohortid = :cohortid AND u.deleted = 0",
             ['cohortid' => $cohortid]
-        );
+        ));
     }
 
 
