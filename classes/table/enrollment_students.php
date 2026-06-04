@@ -160,8 +160,12 @@ class enrollment_students extends \flexible_table implements dynamic_table {
         $this->setup();
 
         // Map table column keys to SQL ORDER BY expressions.
+        // flexible_table splits the 'fullname' column into separate 'firstname'
+        // and 'lastname' sort links, so both sub-keys must be mapped here.
         $sortmap = [
             'fullname'    => ['u.lastname', 'u.firstname'],
+            'firstname'   => ['u.firstname', 'u.lastname'],
+            'lastname'    => ['u.lastname', 'u.firstname'],
             'email'       => ['u.email'],
             'department'  => ['u.department'],
             'institution' => ['u.institution'],
