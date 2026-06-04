@@ -24,6 +24,7 @@ use core_table\local\filter\filter;
 use core_table\local\filter\filterset;
 use html_writer;
 use moodle_url;
+use pix_icon;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -111,6 +112,7 @@ class enrollment_students extends \flexible_table implements dynamic_table {
      * @param string $downloadhelpbutton
      */
     public function out(int $pagesize, bool $useinitialsbar, string $downloadhelpbutton = ''): void {
+        global $OUTPUT;
 
         $colhead = static function (string $colkey): string {
             return html_writer::tag(
@@ -206,10 +208,9 @@ class enrollment_students extends \flexible_table implements dynamic_table {
                 'colexcluded' => $excluded,
                 'coladded'    => $added,
                 'coltotal'    => $efftotal,
-                'actions'     => html_writer::link(
+                'actions'     => $OUTPUT->action_icon(
                     $manageurl,
-                    get_string('managecourses', 'block_workload') . ' &rarr;',
-                    ['class' => 'btn btn-outline-secondary btn-sm text-nowrap']
+                    new pix_icon('i/course', get_string('managecourses', 'block_workload'))
                 ),
             ]);
         }
