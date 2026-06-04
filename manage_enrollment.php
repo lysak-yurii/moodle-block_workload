@@ -321,7 +321,7 @@ if ($userid) {
 }
 
 // List view: all students.
-render_student_list($firstletter, $lastletter, $perpage, $page, $alphabet);
+render_student_list($firstletter, $lastletter, $perpage, $alphabet);
 
 // List view renderer.
 /**
@@ -330,14 +330,12 @@ render_student_list($firstletter, $lastletter, $perpage, $page, $alphabet);
  * @param string $firstletter
  * @param string $lastletter
  * @param int $perpage
- * @param int $page
  * @param array $alphabet
  */
 function render_student_list(
     string $firstletter,
     string $lastletter,
     int $perpage,
-    int $page,
     array $alphabet
 ): void {
     global $OUTPUT, $PAGE;
@@ -345,15 +343,9 @@ function render_student_list(
     $PAGE->set_title(get_string('enrollmentmodemanage', 'block_workload'));
     $PAGE->set_heading(get_string('enrollmentmodemanage', 'block_workload'));
 
-    $total   = \block_workload\helper::get_enrollment_mode_students_count($firstletter, $lastletter);
-    $perpageeff = ($perpage > 0) ? $perpage : 0;
-    $offseteff  = ($perpage > 0) ? max(0, $page) * $perpage : 0;
-    $students = \block_workload\helper::get_enrollment_mode_students(
-        $perpageeff,
-        $offseteff,
-        $firstletter,
-        $lastletter
-    );
+    // Total count is only needed here for the "Show all (N)" per-page label.
+    $total      = \block_workload\helper::get_enrollment_mode_students_count($firstletter, $lastletter);
+    $filterbase = new moodle_url('/blocks/workload/manage_enrollment.php');
 
     echo $OUTPUT->header();
 
@@ -367,8 +359,7 @@ function render_student_list(
     );
 
     // Live student search.
-    $noresultsjson   = json_encode(get_string('nouserfound', 'block_workload'));
-    $managecoursesjson = json_encode(get_string('managecourses', 'block_workload') . ' →');
+    $noresultsjson = json_encode(get_string('nouserfound', 'block_workload'));
 
     echo '<div class="card p-3 mb-3">';
     echo '<label class="form-label small fw-semibold mb-2" for="wl-enrol-search">'
@@ -479,8 +470,6 @@ function render_student_list(
         "})()"
     );
 
-    $filterbase = new moodle_url('/blocks/workload/manage_enrollment.php');
-
     // A-Z letter bars.
     foreach (
         [
@@ -516,7 +505,7 @@ function render_student_list(
         ['class' => 'small fw-semibold me-1']
     );
     foreach ([25 => '25', 50 => '50', 100 => '100', 0 => get_string('showall', 'block_workload', $total)] as $opt => $lbl) {
-        $active = ($opt == $perpage);
+        $active   = ($opt == $perpage);
         $ppparams = ['perpage' => $opt, 'page' => 0, 'firstletter' => $firstletter, 'lastletter' => $lastletter];
         if ($active) {
             $pphtml .= html_writer::tag('strong', $lbl, ['class' => 'me-2']);
@@ -526,65 +515,27 @@ function render_student_list(
     }
     echo html_writer::div($pphtml, 'mb-3 small');
 
-    if (empty($students)) {
-        echo $OUTPUT->notification(get_string('nostudentsfound', 'block_workload'), 'info');
-    } else {
-        $table             = new html_table();
-        $colhead = function (string $colkey): string {
-            return html_writer::tag(
-                'span',
-                get_string($colkey, 'block_workload'),
-                ['title' => get_string($colkey . '_title', 'block_workload'),
-                 'style' => 'cursor:help; border-bottom:1px dotted currentColor;']
-            );
-        };
-
-        $table->head       = [
-            get_string('student', 'block_workload'),
-            get_string('email'),
-            $colhead('colenrolled'),
-            $colhead('colexcluded'),
-            $colhead('coladded'),
-            $colhead('coltotal'),
-            '',
-        ];
-        $table->attributes = ['class' => 'generaltable table-sm table-striped table-hover'];
-
-        foreach ($students as $s) {
-            $enrolled   = (int)$s->enrolledcount;
-            $excluded   = (int)$s->excludedcount;
-            $added      = (int)$s->addedcount;
-            $efftotal   = max(0, $enrolled - $excluded + $added);
-
-            $manageurl = new moodle_url('/blocks/workload/manage_enrollment.php', ['userid' => $s->id]);
-
-            $table->data[] = [
-                format_string($s->firstname . ' ' . $s->lastname),
-                $s->email,
-                $enrolled,
-                $excluded,
-                $added,
-                $efftotal,
-                html_writer::link(
-                    $manageurl,
-                    get_string('managecourses', 'block_workload') . ' &rarr;',
-                    ['class' => 'btn btn-outline-secondary btn-sm text-nowrap']
-                ),
-            ];
-        }
-
-        $pagingbarhtml = '';
-        if ($perpage > 0 && $total > $perpage) {
-            $pageurl = new moodle_url($filterbase, [
-                'firstletter' => $firstletter, 'lastletter' => $lastletter, 'perpage' => $perpage,
-            ]);
-            $pagingbarhtml = $OUTPUT->paging_bar($total, $page, $perpage, $pageurl);
-        }
-
-        echo $pagingbarhtml;
-        echo html_writer::table($table);
-        echo $pagingbarhtml;
+    // Build the filterset that carries the A-Z letter state across AJAX calls.
+    $filterset = new \block_workload\table\enrollment_students_filterset();
+    $filterset->set_join_type(\core_table\local\filter\filterset::JOINTYPE_ALL);
+    if ($firstletter !== '') {
+        $filterset->add_filter_from_params(
+            'firstletter',
+            \core_table\local\filter\filter::JOINTYPE_ANY,
+            [$firstletter]
+        );
     }
+    if ($lastletter !== '') {
+        $filterset->add_filter_from_params(
+            'lastletter',
+            \core_table\local\filter\filter::JOINTYPE_ANY,
+            [$lastletter]
+        );
+    }
+
+    $enrollmenttable = new \block_workload\table\enrollment_students('block-workload-enrollment-students');
+    $enrollmenttable->set_filterset($filterset);
+    $enrollmenttable->out($perpage, false);
 
     echo $OUTPUT->footer();
 }

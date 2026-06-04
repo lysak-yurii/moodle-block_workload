@@ -14,18 +14,33 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
+declare(strict_types=1);
+
+namespace block_workload\table;
+
+use core_table\local\filter\filterset;
+use core_table\local\filter\string_filter;
+
 /**
- * Workload Assessment block version definition.
+ * Filterset for the enrollment-mode student list table.
+ *
+ * Optional filters carry the A-Z initial bars state so that sort/page AJAX
+ * requests preserve the currently active letter filter.
  *
  * @package   block_workload
- * @copyright  2026 Yurii Lysak
+ * @copyright 2026 Yurii Lysak
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-
-defined('MOODLE_INTERNAL') || die();
-
-$plugin->version   = 2026060402;
-$plugin->requires  = 2024100700; // Moodle 4.5 or later.
-$plugin->component = 'block_workload';
-$plugin->maturity  = MATURITY_BETA;
-$plugin->release   = '1.0.0';
+class enrollment_students_filterset extends filterset {
+    /**
+     * Get the optional filters: firstletter and lastletter for the A-Z bars.
+     *
+     * @return array
+     */
+    protected function get_optional_filters(): array {
+        return [
+            'firstletter' => string_filter::class,
+            'lastletter'  => string_filter::class,
+        ];
+    }
+}

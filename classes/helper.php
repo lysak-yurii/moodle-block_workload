@@ -807,24 +807,28 @@ class helper {
      *
      * $limit = 0 means no limit (show all).
      *
-     * @param int    $limit      0 = no limit.
+     * @param int    $limit       0 = no limit.
      * @param int    $offset
      * @param string $firstletter A-Z filter on firstname, or empty string.
      * @param string $lastletter  A-Z filter on lastname, or empty string.
+     * @param string $orderby     SQL ORDER BY clause, or empty for default.
      * @return array
      */
     public static function get_enrollment_mode_students(
         int $limit = 0,
         int $offset = 0,
         string $firstletter = '',
-        string $lastletter = ''
+        string $lastletter = '',
+        string $orderby = ''
     ): array {
         global $DB;
         [$where, $params] = self::enrollment_students_where($firstletter, $lastletter);
         $params['site2'] = SITEID;
 
+        $orderbyclause = $orderby ?: 'u.lastname ASC, u.firstname ASC';
+
         return $DB->get_records_sql(
-            "SELECT u.id, u.firstname, u.lastname, u.email,
+            "SELECT u.id, u.firstname, u.lastname, u.email, u.department, u.institution,
                     COUNT(DISTINCT en.courseid) AS enrolledcount,
                     (SELECT COUNT(*)
                        FROM {block_workload_user_courses} ov
@@ -845,8 +849,8 @@ class helper {
                JOIN {enrol} en ON en.id = ue.enrolid AND en.status = 0
                JOIN {course} co ON co.id = en.courseid AND co.id <> :site AND co.visible = 1
               WHERE $where
-           GROUP BY u.id, u.firstname, u.lastname, u.email
-           ORDER BY u.lastname ASC, u.firstname ASC",
+           GROUP BY u.id, u.firstname, u.lastname, u.email, u.department, u.institution
+           ORDER BY $orderbyclause",
             $params,
             $offset,
             $limit
