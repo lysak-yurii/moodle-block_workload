@@ -149,15 +149,17 @@ class enrollment_students extends \flexible_table implements dynamic_table {
         }
         $this->collapsible(true);
         $this->set_attribute('class', 'generaltable table-sm table-striped table-hover');
+        $this->set_default_per_page(25);
 
         $total = \block_workload\helper::get_enrollment_mode_students_count(
             $this->firstletter,
             $this->lastletter
         );
 
-        if ($pagesize > 0) {
-            $this->pagesize($pagesize, $total);
-        }
+        // Use TABLE_SHOW_ALL_PAGE_SIZE as the sentinel when showing all records so
+        // the value is embedded in data-table-page-size and survives AJAX sort/hide
+        // requests, preventing a switch back to paginated mode.
+        $this->pagesize($pagesize > 0 ? $pagesize : TABLE_SHOW_ALL_PAGE_SIZE, $total);
 
         $this->setup();
 
@@ -181,8 +183,9 @@ class enrollment_students extends \flexible_table implements dynamic_table {
         }
         $orderby = $orderparts ? implode(', ', $orderparts) : 'u.lastname ASC, u.firstname ASC';
 
-        $offset   = ($pagesize > 0) ? (int)$this->get_page_start() : 0;
-        $limit    = ($pagesize > 0) ? $pagesize : 0;
+        $offset = (int)$this->get_page_start();
+        // TABLE_SHOW_ALL_PAGE_SIZE or 0 both mean "no SQL limit".
+        $limit  = ($pagesize <= 0 || $pagesize >= TABLE_SHOW_ALL_PAGE_SIZE) ? 0 : (int)$this->get_page_size();
 
         $students = \block_workload\helper::get_enrollment_mode_students(
             $limit,
