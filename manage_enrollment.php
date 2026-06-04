@@ -551,10 +551,10 @@ function render_student_list(
         $table->attributes = ['class' => 'generaltable table-sm table-striped table-hover'];
 
         foreach ($students as $s) {
-            $enrolled = (int)$s->enrolledcount;
-            $excluded = (int)$s->excludedcount;
-            $added    = (int)$s->addedcount;
-            $total    = max(0, $enrolled - $excluded + $added);
+            $enrolled   = (int)$s->enrolledcount;
+            $excluded   = (int)$s->excludedcount;
+            $added      = (int)$s->addedcount;
+            $efftotal   = max(0, $enrolled - $excluded + $added);
 
             $manageurl = new moodle_url('/blocks/workload/manage_enrollment.php', ['userid' => $s->id]);
 
@@ -564,7 +564,7 @@ function render_student_list(
                 $enrolled,
                 $excluded,
                 $added,
-                $total,
+                $efftotal,
                 html_writer::link(
                     $manageurl,
                     get_string('managecourses', 'block_workload') . ' &rarr;',
@@ -573,14 +573,17 @@ function render_student_list(
             ];
         }
 
-        echo html_writer::table($table);
-
+        $pagingbarhtml = '';
         if ($perpage > 0 && $total > $perpage) {
             $pageurl = new moodle_url($filterbase, [
                 'firstletter' => $firstletter, 'lastletter' => $lastletter, 'perpage' => $perpage,
             ]);
-            echo $OUTPUT->paging_bar($total, $page, $perpage, $pageurl);
+            $pagingbarhtml = $OUTPUT->paging_bar($total, $page, $perpage, $pageurl);
         }
+
+        echo $pagingbarhtml;
+        echo html_writer::table($table);
+        echo $pagingbarhtml;
     }
 
     echo $OUTPUT->footer();
