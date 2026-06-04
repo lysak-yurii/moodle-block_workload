@@ -181,4 +181,4 @@ HNEE (Hochschule für nachhaltige Entwicklung Eberswalde)
 
 ## Support
 
-For issues, feature requests, or contributions, please contact your Moodle administrator.
+For bug reports and feature requests, please [open an issue](https://github.com/lysak-yurii/moodle-block_workload/issues).
