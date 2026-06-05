@@ -122,12 +122,12 @@
 
             {{! Cohort selector (cohort mode only) }}
             {{#cohortmode}}
-            <div class="col-12 col-sm-auto">
-                <label for="wl-cohortid" class="form-label small fw-semibold">
+            <div class="col-12 col-sm-auto d-flex flex-column">
+                <label for="wl-cohortid" class="form-label small">
                     {{#str}}selectcohort, block_workload{{/str}}
                 </label>
                 <select name="cohortid" id="wl-cohortid"
-                        class="form-select" style="min-width:220px;">
+                        class="select custom-select form-select form-select-sm" style="min-width:220px;">
                     {{#cohortopts}}
                     <option value="{{value}}"{{#selected}} selected{{/selected}}>{{label}}</option>
                     {{/cohortopts}}
