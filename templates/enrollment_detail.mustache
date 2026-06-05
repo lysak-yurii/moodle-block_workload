@@ -78,22 +78,20 @@
     <form method="get" action="{{{catformaction}}}" class="mb-3">
         <input type="hidden" name="userid" value="{{userid}}">
         <div class="d-flex align-items-end gap-2 flex-wrap">
-            <div>
-                <label for="wl-catid" class="form-label small fw-semibold">
+            <div class="d-flex flex-column">
+                <label for="wl-catid" class="form-label small">
                     {{#str}}filterbycategory, block_workload{{/str}}
                 </label>
                 <select name="catid" id="wl-catid"
-                        class="form-select" style="min-width:260px;">
+                        class="select custom-select form-select form-select-sm" style="min-width:260px;">
                     {{#catopts}}
                     <option value="{{value}}"{{#selected}} selected{{/selected}}>{{label}}</option>
                     {{/catopts}}
                 </select>
             </div>
-            <div class="align-self-end">
-                <button type="submit" class="btn btn-secondary">
-                    {{#str}}filterresults, block_workload{{/str}}
-                </button>
-            </div>
+            <input type="submit"
+                   value="{{#str}}filterresults, block_workload{{/str}}"
+                   class="btn btn-secondary align-self-end">
         </div>
     </form>
 
@@ -162,7 +160,7 @@
     {{/nocoursesincat}}
 
     {{! Assigned courses table }}
-    <h5 class="mt-4 mb-2">{{assignedheading}}</h5>
+    <h5 class="mt-4 mb-2">{{{assignedheading}}}</h5>
 
     {{#nocourses}}
     <div class="text-muted small mb-3">
