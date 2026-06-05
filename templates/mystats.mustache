@@ -1,0 +1,258 @@
+{{!
+    This file is part of Moodle - http://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+}}
+{{!
+    @template block_workload/mystats
+
+    Student personal workload statistics page.
+
+    @package   block_workload
+    @copyright 2026 Yurii Lysak
+    @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+
+    Example context (json):
+    {
+        "viewingother": false,
+        "hasviewas": false,
+        "viewas": 0,
+        "backurl": "http://example.com/my",
+        "backlabel": "Back to dashboard",
+        "viewingas": "",
+        "filterform": {
+            "weekfrom": 22, "yearfrom": 2026,
+            "weekto": 22,   "yearto": 2026,
+            "hasfilter": false,
+            "clearurl": "http://example.com/blocks/workload/mystats.php"
+        },
+        "hasdata": true,
+        "exporturl": "http://example.com/blocks/workload/mystats.php?export=1",
+        "kpis": [
+            {"value": "10.0 hrs", "label": "Total"},
+            {"value": "5.0 hrs",  "label": "Avg / week"},
+            {"value": "2",        "label": "Weeks active"},
+            {"value": "3",        "label": "Courses"}
+        ],
+        "chartweekhtml": "<div>chart placeholder</div>",
+        "chartcoursehtml": "<div>chart placeholder</div>",
+        "hasoverflow": false,
+        "overflowlabel": "",
+        "overflowcourses": [],
+        "hasweekdetail": false,
+        "chartweekdetailhtml": "",
+        "weekoptions": [{"value": 202622, "label": "2026 – W22", "selected": true}],
+        "chartweekfilter": [],
+        "weekgroups": [
+            {
+                "gid": "wlwg1",
+                "label": "2026 – W22",
+                "total": "5.0",
+                "coursebadge": "2 courses",
+                "courses": [
+                    {"gid": "wlwg1", "name": "Moodle 101",    "hours": "3.0"},
+                    {"gid": "wlwg1", "name": "PHP Advanced",  "hours": "2.0"}
+                ]
+            }
+        ],
+        "grandtotal": "5.0"
+    }
+}}
+
+<div class="block_workload-mystats">
+
+    {{! Back navigation }}
+    <a href="{{{backurl}}}" class="btn btn-outline-secondary mb-3">&larr; {{backlabel}}</a>
+    {{#viewingother}}
+    <h4 class="mb-3">{{viewingas}}</h4>
+    {{/viewingother}}
+
+    {{! Date-range filter form }}
+    <form method="get" class="card p-3 mb-4">
+        {{#hasviewas}}<input type="hidden" name="viewas" value="{{viewas}}">{{/hasviewas}}
+        <div class="row g-3 align-items-end">
+
+            {{#filterform}}
+
+            <div class="col-auto">
+                <label class="form-label small fw-semibold d-block" for="weekfrom">
+                    {{#str}}datefrom, block_workload{{/str}}
+                </label>
+                <div class="d-flex align-items-center gap-1">
+                    <input type="number" name="weekfrom" id="weekfrom"
+                           value="{{weekfrom}}" min="1" max="53"
+                           class="form-control" style="width:5rem;"
+                           placeholder="{{#str}}week, block_workload{{/str}}">
+                    <input type="number" name="yearfrom" id="yearfrom"
+                           value="{{yearfrom}}" min="2025"
+                           class="form-control" style="width:6rem;"
+                           placeholder="{{#str}}year, block_workload{{/str}}">
+                </div>
+            </div>
+
+            <div class="col-auto">
+                <label class="form-label small fw-semibold d-block" for="weekto">
+                    {{#str}}dateto, block_workload{{/str}}
+                </label>
+                <div class="d-flex align-items-center gap-1">
+                    <input type="number" name="weekto" id="weekto"
+                           value="{{weekto}}" min="1" max="53"
+                           class="form-control" style="width:5rem;"
+                           placeholder="{{#str}}week, block_workload{{/str}}">
+                    <input type="number" name="yearto" id="yearto"
+                           value="{{yearto}}" min="2025"
+                           class="form-control" style="width:6rem;"
+                           placeholder="{{#str}}year, block_workload{{/str}}">
+                </div>
+            </div>
+
+            <div class="col-auto">
+                <span class="form-label small d-block">&nbsp;</span>
+                <button type="submit" class="btn btn-primary me-2">
+                    {{#str}}filterresults, block_workload{{/str}}
+                </button>
+                {{#hasfilter}}
+                <a href="{{{clearurl}}}" class="btn btn-outline-secondary">
+                    {{#str}}clearfilters, block_workload{{/str}}
+                </a>
+                {{/hasfilter}}
+            </div>
+
+            {{/filterform}}
+
+        </div>
+    </form>
+
+    {{! No-data state }}
+    {{^hasdata}}
+    <div class="alert alert-info" role="alert">
+        {{#str}}noentriesfound, block_workload{{/str}}
+    </div>
+    {{/hasdata}}
+
+    {{#hasdata}}
+
+    {{! Export button }}
+    <div class="mb-3 text-end">
+        <a href="{{{exporturl}}}" class="btn btn-outline-success">
+            &#8595;&nbsp;{{#str}}exportcsv, block_workload{{/str}}
+        </a>
+    </div>
+
+    {{! KPI summary cards }}
+    <div class="row g-3 mb-4">
+        {{#kpis}}
+        <div class="col-6 col-md-3">
+            <div class="card text-center p-3 h-100 shadow-sm wl-kpi-card">
+                <div class="display-6 fw-bold text-primary lh-1 mb-1">{{value}}</div>
+                <div class="text-muted small">{{label}}</div>
+            </div>
+        </div>
+        {{/kpis}}
+    </div>
+
+    {{! Weekly trend chart }}
+    <div class="wl-chart-card card shadow-sm mb-4" style="overflow:hidden;">
+        <div class="card-body p-3">
+            {{{chartweekhtml}}}
+        </div>
+    </div>
+
+    {{! Hours-by-course pie chart }}
+    <div class="wl-chart-card card shadow-sm mb-4" style="overflow:hidden;">
+        <div class="card-body p-3">
+            {{{chartcoursehtml}}}
+            {{#hasoverflow}}
+            <details class="mt-2 small text-muted">
+                <summary style="cursor:pointer;" class="text-muted">{{overflowlabel}}</summary>
+                <ul class="mb-0 mt-1">
+                    {{#overflowcourses}}
+                    <li>{{name}}: <strong>{{hours}}</strong> {{#str}}hrs, block_workload{{/str}}</li>
+                    {{/overflowcourses}}
+                </ul>
+            </details>
+            {{/hasoverflow}}
+        </div>
+    </div>
+
+    {{! Per-week course breakdown chart with week selector }}
+    {{#hasweekdetail}}
+    <h5 class="mt-2 mb-2">
+        {{#str}}statsbycourse, block_workload{{/str}} &ndash; {{#str}}week, block_workload{{/str}}
+    </h5>
+    <form method="get" class="d-flex align-items-center gap-2 mb-3">
+        {{#chartweekfilter}}
+        <input type="hidden" name="{{name}}" value="{{value}}">
+        {{/chartweekfilter}}
+        <label for="wl-chartwk" class="form-label mb-0 small fw-semibold text-nowrap">
+            {{#str}}week, block_workload{{/str}}:
+        </label>
+        <select name="chartwk" id="wl-chartwk"
+                class="form-select" style="width:auto;"
+                data-wl-chartwkselect="1">
+            {{#weekoptions}}
+            <option value="{{value}}"{{#selected}} selected{{/selected}}>{{label}}</option>
+            {{/weekoptions}}
+        </select>
+    </form>
+    <div class="wl-chart-card card shadow-sm mb-4" style="overflow:hidden;">
+        <div class="card-body p-3">
+            {{{chartweekdetailhtml}}}
+        </div>
+    </div>
+    {{/hasweekdetail}}
+
+    {{! Collapsible hours-by-week table }}
+    <h5 class="mt-2 mb-3">{{#str}}statsbyweek, block_workload{{/str}}</h5>
+    <div class="table-responsive">
+        <table class="generaltable table-sm table-hover">
+            <thead>
+                <tr>
+                    <th>{{#str}}week, block_workload{{/str}}</th>
+                    <th class="text-end" style="min-width:6rem;">
+                        {{#str}}hours, block_workload{{/str}}
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                {{#weekgroups}}
+                <tr class="table-secondary"
+                    style="cursor:pointer;"
+                    data-wl-weektoggle="{{gid}}"
+                    title="{{#str}}viewdetailed, block_workload{{/str}}">
+                    <td>
+                        <strong>{{label}}</strong>
+                        <span class="badge text-bg-secondary fw-normal ms-1 small">{{coursebadge}}</span>
+                        <span id="{{gid}}-icon" class="text-muted ms-1 small">&#9660;</span>
+                    </td>
+                    <td class="text-end"><strong>{{total}}</strong></td>
+                </tr>
+                {{#courses}}
+                <tr data-wl-weekgroup="{{gid}}" style="display:none;">
+                    <td class="ps-4 small text-muted">{{name}}</td>
+                    <td class="text-end small">{{hours}}</td>
+                </tr>
+                {{/courses}}
+                {{/weekgroups}}
+                <tr class="table-secondary fw-bold">
+                    <td><strong>{{#str}}statstotal, block_workload{{/str}}</strong></td>
+                    <td class="text-end"><strong>{{grandtotal}}</strong></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    {{/hasdata}}
+
+</div>

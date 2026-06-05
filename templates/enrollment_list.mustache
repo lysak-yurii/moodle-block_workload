@@ -1,0 +1,119 @@
+{{!
+    This file is part of Moodle - http://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+}}
+{{!
+    @template block_workload/enrollment_list
+
+    Enrollment mode – student list view.
+
+    @package   block_workload
+    @copyright 2026 Yurii Lysak
+    @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+
+    Example context (json):
+    {
+        "statsurl": "http://example.com/blocks/workload/statistics.php",
+        "alphabars": [
+            {
+                "bartype": "firstinitial", "barlabel": "First name",
+                "allstr": "All", "allurl": "http://example.com/", "allactive": true,
+                "letters": [{"barid": "firstinitial", "letter": "A",
+                              "url": "http://example.com/?fl=A", "active": false}]
+            }
+        ],
+        "perpagestr": "Per page",
+        "perpageopts": [
+            {"label": "25", "active": true,  "islink": false, "url": ""},
+            {"label": "50", "active": false, "islink": true,
+             "url": "http://example.com/?perpage=50"}
+        ],
+        "tablehtml": "<table class=\"generaltable\"><tbody><tr><td>Example</td></tr></tbody></table>"
+    }
+}}
+
+<div class="block_workload-enrollment-list">
+
+    {{! Statistics link }}
+    <div class="mb-3 text-end">
+        <a href="{{{statsurl}}}" class="btn btn-outline-primary">
+            {{#str}}statisticstitle, block_workload{{/str}}
+        </a>
+    </div>
+
+    {{! Live student search }}
+    <div class="card p-3 mb-3">
+        <label class="form-label small fw-semibold mb-2" for="wl-enrol-search">
+            {{#str}}searchusers, block_workload{{/str}}:
+        </label>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <div class="position-relative" style="flex:1;min-width:260px;max-width:480px;">
+                <input type="text" id="wl-enrol-search" class="form-control"
+                       placeholder="{{#str}}searchusers, block_workload{{/str}}"
+                       autocomplete="off">
+                <ul id="wl-enrol-results"
+                    class="list-unstyled mb-0 border rounded bg-white shadow-sm"
+                    style="display:none;position:absolute;top:100%;left:0;right:0;z-index:1050;
+                           max-height:260px;overflow-y:auto;margin-top:2px;"></ul>
+            </div>
+            <button type="button" id="wl-enrol-clear"
+                    class="btn btn-outline-secondary" style="display:none;"
+                    title="{{#str}}clear, core{{/str}}">&#x2715;</button>
+            <a href="#" id="wl-enrol-btn"
+               class="btn btn-primary" style="display:none;">
+                {{#str}}managecourses, block_workload{{/str}} &rarr;
+            </a>
+        </div>
+    </div>
+
+    {{! A-Z initial filter bars }}
+    {{#alphabars}}
+    <div class="initialbar {{bartype}} d-flex flex-wrap justify-content-center justify-content-md-start mb-2">
+        <span class="initialbarlabel me-2">{{barlabel}}</span>
+        <nav class="initialbargroups d-flex flex-wrap">
+            <ul class="pagination pagination-sm">
+                <li id="{{bartype}}_page-item_All"
+                    class="initialbarall page-item{{#allactive}} active{{/allactive}}">
+                    <a data-initial="" class="page-link" href="{{{allurl}}}"
+                       {{#allactive}}aria-current="true"{{/allactive}}>{{allstr}}</a>
+                </li>
+            </ul>
+            <ul class="pagination pagination-sm">
+                {{#letters}}
+                <li id="{{barid}}_page-item_{{letter}}"
+                    data-initial="{{letter}}"
+                    class="page-item {{letter}}{{#active}} active{{/active}}">
+                    <a class="page-link" href="{{{url}}}"
+                       {{#active}}aria-current="true"{{/active}}>{{letter}}</a>
+                </li>
+                {{/letters}}
+            </ul>
+        </nav>
+    </div>
+    {{/alphabars}}
+
+    {{! Per-page selector }}
+    <div class="mb-3 small">
+        <span class="small fw-semibold me-1">{{perpagestr}}:</span>
+        {{#perpageopts}}
+        {{#active}}<strong class="me-2">{{label}}</strong>{{/active}}
+        {{^active}}{{#islink}}<a href="{{{url}}}" class="me-2 small">{{label}}</a>{{/islink}}{{/active}}
+        {{/perpageopts}}
+    </div>
+
+    {{! Student table (rendered by Moodle table class) }}
+    {{{tablehtml}}}
+
+</div>

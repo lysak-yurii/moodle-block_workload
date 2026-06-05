@@ -1,0 +1,236 @@
+{{!
+    This file is part of Moodle - http://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+}}
+{{!
+    @template block_workload/enrollment_detail
+
+    Enrollment mode – per-student course management detail view.
+
+    @package   block_workload
+    @copyright 2026 Yurii Lysak
+    @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+
+    Example context (json):
+    {
+        "backurl":  "http://example.com/blocks/workload/manage_enrollment.php",
+        "backlabel": "Back to student list",
+        "statsurl": "http://example.com/blocks/workload/statistics.php",
+        "userid": 5,
+        "sesskey": "abc123",
+        "catformaction": "http://example.com/blocks/workload/manage_enrollment.php",
+        "catopts": [
+            {"value": 0, "label": "Select category…", "selected": true},
+            {"value": 3, "label": "BSc Courses", "selected": false}
+        ],
+        "selectedcatid": 0,
+        "hascatresults": false,
+        "catresultinfo": "",
+        "addcourserows": [],
+        "nocoursesincat": false,
+        "assignedheading": "Assigned courses (3)",
+        "hascourses": true,
+        "nocourses": false,
+        "showordercolumn": true,
+        "courserows": [
+            {
+                "id": 10, "name": "Moodle 101", "shortname": "MDL101",
+                "courseurl": "http://example.com/course/view.php?id=10",
+                "startdate": "01.01.2026", "enddate": "30.06.2026",
+                "statusbadge": "<span class=\"badge bg-success\">Included</span>",
+                "actionhtml": "<a href=\"...\">Exclude</a>",
+                "orderhtml": "<a href=\"...\">↑</a><a href=\"...\">↓</a>",
+                "excluded": false
+            }
+        ],
+        "excludeselected": "Exclude selected",
+        "restoreselected": "Restore selected",
+        "bulkremovecourses": "Remove selected"
+    }
+}}
+
+<div class="block_workload-enrollment-detail">
+
+    {{! Top bar: back + statistics }}
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <a href="{{{backurl}}}" class="btn btn-outline-secondary">&larr; {{backlabel}}</a>
+        <a href="{{{statsurl}}}" class="btn btn-outline-primary">
+            {{#str}}statisticstitle, block_workload{{/str}}
+        </a>
+    </div>
+
+    {{! Add courses panel }}
+    <h5 class="mt-2 mb-2">{{#str}}addcoursesforstudent, block_workload{{/str}}</h5>
+
+    {{! Category selector form }}
+    <form method="get" action="{{{catformaction}}}" class="mb-3">
+        <input type="hidden" name="userid" value="{{userid}}">
+        <div class="d-flex align-items-end gap-2 flex-wrap">
+            <div>
+                <label for="wl-catid" class="form-label small fw-semibold">
+                    {{#str}}filterbycategory, block_workload{{/str}}
+                </label>
+                <select name="catid" id="wl-catid"
+                        class="form-select" style="min-width:260px;">
+                    {{#catopts}}
+                    <option value="{{value}}"{{#selected}} selected{{/selected}}>{{label}}</option>
+                    {{/catopts}}
+                </select>
+            </div>
+            <div class="align-self-end">
+                <button type="submit" class="btn btn-secondary">
+                    {{#str}}filterresults, block_workload{{/str}}
+                </button>
+            </div>
+        </div>
+    </form>
+
+    {{! Add-courses table (shown when a category is selected) }}
+    {{#hascatresults}}
+    <p class="small text-muted mb-2">{{catresultinfo}}</p>
+    <form method="post">
+        <input type="hidden" name="userid"       value="{{userid}}">
+        <input type="hidden" name="catid"        value="{{selectedcatid}}">
+        <input type="hidden" name="sesskey"      value="{{sesskey}}">
+        <input type="hidden" name="bulkaddcourses" value="1">
+        <table class="generaltable table-sm table-hover mb-3">
+            <thead>
+                <tr>
+                    <th class="c0 shrink">
+                        <input type="checkbox"
+                               id="wl-addcourses-master"
+                               data-action="toggle"
+                               data-togglegroup="wl-addcourses-group"
+                               data-toggle="master"
+                               title="{{#str}}selectall{{/str}}"
+                               checked>
+                    </th>
+                    <th>{{#str}}course, block_workload{{/str}}</th>
+                    <th>{{#str}}coursestartdate, block_workload{{/str}}</th>
+                    <th>{{#str}}courseenddate, block_workload{{/str}}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{#addcourserows}}
+                <tr{{#already}} class="text-muted"{{/already}}>
+                    <td class="c0 shrink">
+                        {{#already}}
+                        <span class="text-success fw-bold" title="{{alreadytitle}}">&#10003;</span>
+                        {{/already}}
+                        {{^already}}
+                        <input type="checkbox"
+                               name="addcourseids[]"
+                               value="{{id}}"
+                               checked
+                               data-action="toggle"
+                               data-togglegroup="wl-addcourses-group"
+                               data-toggle="slave">
+                        {{/already}}
+                    </td>
+                    <td>
+                        <a href="{{{courseurl}}}" target="_blank">{{name}}</a>
+                        <span class="text-muted small"> ({{shortname}})</span>
+                    </td>
+                    <td>{{startdate}}</td>
+                    <td>{{enddate}}</td>
+                </tr>
+                {{/addcourserows}}
+            </tbody>
+        </table>
+        <button type="submit" class="btn btn-primary">
+            {{#str}}addcourses, block_workload{{/str}}
+        </button>
+    </form>
+    {{/hascatresults}}
+
+    {{#nocoursesincat}}
+    <div class="alert alert-info" role="alert">
+        {{#str}}nocoursesincategory, block_workload{{/str}}
+    </div>
+    {{/nocoursesincat}}
+
+    {{! Assigned courses table }}
+    <h5 class="mt-4 mb-2">{{assignedheading}}</h5>
+
+    {{#nocourses}}
+    <div class="text-muted small mb-3">
+        {{#str}}noenrolledcourses, block_workload{{/str}}
+    </div>
+    {{/nocourses}}
+
+    {{#hascourses}}
+    <form method="post" id="wl-assigned-form">
+        <input type="hidden" name="userid"  value="{{userid}}">
+        <input type="hidden" name="sesskey" value="{{sesskey}}">
+        <table class="generaltable table-sm table-striped table-hover mb-2">
+            <thead>
+                <tr>
+                    <th class="c0 shrink">
+                        <input type="checkbox"
+                               id="wl-assigned-master"
+                               data-action="toggle"
+                               data-togglegroup="wl-assigned-group"
+                               data-toggle="master"
+                               title="{{#str}}selectall{{/str}}">
+                    </th>
+                    <th>{{#str}}course, block_workload{{/str}}</th>
+                    <th>{{#str}}coursestartdate, block_workload{{/str}}</th>
+                    <th>{{#str}}courseenddate, block_workload{{/str}}</th>
+                    <th>{{#str}}activecourse, block_workload{{/str}}</th>
+                    {{#showordercolumn}}<th>{{#str}}order, moodle{{/str}}</th>{{/showordercolumn}}
+                    <th>{{#str}}actions, block_workload{{/str}}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{#courserows}}
+                <tr{{#excluded}} class="text-muted"{{/excluded}}>
+                    <td class="c0 shrink">
+                        <input type="checkbox"
+                               name="courseids[]"
+                               value="{{id}}"
+                               data-action="toggle"
+                               data-togglegroup="wl-assigned-group"
+                               data-toggle="slave">
+                    </td>
+                    <td>
+                        <a href="{{{courseurl}}}" target="_blank">{{name}}</a>
+                        <span class="text-muted small"> ({{shortname}})</span>
+                    </td>
+                    <td>{{startdate}}</td>
+                    <td>{{enddate}}</td>
+                    <td>{{{statusbadge}}}</td>
+                    {{#showordercolumn}}<td>{{{orderhtml}}}</td>{{/showordercolumn}}
+                    <td>{{{actionhtml}}}</td>
+                </tr>
+                {{/courserows}}
+            </tbody>
+        </table>
+
+        <button type="submit" name="bulkaction" value="exclude"
+                class="btn btn-secondary me-2" disabled>
+            {{excludeselected}}
+        </button>
+        <button type="submit" name="bulkaction" value="restore"
+                class="btn btn-secondary me-2" disabled>
+            {{restoreselected}}
+        </button>
+        <button type="submit" name="bulkaction" value="remove"
+                class="btn btn-secondary" disabled>
+            {{bulkremovecourses}}
+        </button>
+    </form>
+    {{/hascourses}}
+
+</div>
