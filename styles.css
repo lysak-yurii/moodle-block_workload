@@ -77,11 +77,9 @@
     margin: 0;
 }
 
-/* Warning badge */
-.workload-warning {
-    font-size: 0.65rem;
-    font-weight: 700;
-    cursor: default;
+/* Not-submitted indicator: red left border instead of a space-consuming badge */
+.workload-not-entered {
+    border-left: 3px solid var(--bs-gray-400, #ced4da);
 }
 
 /* Statistics page */

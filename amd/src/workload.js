@@ -106,7 +106,7 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
     }
 
     /**
-     * Show/hide the "!" warning badge based on whether hours == 0.
+     * Toggle the red left-border indicator based on whether hours == 0.
      *
      * @param {number} courseId
      * @param {number} hours
@@ -116,15 +116,7 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
         if (!row) {
             return;
         }
-        var icon = row.querySelector('.workload-warning');
-        if (!icon) {
-            return;
-        }
-        if (hours > 0) {
-            icon.classList.add('d-none');
-        } else {
-            icon.classList.remove('d-none');
-        }
+        row.classList.toggle('workload-not-entered', hours <= 0);
     }
 
     /**
