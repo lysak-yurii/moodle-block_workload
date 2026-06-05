@@ -64,17 +64,20 @@ In Enrollment mode the "Manage Student Courses" table shows, for each student: e
 ## Screenshots
 
 ### Student Block Widget
-![Workload Assessment Block](screenshots/block_workload.png)
+
+<p align="center"><img src="screenshots/block_workload.png" alt="Workload Assessment Block" /></p>
 
 The block shows this week's ISO week number and lists all assigned courses. Students log hours with `+` / `−` buttons; the red `!` icon highlights courses not yet touched this week.
 
 ### Workload Management
-![Workload Management](screenshots/workload_management.png)
+
+<p align="center"><img src="screenshots/workload_management.png" alt="Workload Management" /></p>
 
 The Quality Manager dashboard lists all cohorts with their study programme, department, active/inactive toggle, member count, and course count. Action icons give quick access to edit, members, courses, activation period, and delete.
 
 ### Workload Statistics — Charts
-![QM Statistics — KPIs and Charts](screenshots/qm_statistics.png)
+
+<p align="center"><img src="screenshots/qm_statistics.png" alt="QM Statistics — KPIs and Charts" /></p>
 
 KPI cards at the top summarise the selected cohort and date range. The two side-by-side charts show **Average hours / Student** and **Active students** per week — both charts move together, making engagement dips (e.g. mid-semester break) and exam-period surges immediately visible.
 
@@ -82,14 +85,16 @@ KPI cards at the top summarise the selected cohort and date range. The two side-
 <summary><strong>📸 More statistics screenshots ▼</strong></summary>
 
 #### Top Students and Student Table
-![QM Statistics — Pie Chart and Table](screenshots/qm_statistics_2.png)
+
+<p align="center"><img src="screenshots/qm_statistics_2.png" alt="QM Statistics — Pie Chart and Table" /></p>
 
 The "Top 10 Students by Hours" pie chart gives a proportional overview of who is driving the most workload. Below it, a filterable, table lists every student with their total hours, weeks active, and average hours per week.
 
 </details>
 
 ### My Workload Statistics
-![My Statistics — Weekly Chart](screenshots/my_statistics.png)
+
+<p align="center"><img src="screenshots/my_statistics.png" alt="My Statistics — Weekly Chart" /></p>
 
 Each student's personal statistics page opens with four KPI cards followed by a bar chart of weekly totals. The date-range filter and CSV export are available at the top.
 
@@ -97,19 +102,22 @@ Each student's personal statistics page opens with four KPI cards followed by a 
 <summary><strong>📸 More My Statistics screenshots ▼</strong></summary>
 
 #### Hours by Course – Week Breakdown
-![My Statistics — Course Pie and Week Table](screenshots/my_statistics_2.png)
+
+<p align="center"><img src="screenshots/my_statistics_2.png" alt="My Statistics — Course Pie and Week Table" /></p>
 
 A week-selector dropdown drives a pie chart showing how hours were distributed across courses for that week. The collapsible "Hours by Week" table below lets students drill into any week's per-course detail without leaving the page.
 
 </details>
 
 ### Enrollment Mode — Manage Student Courses
-![Enrollment Mode](screenshots/enrollment_mode.png)
+
+<p align="center"><img src="screenshots/enrollment_mode.png" alt="Enrollment Mode" /></p>
 
 When Course Management Mode is set to **Enrollment**, the manager sees a per-student table with enrolled, excluded, added, and total-shown counts, and can fine-tune each student's visible course list individually.
 
 ### Admin Settings
-![Admin Settings](screenshots/admin_settings.png)
+
+<p align="center"><img src="screenshots/admin_settings.png" alt="Admin Settings" /></p>
 
 All site-wide defaults are configurable under **Site Administration → Plugins → Blocks → Workload Assessment**.
 
@@ -168,7 +176,7 @@ The plugin automatically creates a `workload_manager` role during installation. 
 
 ## Version
 
-Current version: **1.0.0** (Build: 2026060502, Stable)
+Current version: **1.0.0** (Build: 2026060503, Stable)
 
 ## License
 

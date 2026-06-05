@@ -82,6 +82,12 @@
     border-left: 3px solid var(--bs-gray-400, #ced4da);
 }
 
+/* My Statistics footer link */
+.block_workload .card-footer,
+.block_workload .footer {
+    padding-top: 0.75rem;
+}
+
 /* Statistics page */
 .workload-stat-card {
     border-radius: 0.5rem;
