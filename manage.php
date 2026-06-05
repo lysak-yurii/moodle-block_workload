@@ -980,6 +980,7 @@ function action_courses(int $id): void {
     $PAGE->requires->js_call_amd('core/checkbox-toggleall', 'init');
 
     $selectedcategory = optional_param('categoryid', 0, PARAM_INT);
+    $includesubcats   = optional_param('includesubcats', 0, PARAM_BOOL);
     $assignedcourses  = \block_workload\helper::get_cohort_courses_all($id);
     $assignedids      = array_map(fn($c) => (int)$c->id, $assignedcourses);
     $catoptions       = \block_workload\helper::get_category_options();
@@ -992,7 +993,7 @@ function action_courses(int $id): void {
     $nocatcourses  = false;
     $catresultinfo = '';
     if ($selectedcategory) {
-        $catcourses    = \block_workload\helper::get_courses_in_category($selectedcategory);
+        $catcourses    = \block_workload\helper::get_courses_in_category($selectedcategory, (bool)$includesubcats);
         $hascatcourses = !empty($catcourses);
         $nocatcourses  = empty($catcourses);
         if ($hascatcourses) {
@@ -1082,6 +1083,7 @@ function action_courses(int $id): void {
         'cohortid'          => $id,
         'sesskey'           => sesskey(),
         'selectedcategory'  => $selectedcategory,
+        'includesubcats'    => (bool)$includesubcats,
         'catopts'           => build_select_opts($catopts, $selectedcategory),
         'hascatcourses'     => $hascatcourses,
         'nocatcourses'      => $nocatcourses,

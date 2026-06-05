@@ -168,6 +168,7 @@ $string['hrsplaceholder']  = '0';
 $string['importfrommoodlecohort']      = 'Aus globalen Gruppen importieren';
 $string['importselected']              = 'Ausgewählte importieren';
 $string['inactive']         = 'Inaktiv';
+$string['includesubcategories'] = 'Unterkategorien einschließen';
 $string['increase']        = 'Stunden erhöhen';
 $string['managecourses']           = 'Kurse verwalten';
 $string['managedashboard'] = 'Dashboard Qualitätsmanager';

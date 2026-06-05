@@ -168,6 +168,7 @@ $string['hrsplaceholder']  = '0';
 $string['importfrommoodlecohort']      = 'Import from Moodle System Cohorts';
 $string['importselected']              = 'Import selected';
 $string['inactive']         = 'Inactive';
+$string['includesubcategories'] = 'Include sub-categories';
 $string['increase']        = 'Increase hours';
 $string['managecourses']           = 'Manage Courses';
 $string['managedashboard'] = 'Quality Manager Dashboard';

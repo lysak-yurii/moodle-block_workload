@@ -58,9 +58,18 @@
         </select>
     </div>
 
-    <input type="submit"
-           value="{{#str}}filterresults, block_workload{{/str}}"
-           class="btn btn-secondary align-self-end">
+    <div class="d-flex flex-column align-self-end">
+        <div class="form-check mb-1">
+            <input type="checkbox" class="form-check-input" id="includesubcats"
+                   name="includesubcats" value="1"{{#includesubcats}} checked{{/includesubcats}}>
+            <label class="form-check-label small" for="includesubcats">
+                {{#str}}includesubcategories, block_workload{{/str}}
+            </label>
+        </div>
+        <input type="submit"
+               value="{{#str}}filterresults, block_workload{{/str}}"
+               class="btn btn-secondary">
+    </div>
 </form>
 
 {{#selectedcategory}}

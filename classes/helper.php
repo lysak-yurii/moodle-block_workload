@@ -997,11 +997,24 @@ class helper {
     /**
      * Return courses in a category (non-site courses).
      *
-     * @param int $categoryid
+     * @param int  $categoryid
+     * @param bool $includesubcats Also include courses from sub-categories.
      * @return array
      */
-    public static function get_courses_in_category(int $categoryid): array {
+    public static function get_courses_in_category(int $categoryid, bool $includesubcats = false): array {
         global $DB;
+        if ($includesubcats) {
+            $catids = self::get_all_subcategory_ids($categoryid);
+            [$sql, $params] = $DB->get_in_or_equal($catids, SQL_PARAMS_NAMED, 'cat');
+            $params['site'] = SITEID;
+            return $DB->get_records_select(
+                'course',
+                "category $sql AND id <> :site",
+                $params,
+                'fullname ASC',
+                'id, fullname, shortname, startdate, enddate'
+            );
+        }
         return $DB->get_records_select(
             'course',
             'category = :cat AND id <> :site',

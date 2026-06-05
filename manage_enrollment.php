@@ -41,8 +41,9 @@ $lastletter  = in_array($lastletter, $alphabet, true) ? $lastletter : '';
 $perpage     = optional_param('perpage', 25, PARAM_INT);
 $page        = optional_param('page', 0, PARAM_INT);
 
-$catid   = optional_param('catid', 0, PARAM_INT);
-$confirm = optional_param('confirm', 0, PARAM_BOOL);
+$catid          = optional_param('catid', 0, PARAM_INT);
+$includesubcats = optional_param('includesubcats', 0, PARAM_BOOL);
+$confirm        = optional_param('confirm', 0, PARAM_BOOL);
 
 $syscontext = context_system::instance();
 require_login();
@@ -296,7 +297,7 @@ if ($userid && ($moveup || $movedown) && confirm_sesskey()) {
 // Route to view.
 
 if ($userid) {
-    render_student_detail($userid, $catid);
+    render_student_detail($userid, $catid, (bool)$includesubcats);
     exit;
 }
 render_student_list($firstletter, $lastletter, $perpage, $alphabet);
@@ -427,9 +428,10 @@ function render_student_list(
  * Render the enrollment mode student detail page.
  *
  * @param int $userid
- * @param int $catid
+ * @param int  $catid
+ * @param bool $includesubcats
  */
-function render_student_detail(int $userid, int $catid): void {
+function render_student_detail(int $userid, int $catid, bool $includesubcats = false): void {
     global $OUTPUT, $PAGE, $DB;
 
     $user     = $DB->get_record('user', ['id' => $userid, 'deleted' => 0], '*', MUST_EXIST);
@@ -461,7 +463,7 @@ function render_student_detail(int $userid, int $catid): void {
     $catresultinfo  = '';
 
     if ($catid > 0) {
-        $available = \block_workload\helper::get_courses_in_category($catid);
+        $available = \block_workload\helper::get_courses_in_category($catid, $includesubcats);
         if (empty($available)) {
             $nocoursesincat = true;
         } else {
@@ -607,7 +609,8 @@ function render_student_detail(int $userid, int $catid): void {
         'sesskey'    => sesskey(),
         'catformaction' => (new moodle_url('/blocks/workload/manage_enrollment.php'))->out(false),
         'catopts'    => array_values($catopts),
-        'selectedcatid' => $catid,
+        'selectedcatid'  => $catid,
+        'includesubcats' => $includesubcats,
 
         'hascatresults'  => $hascatresults,
         'nocoursesincat' => $nocoursesincat,

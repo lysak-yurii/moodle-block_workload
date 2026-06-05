@@ -168,6 +168,7 @@ $string['hrsplaceholder']  = '0';
 $string['importfrommoodlecohort']      = 'Імпортувати з системних груп Moodle';
 $string['importselected']              = 'Імпортувати вибраних';
 $string['inactive']         = 'Неактивна';
+$string['includesubcategories'] = 'Включати підкатегорії';
 $string['increase']        = 'Збільшити години';
 $string['managecourses']           = 'Управляти курсами';
 $string['managedashboard'] = 'Панель QM-Менеджера';
