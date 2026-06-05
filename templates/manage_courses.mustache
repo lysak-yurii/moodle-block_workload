@@ -187,7 +187,7 @@
         </thead>
         <tbody>
             {{#assignedrows}}
-            <tr>
+            <tr{{^active}} class="text-muted"{{/active}}>
                 <td class="c0 shrink">
                     <input type="checkbox"
                            name="removecourseids[]"
@@ -197,7 +197,7 @@
                            data-toggle="slave">
                 </td>
                 <td>
-                    <a href="{{{courseurl}}}" target="_blank">{{{fullname}}}</a>
+                    <a href="{{{courseurl}}}" target="_blank"{{^active}} class="text-muted"{{/active}}>{{{fullname}}}</a>
                     <span class="text-muted small"> ({{shortname}})</span>
                 </td>
                 <td>

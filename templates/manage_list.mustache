@@ -93,7 +93,7 @@
         </thead>
         <tbody>
             {{#cohorts}}
-            <tr>
+            <tr{{^active}} class="text-muted"{{/active}}>
                 <td>{{{name}}}</td>
                 <td>{{{degree_program}}}</td>
                 <td>{{{department}}}</td>
