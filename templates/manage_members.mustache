@@ -123,10 +123,12 @@
                     </div>
 
                     <div style="display:inline-block;width:200px;margin-right:16px;vertical-align:bottom;overflow:hidden;">
-                        <label for="wl-cat"
-                               class="form-label fw-semibold mb-1 d-block">
-                            {{#str}}filterbycategory, block_workload{{/str}}
-                        </label>
+                        <div class="d-flex align-items-center mb-1">
+                            <label for="wl-cat" class="form-label fw-semibold mb-0">
+                                {{#str}}filterbycategory, block_workload{{/str}}
+                            </label>
+                            {{{filtercategoryhelp}}}
+                        </div>
                         <select name="filtercategory" id="wl-cat" class="select custom-select form-select" style="width:100%;">
                             {{#catopts}}
                             <option value="{{value}}"{{#selected}} selected{{/selected}}>{{text}}</option>

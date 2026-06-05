@@ -176,7 +176,7 @@ The plugin automatically creates a `workload_manager` role during installation. 
 
 ## Version
 
-Current version: **1.0.0** (Build: 2026060507, Stable)
+Current version: **1.0.0** (Build: 2026060508, Stable)
 
 ## License
 

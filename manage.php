@@ -753,6 +753,7 @@ function action_members(int $id): void {
         'deptopts'         => build_select_opts($deptopts, $filterdepartment),
         'instopts'         => build_select_opts($instopts, $filterinstitution),
         'catopts'          => build_select_opts($catopts, $filtercategory),
+        'filtercategoryhelp' => $OUTPUT->help_icon('filterbycategory', 'block_workload'),
 
         // Search results.
         'hassearch'        => $hassearch,
