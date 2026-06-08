@@ -169,6 +169,7 @@ class helper {
      * @param int    $offset
      * @param string $firstletter A-Z filter on firstname, or empty string.
      * @param string $lastletter  A-Z filter on lastname, or empty string.
+     * @param string $orderby     SQL ORDER BY expression, or empty string for the default.
      * @return array
      */
     public static function get_cohort_members(
@@ -176,17 +177,20 @@ class helper {
         int $limit = 0,
         int $offset = 0,
         string $firstletter = '',
-        string $lastletter = ''
+        string $lastletter = '',
+        string $orderby = ''
     ): array {
         global $DB;
         [$where, $params] = self::members_where($cohortid, $firstletter, $lastletter);
+        $orderby = $orderby !== '' ? $orderby : 'u.lastname ASC, u.firstname ASC';
         $sql = "SELECT u.id, u.firstname, u.lastname, u.email, u.username,
                        u.firstnamephonetic, u.lastnamephonetic, u.middlename, u.alternatename,
+                       u.department, u.institution,
                        m.id AS memberid
                   FROM {block_workload_members} m
                   JOIN {user} u ON u.id = m.userid
                  WHERE $where
-              ORDER BY u.lastname ASC, u.firstname ASC";
+              ORDER BY $orderby";
         return $DB->get_records_sql($sql, $params, $offset, $limit);
     }
 

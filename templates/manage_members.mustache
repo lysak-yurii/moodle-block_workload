@@ -52,6 +52,9 @@
         "pagingbar_top": "",
         "pagingbar_bottom": "",
         "hasmembers": false,
+        "sortheaders": [
+            {"label": "Full name", "url": "#", "sortedby": "", "iconhtml": ""}
+        ],
         "memberrows": []
     }
 }}
@@ -395,10 +398,11 @@
                            data-toggle="master"
                            title="{{#str}}selectall{{/str}}">
                 </th>
-                <th scope="col">{{#str}}fullnameuser{{/str}}</th>
-                <th scope="col">{{#str}}email{{/str}}</th>
-                <th scope="col">{{#str}}department{{/str}}</th>
-                <th scope="col">{{#str}}institution{{/str}}</th>
+                {{#sortheaders}}
+                <th scope="col">
+                    <a href="{{{url}}}">{{label}}{{{sortedby}}}</a> {{{iconhtml}}}
+                </th>
+                {{/sortheaders}}
                 <th scope="col"></th>
             </tr>
         </thead>

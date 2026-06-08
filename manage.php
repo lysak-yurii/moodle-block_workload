@@ -408,6 +408,20 @@ function action_members(int $id): void {
     $firstletter = (in_array($firstletter, $alphabet, true)) ? $firstletter : '';
     $lastletter  = (in_array($lastletter, $alphabet, true)) ? $lastletter : '';
 
+    // Current-members table column sorting.
+    $sortmap = [
+        'fullname'    => ['u.lastname', 'u.firstname'],
+        'email'       => ['u.email'],
+        'department'  => ['u.department'],
+        'institution' => ['u.institution'],
+    ];
+    $sort = optional_param('sort', 'fullname', PARAM_ALPHA);
+    $sort = array_key_exists($sort, $sortmap) ? $sort : 'fullname';
+    $dir  = optional_param('dir', 'asc', PARAM_ALPHA);
+    $dir  = ($dir === 'desc') ? 'desc' : 'asc';
+    $sqldir  = ($dir === 'desc') ? 'DESC' : 'ASC';
+    $orderby = implode(', ', array_map(fn($field) => "$field $sqldir", $sortmap[$sort]));
+
     $search            = optional_param('search', '', PARAM_TEXT);
     $filterdepartment  = optional_param('filterdepartment', '', PARAM_TEXT);
     $filterinstitution = optional_param('filterinstitution', '', PARAM_TEXT);
@@ -434,6 +448,7 @@ function action_members(int $id): void {
             'removeid'    => $confirmremoveid, 'sesskey' => sesskey(),
             'firstletter' => $firstletter, 'lastletter' => $lastletter,
             'page'        => $page, 'perpage' => $perpage,
+            'sort'        => $sort, 'dir' => $dir,
         ]);
         $nourl = new moodle_url('/blocks/workload/manage.php', ['action' => 'members', 'id' => $id]);
         echo $OUTPUT->header();
@@ -557,7 +572,7 @@ function action_members(int $id): void {
     $totalcount   = \block_workload\helper::get_cohort_members_count($id, $firstletter, $lastletter);
     $limit        = ($perpage > 0) ? $perpage : 0;
     $offset       = ($perpage > 0) ? $page * $perpage : 0;
-    $members      = \block_workload\helper::get_cohort_members($id, $limit, $offset, $firstletter, $lastletter);
+    $members      = \block_workload\helper::get_cohort_members($id, $limit, $offset, $firstletter, $lastletter, $orderby);
     $allmemberids = \block_workload\helper::get_all_cohort_member_ids($id);
 
     // Search results.
@@ -587,7 +602,8 @@ function action_members(int $id): void {
     // A-Z initial bars.
     $basealphaurl = new moodle_url(
         '/blocks/workload/manage.php',
-        ['action' => 'members', 'id' => $id, 'perpage' => $perpage, 'page' => 0]
+        ['action' => 'members', 'id' => $id, 'perpage' => $perpage, 'page' => 0,
+         'sort' => $sort, 'dir' => $dir]
     );
     $alphabars = [];
     foreach (
@@ -641,6 +657,7 @@ function action_members(int $id): void {
                 ? (new moodle_url('/blocks/workload/manage.php', [
                     'action' => 'members', 'id' => $id, 'perpage' => $pp, 'page' => 0,
                     'firstletter' => $firstletter, 'lastletter' => $lastletter,
+                    'sort' => $sort, 'dir' => $dir,
                   ]))->out(false)
                 : null,
             'separator' => ($i < $lastppidx),
@@ -652,37 +669,55 @@ function action_members(int $id): void {
         '/blocks/workload/manage.php',
         ['action' => 'members', 'id' => $id, 'perpage' => $perpage,
         'firstletter' => $firstletter,
-        'lastletter' => $lastletter]
+        'lastletter' => $lastletter,
+        'sort' => $sort, 'dir' => $dir]
     );
     $showpaging      = ($perpage > 0 && $totalcount > $perpage);
     $pagingbartop   = $showpaging ? $OUTPUT->paging_bar($totalcount, $page, $perpage, $pagingurl) : '';
     $pagingbarbottom = $showpaging ? $OUTPUT->paging_bar($totalcount, $page, $perpage, $pagingurl) : '';
 
-    // Fetch department/institution for displayed members.
-    $profiles = [];
-    if (!empty($members)) {
-        [$insql, $inparams] = $DB->get_in_or_equal(array_keys($members), SQL_PARAMS_NAMED, 'uid');
-        $profiles = $DB->get_records_sql(
-            "SELECT id, department, institution FROM {user} WHERE id $insql",
-            $inparams
-        );
+    // Sortable headers for the current-members table.
+    $sortlabels = [
+        'fullname'    => get_string('fullnameuser'),
+        'email'       => get_string('email'),
+        'department'  => get_string('department'),
+        'institution' => get_string('institution'),
+    ];
+    $sortheaders = [];
+    foreach ($sortlabels as $sortkey => $sortlabel) {
+        $active  = ($sort === $sortkey);
+        $nextdir = ($active && $dir === 'asc') ? 'desc' : 'asc';
+        $sorturl = new moodle_url('/blocks/workload/manage.php', [
+            'action' => 'members', 'id' => $id,
+            'firstletter' => $firstletter, 'lastletter' => $lastletter,
+            'page' => $page, 'perpage' => $perpage,
+            'sort' => $sortkey, 'dir' => $nextdir,
+        ]);
+        $sortheaders[] = [
+            'label'    => $sortlabel,
+            'url'      => $sorturl->out(false),
+            'sortedby' => get_accesshide(get_string('sortby') . ' ' . $sortlabel . ' ' . get_string($nextdir)),
+            'iconhtml' => $active
+                ? $OUTPUT->pix_icon($dir === 'asc' ? 't/sort_asc' : 't/sort_desc', get_string($dir))
+                : '',
+        ];
     }
 
     // Member rows for the current-members table.
     $memberrows = [];
     foreach ($members as $m) {
-        $profile    = $profiles[$m->id] ?? null;
         $removeurl  = new moodle_url('/blocks/workload/manage.php', [
             'action' => 'members', 'id' => $id, 'confirmremoveid' => $m->id,
             'firstletter' => $firstletter, 'lastletter' => $lastletter,
             'page' => $page, 'perpage' => $perpage,
+            'sort' => $sort, 'dir' => $dir,
         ]);
         $memberrows[] = [
             'id'          => $m->id,
             'fullname'    => fullname($m),
             'email'       => $m->email,
-            'department'  => $profile ? $profile->department : '',
-            'institution' => $profile ? $profile->institution : '',
+            'department'  => $m->department,
+            'institution' => $m->institution,
             'removeurl'   => $removeurl->out(false),
         ];
     }
@@ -782,8 +817,9 @@ function action_members(int $id): void {
         'pagingbarbottom' => $pagingbarbottom,
 
         // Current-members table.
-        'hasmembers'  => ($totalcount > 0),
-        'memberrows'  => $memberrows,
+        'hasmembers'   => ($totalcount > 0),
+        'sortheaders'  => $sortheaders,
+        'memberrows'   => $memberrows,
     ];
 
     echo $OUTPUT->header();
