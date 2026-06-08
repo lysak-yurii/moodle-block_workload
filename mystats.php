@@ -24,10 +24,10 @@
 
 require_once('../../config.php');
 
-$weekfrom = optional_param('weekfrom', 0, PARAM_INT);
-$yearfrom = optional_param('yearfrom', 0, PARAM_INT);
-$weekto   = optional_param('weekto', 0, PARAM_INT);
-$yearto   = optional_param('yearto', 0, PARAM_INT);
+$weekfrom = optional_param('weekfrom', null, PARAM_INT);
+$yearfrom = optional_param('yearfrom', null, PARAM_INT);
+$weekto   = optional_param('weekto', null, PARAM_INT);
+$yearto   = optional_param('yearto', null, PARAM_INT);
 $export   = optional_param('export', 0, PARAM_BOOL);
 $chartwk  = optional_param('chartwk', 0, PARAM_INT);
 $viewas   = optional_param('viewas', 0, PARAM_INT);
@@ -61,13 +61,20 @@ $pagetitle = $viewingother
 $PAGE->set_title($pagetitle);
 $PAGE->set_heading($pagetitle);
 
+// No filter applied yet → default to the current ISO week.
+$hasfilter     = ($weekfrom !== null || $yearfrom !== null || $weekto !== null || $yearto !== null);
+$queryweekfrom = $weekfrom ?? (int)date('W');
+$queryyearfrom = $yearfrom ?? (int)date('o');
+$queryweekto = $weekto ?? (int)date('W');
+$queryyearto = $yearto ?? (int)date('o');
+
 // Fetch entries.
 $entries = \block_workload\helper::get_student_entries(
     $targetuserid,
-    $weekfrom ?: null,
-    $yearfrom ?: null,
-    $weekto ?: null,
-    $yearto ?: null
+    $queryweekfrom,
+    $queryyearfrom,
+    $queryweekto,
+    $queryyearto
 );
 
 // CSV Export.
@@ -328,11 +335,11 @@ $templatecontext = [
     'viewingas'    => $viewingother ? fullname($targetuser) : '',
 
     'filterform' => [
-        'weekfrom'  => $weekfrom ?: (int)date('W'),
-        'yearfrom'  => $yearfrom ?: (int)date('o'),
-        'weekto'    => $weekto ?: (int)date('W'),
-        'yearto'    => $yearto ?: (int)date('o'),
-        'hasfilter' => (bool)($weekfrom || $yearfrom || $weekto || $yearto),
+        'weekfrom'  => $queryweekfrom,
+        'yearfrom'  => $queryyearfrom,
+        'weekto'    => $queryweekto,
+        'yearto'    => $queryyearto,
+        'hasfilter' => $hasfilter,
         'clearurl'  => $clearurl,
     ],
 
