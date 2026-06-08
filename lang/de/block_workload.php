@@ -269,6 +269,7 @@ $string['weeknumber_tooltip'] = 'Kalenderwoche {$a->week}, {$a->year}';
 $string['weeksactive']      = 'Wochen mit Einträgen';
 $string['weekto']            = 'Bis Woche (ISO)';
 $string['widgetdisabled']    = 'Arbeitsaufwand-Block für {$a} deaktiviert.';
+$string['widgetdisablednotice'] = 'Der Arbeitsaufwand-Block ist für {$a} deaktiviert — diese Person wird ihn nicht im eigenen Dashboard sehen.';
 $string['widgetenabled']     = 'Arbeitsaufwand-Block für {$a} aktiviert.';
 $string['workload:addinstance']   = 'Arbeitsaufwand-Erhebung-Block zu einer Seite hinzufügen';
 $string['workload:export']        = 'Arbeitsaufwand-Statistiken als CSV exportieren';

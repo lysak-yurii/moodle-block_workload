@@ -651,6 +651,14 @@ function render_student_detail(int $userid, int $catid, bool $includesubcats = f
     ];
 
     echo $OUTPUT->header();
+
+    if (!\block_workload\helper::is_user_widget_active($userid)) {
+        echo $OUTPUT->notification(
+            get_string('widgetdisablednotice', 'block_workload', $fullname),
+            \core\output\notification::NOTIFY_WARNING
+        );
+    }
+
     $PAGE->requires->js_call_amd('core/checkbox-toggleall', 'init');
     echo $OUTPUT->render_from_template('block_workload/enrollment_detail', $templatecontext);
     $PAGE->requires->js_call_amd('block_workload/enrollment', 'init', [[

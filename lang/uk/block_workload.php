@@ -269,6 +269,7 @@ $string['weeknumber_tooltip'] = 'Календарний тиждень {$a->week
 $string['weeksactive']      = 'Тижні з записами';
 $string['weekto']            = 'До тижня (ISO)';
 $string['widgetdisabled']    = 'Блок навантаження вимкнено для {$a}.';
+$string['widgetdisablednotice'] = 'Відображення блоку вимкнено для {$a} — цей студент не бачитиме його у своїй панелі.';
 $string['widgetenabled']     = 'Блок навантаження увімкнено для {$a}.';
 $string['workload:addinstance']   = 'Додати блок обліку навантаження на сторінку';
 $string['workload:export']        = 'Експортувати статистику навантаження у CSV';

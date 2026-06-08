@@ -269,6 +269,7 @@ $string['weeknumber_tooltip'] = 'Calendar week {$a->week}, {$a->year}';
 $string['weeksactive']      = 'Weeks with entries';
 $string['weekto']            = 'To Week (ISO)';
 $string['widgetdisabled']    = 'Workload block disabled for {$a}.';
+$string['widgetdisablednotice'] = 'The workload block is disabled for {$a} — this student will not see it on their dashboard.';
 $string['widgetenabled']     = 'Workload block enabled for {$a}.';
 $string['workload:addinstance']   = 'Add Workload Assessment block to a page';
 $string['workload:export']        = 'Export workload statistics to CSV';
