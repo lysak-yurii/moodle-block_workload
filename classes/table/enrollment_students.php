@@ -196,11 +196,19 @@ class enrollment_students extends \flexible_table implements dynamic_table {
         );
 
         foreach ($students as $s) {
-            $enrolled  = (int)$s->enrolledcount;
-            $excluded  = (int)$s->excludedcount;
-            $added     = (int)$s->addedcount;
-            $efftotal  = max(0, $enrolled - $excluded + $added);
-            $manageurl = new moodle_url('/blocks/workload/manage_enrollment.php', ['userid' => $s->id]);
+            $enrolled     = (int)$s->enrolledcount;
+            $excluded     = (int)$s->excludedcount;
+            $added        = (int)$s->addedcount;
+            $efftotal     = max(0, $enrolled - $excluded + $added);
+            $widgetactive = (int)$s->widgetactive === 1;
+            $manageurl    = new moodle_url('/blocks/workload/manage_enrollment.php', ['userid' => $s->id]);
+            $toggleurl    = new moodle_url('/blocks/workload/manage_enrollment.php', [
+                'togglewidget' => $s->id,
+                'sesskey'      => sesskey(),
+            ]);
+            $togglelabel = $widgetactive
+                ? get_string('disablewidget', 'block_workload')
+                : get_string('enablewidget', 'block_workload');
 
             $this->add_data_keyed([
                 'fullname'    => format_string($s->firstname . ' ' . $s->lastname),
@@ -212,10 +220,13 @@ class enrollment_students extends \flexible_table implements dynamic_table {
                 'coladded'    => $added,
                 'coltotal'    => $efftotal,
                 'actions'     => $OUTPUT->action_icon(
+                    $toggleurl,
+                    new pix_icon($widgetactive ? 't/hide' : 't/show', $togglelabel)
+                ) . $OUTPUT->action_icon(
                     $manageurl,
                     new pix_icon('i/course', get_string('managecourses', 'block_workload'))
                 ),
-            ]);
+            ], $widgetactive ? '' : 'text-muted');
         }
 
         $this->finish_output();

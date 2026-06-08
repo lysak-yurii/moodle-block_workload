@@ -109,6 +109,12 @@ class block_workload extends block_base {
         $year       = (int) date('o'); // ISO year: differs from calendar year in edge weeks.
 
         if ($coursemode === 'enrollment') {
+            // Manager may have disabled the widget for this individual student —
+            // hide the block entirely, mirroring cohort mode's "not in any cohort" behaviour.
+            if (!\block_workload\helper::is_user_widget_active((int)$USER->id)) {
+                return $this->content;
+            }
+
             // Enrollment mode: show courses the student is enrolled in (+ manager overrides).
             $courses = \block_workload\helper::get_user_enrolled_courses(
                 (int)$USER->id,

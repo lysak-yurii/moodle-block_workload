@@ -69,6 +69,28 @@ $PAGE->navbar->add(
 );
 $PAGE->navbar->add(get_string('enrollmentmodemanage', 'block_workload'));
 
+// Toggle per-student widget enable/disable (from the student list).
+
+$togglewidget = optional_param('togglewidget', 0, PARAM_INT);
+if ($togglewidget && confirm_sesskey()) {
+    $student  = $DB->get_record('user', ['id' => $togglewidget, 'deleted' => 0], '*', MUST_EXIST);
+    $newstate = \block_workload\helper::toggle_user_widget_active($togglewidget);
+    \block_workload\event\widget_toggled::create([
+        'objectid'      => $togglewidget,
+        'context'       => $syscontext,
+        'relateduserid' => $togglewidget,
+        'other'         => ['active' => $newstate ? 1 : 0],
+    ])->trigger();
+    redirect(
+        $PAGE->url,
+        $newstate
+            ? get_string('widgetenabled', 'block_workload', fullname($student))
+            : get_string('widgetdisabled', 'block_workload', fullname($student)),
+        null,
+        \core\output\notification::NOTIFY_SUCCESS
+    );
+}
+
 // State-changing single-course actions.
 
 if ($action && $userid && $courseid) {

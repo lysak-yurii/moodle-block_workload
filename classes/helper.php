@@ -292,6 +292,51 @@ class helper {
         return ($current >= $from && $current <= $to);
     }
 
+    /**
+     * Check whether the workload widget is enabled for a student in enrollment mode.
+     * Defaults to enabled when no override row exists.
+     *
+     * @param int $userid
+     * @return bool
+     */
+    public static function is_user_widget_active(int $userid): bool {
+        global $DB;
+
+        $active = $DB->get_field('block_workload_user_settings', 'active', ['userid' => $userid]);
+
+        return $active === false || (int)$active === 1;
+    }
+
+    /**
+     * Toggle whether the workload widget is enabled for a student (enrollment mode).
+     *
+     * @param int $userid
+     * @return bool The new active state.
+     */
+    public static function toggle_user_widget_active(int $userid): bool {
+        global $DB;
+
+        $now      = time();
+        $existing = $DB->get_record('block_workload_user_settings', ['userid' => $userid]);
+
+        if ($existing) {
+            $existing->active       = $existing->active ? 0 : 1;
+            $existing->timemodified = $now;
+            $DB->update_record('block_workload_user_settings', $existing);
+
+            return (bool)$existing->active;
+        }
+
+        $DB->insert_record('block_workload_user_settings', (object)[
+            'userid'       => $userid,
+            'active'       => 0,
+            'timecreated'  => $now,
+            'timemodified' => $now,
+        ]);
+
+        return false;
+    }
+
 
     // Entries.
 
@@ -843,7 +888,11 @@ class helper {
                             JOIN {user_enrolments} ue2 ON ue2.enrolid = en2.id
                             WHERE en2.courseid = ov2.courseid AND en2.status = 0
                               AND ue2.userid = u.id AND ue2.status = 0
-                        )) AS addedcount
+                        )) AS addedcount,
+                    COALESCE(
+                        (SELECT us.active FROM {block_workload_user_settings} us WHERE us.userid = u.id),
+                        1
+                    ) AS widgetactive
                FROM {user} u
                JOIN {user_enrolments} ue ON ue.userid = u.id AND ue.status = 0
                JOIN {enrol} en ON en.id = ue.enrolid AND en.status = 0
