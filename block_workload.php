@@ -98,6 +98,19 @@ class block_workload extends block_base {
             $this->content->footer = implode(' &middot; ', $links);
         }
 
+        // Student stats link — shown based on viewownstats, independent of submit.
+        if (has_capability('block/workload:viewownstats', $syscontext)) {
+            $statslink = html_writer::link(
+                new moodle_url('/blocks/workload/mystats.php'),
+                get_string('viewmystats', 'block_workload')
+            );
+            if ($this->content->footer) {
+                $this->content->footer = $statslink . ' &middot; ' . $this->content->footer;
+            } else {
+                $this->content->footer = $statslink;
+            }
+        }
+
         // Student block content.
         if (!has_capability('block/workload:submit', $syscontext)) {
             return $this->content;
@@ -215,19 +228,6 @@ class block_workload extends block_base {
         ]]);
 
         $this->content->text = $OUTPUT->render_from_template('block_workload/block', $templatecontext);
-
-        // Student stats link in footer.
-        if (has_capability('block/workload:viewownstats', $syscontext)) {
-            $statslink = html_writer::link(
-                new moodle_url('/blocks/workload/mystats.php'),
-                get_string('viewmystats', 'block_workload')
-            );
-            if ($this->content->footer) {
-                $this->content->footer = $statslink . ' &middot; ' . $this->content->footer;
-            } else {
-                $this->content->footer = $statslink;
-            }
-        }
 
         return $this->content;
     }
