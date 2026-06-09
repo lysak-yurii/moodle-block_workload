@@ -147,6 +147,8 @@ $chartcoursehtml     = '';
 $chartweekdetailhtml = '';
 $chartweekdetail     = null;
 
+$brandcolor = !empty($PAGE->theme->settings->brandcolor) ? $PAGE->theme->settings->brandcolor : '#1177d1';
+
 $piemaxslices      = 10;
 $truncate          = fn($s) => mb_strlen($s) > 35 ? mb_substr($s, 0, 33) . "\xe2\x80\xa6" : $s;
 $overflowcourses   = [];
@@ -160,12 +162,17 @@ if (!empty($entries)) {
         $chartweek = new \core\chart_bar();
     }
     $chartweek->set_title(get_string('statsbyweek', 'block_workload'));
-    $chartweek->add_series(new \core\chart_series(
+    $serieswk = new \core\chart_series(
         get_string('hours', 'block_workload'),
         array_values($weektotals)
-    ));
+    );
+    $serieswk->set_color($brandcolor);
+    $chartweek->add_series($serieswk);
     $chartweek->set_labels(array_keys($weektotals));
     $chartweekhtml = $OUTPUT->render($chartweek);
+
+    $piepalette = ['#4e79a7', '#f28e2b', '#e15759', '#76b7b2', '#59a14f',
+                   '#edc948', '#b07aa1', '#ff9da7', '#9c755f', '#bab0ac', '#4e79a7'];
 
     // Course pie chart.
     $chartcoursetotals = array_slice($coursetotals, 0, $piemaxslices, true);
@@ -176,10 +183,12 @@ if (!empty($entries)) {
     }
     $chartcourse = new \core\chart_pie();
     $chartcourse->set_title(get_string('statsbycourse', 'block_workload'));
-    $chartcourse->add_series(new \core\chart_series(
+    $seriescourse = new \core\chart_series(
         get_string('hours', 'block_workload'),
         array_values($chartcoursetotals)
-    ));
+    );
+    $seriescourse->set_colors(array_slice($piepalette, 0, count($chartcoursetotals)));
+    $chartcourse->add_series($seriescourse);
     $chartcourse->set_labels(array_map($truncate, array_keys($chartcoursetotals)));
     $chartcoursehtml = $OUTPUT->render($chartcourse);
 
@@ -199,10 +208,12 @@ if (!empty($entries)) {
                  . get_string('weeknumber', 'block_workload', (int)$wdwn);
         $chartweekdetail = new \core\chart_pie();
         $chartweekdetail->set_title($wdtitle);
-        $chartweekdetail->add_series(new \core\chart_series(
+        $serieswkdetail = new \core\chart_series(
             get_string('hours', 'block_workload'),
             array_values($wdtotals)
-        ));
+        );
+        $serieswkdetail->set_colors(array_slice($piepalette, 0, count($wdtotals)));
+        $chartweekdetail->add_series($serieswkdetail);
         $chartweekdetail->set_labels(array_map($truncate, array_keys($wdtotals)));
         $chartweekdetailhtml = $OUTPUT->render($chartweekdetail);
     }

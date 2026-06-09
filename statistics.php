@@ -158,6 +158,8 @@ $chartweekavghtml   = '';
 $chartweekusershtml = '';
 $charttopusershtml  = '';
 
+$brandcolor = !empty($PAGE->theme->settings->brandcolor) ? $PAGE->theme->settings->brandcolor : '#1177d1';
+
 if (!empty($weeklytotals)) {
     $weeklabels = [];
     $avgvalues  = [];
@@ -175,10 +177,12 @@ if (!empty($weeklytotals)) {
         $chartweekavg->set_smooth(true);
     }
     $chartweekavg->set_title(get_string('avghrsperstudent', 'block_workload'));
-    $chartweekavg->add_series(new \core\chart_series(
+    $seriesavg = new \core\chart_series(
         get_string('avghrsperstudent', 'block_workload'),
         $avgvalues
-    ));
+    );
+    $seriesavg->set_color($brandcolor);
+    $chartweekavg->add_series($seriesavg);
     $yavg = new \core\chart_axis();
     $yavg->set_min(0);
     $chartweekavg->set_labels($weeklabels);
@@ -190,10 +194,12 @@ if (!empty($weeklytotals)) {
         $chartweekusers->set_smooth(true);
     }
     $chartweekusers->set_title(get_string('activestudents', 'block_workload'));
-    $chartweekusers->add_series(new \core\chart_series(
+    $seriesusers = new \core\chart_series(
         get_string('activestudents', 'block_workload'),
         $uservalues
-    ));
+    );
+    $seriesusers->set_color('#e66000');
+    $chartweekusers->add_series($seriesusers);
     $yusers = new \core\chart_axis();
     $yusers->set_min(0);
     $chartweekusers->set_labels($weeklabels);
@@ -211,10 +217,14 @@ if (!empty($topusers)) {
     }
     $charttopusers = new \core\chart_pie();
     $charttopusers->set_title(get_string('topstudents', 'block_workload', count($topusers)));
-    $charttopusers->add_series(new \core\chart_series(
+    $piepalette = ['#4e79a7', '#f28e2b', '#e15759', '#76b7b2', '#59a14f',
+                   '#edc948', '#b07aa1', '#ff9da7', '#9c755f', '#bab0ac', '#4e79a7'];
+    $seriestop = new \core\chart_series(
         get_string('totalhours', 'block_workload'),
         $pievalues
-    ));
+    );
+    $seriestop->set_colors(array_slice($piepalette, 0, count($pievalues)));
+    $charttopusers->add_series($seriestop);
     $charttopusers->set_labels($pielabels);
     $charttopusershtml = $OUTPUT->render($charttopusers);
 }
