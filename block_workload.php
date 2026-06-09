@@ -81,16 +81,20 @@ class block_workload extends block_base {
         $syscontext = context_system::instance();
 
         // Quality Manager footer links.
+        $links = [];
         if (has_capability('block/workload:manage', $syscontext)) {
-            $links = [];
             $links[] = html_writer::link(
                 new moodle_url('/blocks/workload/manage.php'),
                 get_string('managedashboard', 'block_workload')
             );
+        }
+        if (has_capability('block/workload:viewallstats', $syscontext)) {
             $links[] = html_writer::link(
                 new moodle_url('/blocks/workload/statistics.php'),
                 get_string('statisticstitle', 'block_workload')
             );
+        }
+        if ($links) {
             $this->content->footer = implode(' &middot; ', $links);
         }
 
