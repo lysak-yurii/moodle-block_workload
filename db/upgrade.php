@@ -15,17 +15,32 @@
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
- * Workload Assessment block version definition.
+ * Upgrade steps for block_workload.
  *
  * @package   block_workload
  * @copyright  2026 Yurii Lysak
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-defined('MOODLE_INTERNAL') || die();
+/**
+ * Run upgrade steps for block_workload.
+ *
+ * @param int $oldversion the version we are upgrading from.
+ * @return bool
+ */
+function xmldb_block_workload_upgrade(int $oldversion): bool {
 
-$plugin->version   = 2026061201;
-$plugin->requires  = 2024100700; // Moodle 4.5 or later.
-$plugin->component = 'block_workload';
-$plugin->maturity  = MATURITY_BETA;
-$plugin->release   = '1.0.0';
+    if ($oldversion < 2026061200) {
+        // Allow regular users to export their own statistics as CSV.
+        // Archetype defaults in db/access.php only apply on fresh installs,
+        // so grant the capability to existing 'user' archetype roles here.
+        $syscontext = context_system::instance();
+        foreach (get_archetype_roles('user') as $role) {
+            assign_capability('block/workload:export', CAP_ALLOW, $role->id, $syscontext->id, true);
+        }
+
+        upgrade_block_savepoint(true, 2026061200, 'workload');
+    }
+
+    return true;
+}

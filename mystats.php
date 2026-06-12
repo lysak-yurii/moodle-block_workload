@@ -78,7 +78,8 @@ $entries = \block_workload\helper::get_student_entries(
 );
 
 // CSV Export.
-if ($export) {
+$canexport = has_capability('block/workload:export', $syscontext);
+if ($export && $canexport) {
     $filename = get_string('exportfilename', 'block_workload')
               . '_' . fullname($targetuser) . '_' . date('Ymd_His') . '.csv';
 
@@ -355,6 +356,7 @@ $templatecontext = [
     ],
 
     'hasdata'   => !empty($entries),
+    'canexport' => $canexport,
     'exporturl' => $exporturl,
     'kpis'      => $kpis,
 

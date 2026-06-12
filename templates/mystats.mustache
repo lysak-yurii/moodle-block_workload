@@ -38,6 +38,7 @@
             "clearurl": "http://example.com/blocks/workload/mystats.php"
         },
         "hasdata": true,
+        "canexport": true,
         "exporturl": "http://example.com/blocks/workload/mystats.php?export=1",
         "kpis": [
             {"value": "10.0 hrs", "label": "Total"},
@@ -144,11 +145,13 @@
     {{#hasdata}}
 
     {{! Export button }}
+    {{#canexport}}
     <div class="mb-3 text-end">
         <a href="{{{exporturl}}}" class="btn btn-outline-success">
             &#8595;&nbsp;{{#str}}exportcsv, block_workload{{/str}}
         </a>
     </div>
+    {{/canexport}}
 
     {{! KPI summary cards }}
     <div class="row g-3 mb-4">

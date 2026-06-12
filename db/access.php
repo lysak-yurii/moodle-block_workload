@@ -84,11 +84,13 @@ $capabilities = [
         ],
     ],
 
-    // Quality Manager: export statistics as CSV.
+    // Export statistics as CSV: students export their own stats,
+    // Quality Managers export cohort statistics.
     'block/workload:export' => [
         'captype'      => 'read',
         'contextlevel' => CONTEXT_SYSTEM,
         'archetypes'   => [
+            'user'    => CAP_ALLOW,
             'manager' => CAP_ALLOW,
         ],
     ],
