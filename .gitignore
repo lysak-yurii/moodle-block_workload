@@ -19,3 +19,6 @@ cli/
 # moodle-plugin-ci runtime status files (created during local test runs)
 Linted
 Running
+
+# Raster logo export
+pix/logo.png
