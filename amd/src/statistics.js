@@ -57,7 +57,7 @@ define(['block_workload/usersearch'], function(UserSearch) {
             if (!btn) {
                 return;
             }
-            require(['core/modal_factory'], function(ModalFactory) {
+            require(['core/modal'], function(Modal) {
                 var body = '<div class="d-grid gap-3">'
                     + '<a href="' + btn.dataset.quickUrl
                     + '" class="btn btn-outline-primary text-start p-3">'
@@ -69,8 +69,7 @@ define(['block_workload/usersearch'], function(UserSearch) {
                     + '<div class="fw-semibold">' + btn.dataset.labelDetail + '</div>'
                     + '<div class="small mt-1" style="opacity:0.8">' + btn.dataset.descDetail + '</div>'
                     + '</a></div>';
-                ModalFactory.create({
-                    type: ModalFactory.types.DEFAULT,
+                Modal.create({
                     title: btn.dataset.title,
                     body: body,
                 }).then(function(modal) {

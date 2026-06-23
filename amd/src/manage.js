@@ -30,10 +30,10 @@
 
 define([
     'core/ajax',
-    'core/modal_factory',
+    'core/modal',
     'core/modal_events',
     'jquery'
-], function(Ajax, ModalFactory, ModalEvents, $) {
+], function(Ajax, Modal, ModalEvents, $) {
 
     /**
      * Enable/disable a form's submit button based on whether any named
@@ -102,8 +102,7 @@ define([
                 var large = !!($(this).data('modal-large'));
                 var maxw = $(this).data('modal-maxwidth') || null;
 
-                ModalFactory.create({
-                    type: ModalFactory.types.DEFAULT,
+                Modal.create({
                     title: title,
                     body: '<iframe src="' + url
                           + '" style="width:100%;min-height:160px;border:none;display:block;"></iframe>',
