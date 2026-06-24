@@ -69,6 +69,22 @@ if ($ADMIN->fulltree) {
         PARAM_INT
     ));
 
+    $settings->add(new admin_setting_configcheckbox(
+        'block_workload/enablebackfill',
+        get_string('enablebackfill', 'block_workload'),
+        get_string('enablebackfill_desc', 'block_workload'),
+        1
+    ));
+
+    $settings->add(new admin_setting_workload_posint(
+        'block_workload/backfillweeks',
+        get_string('backfillweeks', 'block_workload'),
+        get_string('backfillweeks_desc', 'block_workload'),
+        '4',
+        PARAM_INT
+    ));
+    $settings->hide_if('block_workload/backfillweeks', 'block_workload/enablebackfill', 'notchecked');
+
     $settings->add(new admin_setting_configselect(
         'block_workload/courseorder',
         get_string('courseorder', 'block_workload'),

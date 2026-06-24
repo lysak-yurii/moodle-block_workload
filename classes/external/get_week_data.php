@@ -67,13 +67,26 @@ class get_week_data extends external_api {
         self::validate_context($syscontext);
         require_capability('block/workload:submit', $syscontext);
 
-        $allcohorts    = \block_workload\helper::get_user_active_cohorts($USER->id);
-        $activecohorts = array_filter($allcohorts, fn($c) => \block_workload\helper::is_workload_active($c->id));
-        if (empty($activecohorts)) {
+        $coursemode = get_config('block_workload', 'coursemode') ?: 'cohort';
+
+        if ($coursemode === 'enrollment') {
+            if (!\block_workload\helper::is_user_widget_active((int) $USER->id)) {
+                return ['courses' => []];
+            }
+            $courses = \block_workload\helper::get_user_enrolled_courses((int) $USER->id);
+        } else {
+            $allcohorts    = \block_workload\helper::get_user_active_cohorts($USER->id);
+            $activecohorts = array_filter($allcohorts, fn($c) => \block_workload\helper::is_workload_active($c->id));
+            if (empty($activecohorts)) {
+                return ['courses' => []];
+            }
+            $courses = \block_workload\helper::get_merged_cohort_courses(array_keys($activecohorts));
+        }
+
+        if (empty($courses)) {
             return ['courses' => []];
         }
 
-        $courses = \block_workload\helper::get_merged_cohort_courses(array_keys($activecohorts));
         $entries = \block_workload\helper::get_week_entries($USER->id, $params['weeknumber'], $params['year']);
 
         $result = [];

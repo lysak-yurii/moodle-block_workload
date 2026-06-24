@@ -124,6 +124,11 @@ class save_hours extends external_api {
             }
         }
 
+        // Enforce the editable-week window (future weeks, rolling backfill floor, cohort start).
+        if (!\block_workload\helper::is_week_editable($USER->id, $params['year'], $params['weeknumber'])) {
+            throw new \moodle_exception('weeknoteditable', 'block_workload');
+        }
+
         // Save without tying to a specific cohort (student may be in multiple, or enrollment mode).
         \block_workload\helper::save_entry(
             $USER->id,

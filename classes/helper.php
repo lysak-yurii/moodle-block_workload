@@ -297,6 +297,142 @@ class helper {
     }
 
     /**
+     * Week-aware variant of is_workload_active(): test whether the given cohort's
+     * active window contains the supplied ISO week/year (instead of "now").
+     *
+     * @param \stdClass $cohort  Cohort record (expects active, week_from/year_from, week_to/year_to).
+     * @param int       $year    ISO year of the week to test.
+     * @param int       $week    ISO week number to test.
+     * @return bool
+     */
+    public static function is_workload_active_for(\stdClass $cohort, int $year, int $week): bool {
+        if ((int) $cohort->active !== 1) {
+            return false;
+        }
+
+        // No date range → always active.
+        if (!$cohort->week_from && !$cohort->week_to) {
+            return true;
+        }
+
+        $target = $year * 100 + $week;
+        $from   = $cohort->year_from ? ((int) $cohort->year_from * 100 + (int) $cohort->week_from) : 0;
+        $to     = $cohort->year_to ? ((int) $cohort->year_to * 100 + (int) $cohort->week_to) : PHP_INT_MAX;
+
+        return ($target >= $from && $target <= $to);
+    }
+
+    /**
+     * Configured backfill window: how many weeks before the current week a student
+     * may still edit. Returns 0 (current week only) when backfilling is disabled.
+     *
+     * @return int
+     */
+    public static function get_backfill_weeks(): int {
+        // Master on/off switch (default on). When explicitly off, only the current week is editable.
+        $enabled = get_config('block_workload', 'enablebackfill');
+        if ($enabled !== false && (int) $enabled === 0) {
+            return 0;
+        }
+        // When enabled the window is always at least one week (off is handled by the switch above).
+        $raw = get_config('block_workload', 'backfillweeks');
+        return ($raw !== false) ? max(1, (int) $raw) : 4;
+    }
+
+    /**
+     * Return the ISO year/week that is $weeksback weeks before the current ISO week.
+     * Uses DateTime so the arithmetic is correct across year boundaries (52/53 weeks).
+     *
+     * @param int $weeksback  Number of weeks to step back (0 = current week).
+     * @return array ['year' => int, 'week' => int]
+     */
+    public static function iso_week_offset(int $weeksback): array {
+        $dt = new \DateTime();
+        // Normalise to the Monday of the current ISO week before stepping back.
+        $dt->setISODate((int) $dt->format('o'), (int) $dt->format('W'));
+        if ($weeksback !== 0) {
+            $dt->modify('-' . (int) $weeksback . ' weeks');
+        }
+        return ['year' => (int) $dt->format('o'), 'week' => (int) $dt->format('W')];
+    }
+
+    /**
+     * Whether the given user may create or edit an entry for the given ISO week/year.
+     *
+     * This is the single server-side guard for the write path: it rejects out-of-range
+     * values, future weeks, weeks older than the rolling backfill window, and (in cohort
+     * mode) weeks that fall outside every cohort window the user belongs to.
+     *
+     * @param int $userid
+     * @param int $year
+     * @param int $week
+     * @return bool
+     */
+    public static function is_week_editable(int $userid, int $year, int $week): bool {
+        // Basic range sanity.
+        if ($week < 1 || $week > 53 || $year < 2000 || $year > 2100) {
+            return false;
+        }
+
+        $target  = $year * 100 + $week;
+        $current = (int) date('o') * 100 + (int) date('W');
+
+        // No future weeks.
+        if ($target > $current) {
+            return false;
+        }
+
+        // Rolling backfill floor (current week minus the configured window).
+        $floor    = self::iso_week_offset(self::get_backfill_weeks());
+        $floorint = $floor['year'] * 100 + $floor['week'];
+        if ($target < $floorint) {
+            return false;
+        }
+
+        $coursemode = get_config('block_workload', 'coursemode') ?: 'cohort';
+        if ($coursemode === 'enrollment') {
+            // No cohort window in enrollment mode; floor + not-future is enough.
+            return self::is_user_widget_active($userid);
+        }
+
+        // Cohort mode: the week must fall within at least one of the user's cohort windows.
+        foreach (self::get_user_active_cohorts($userid) as $cohort) {
+            if (self::is_workload_active_for($cohort, $year, $week)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Earliest and latest editable weeks for the block's week navigation, as
+     * comparable integers (year * 100 + week). The latest is always the current week.
+     *
+     * Walks back from the current week to the rolling floor and stops at the first
+     * non-editable week, so overlapping cohort windows and the cohort start are all
+     * respected. Per-week saves are still validated by is_week_editable().
+     *
+     * @param int $userid
+     * @return array ['min' => int, 'max' => int]
+     */
+    public static function get_editable_week_bounds(int $userid): array {
+        $maxint = (int) date('o') * 100 + (int) date('W');
+        $minint = $maxint;
+
+        $n = self::get_backfill_weeks();
+        for ($i = 1; $i <= $n; $i++) {
+            $wk = self::iso_week_offset($i);
+            if (self::is_week_editable($userid, $wk['year'], $wk['week'])) {
+                $minint = $wk['year'] * 100 + $wk['week'];
+            } else {
+                break;
+            }
+        }
+
+        return ['min' => $minint, 'max' => $maxint];
+    }
+
+    /**
      * Check whether the workload widget is enabled for a student in enrollment mode.
      * Defaults to enabled when no override row exists.
      *

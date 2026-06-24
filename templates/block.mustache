@@ -29,6 +29,10 @@
         "weeknumber": 22,
         "year": 2026,
         "weeknumber_tooltip": "Calendar week 22, 2026",
+        "blocktitle_tooltip": "Log the hours you spent on each course. Use the arrows to record earlier weeks.",
+        "hasweeknav": true,
+        "prevdisabled": false,
+        "nextdisabled": false,
         "mystatsurl": "http://example.com/blocks/workload/mystats.php",
         "hascourses": true,
         "haspagination": false,
@@ -42,17 +46,35 @@
     <div class="workload-header d-flex justify-content-between align-items-center px-3 py-2 rounded-top bg-primary text-white">
         <div class="d-flex align-items-center">
             <span class="fw-semibold small"
-                  title="{{#str}}blocktitle_tooltip, block_workload{{/str}}"
+                  title="{{blocktitle_tooltip}}"
                   style="cursor:help;">{{#str}}blocktitle, block_workload{{/str}}</span>
             <button type="button"
                     class="workload-help-btn btn p-0 ms-2 text-white rounded-circle"
                     style="width:.9rem;height:.9rem;font-size:.6rem;line-height:1;opacity:.7;border:1px solid rgba(255,255,255,.6);flex-shrink:0;cursor:help;"
-                    title="{{#str}}blocktitle_tooltip, block_workload{{/str}}"
-                    aria-label="{{#str}}blocktitle_tooltip, block_workload{{/str}}">?</button>
+                    title="{{blocktitle_tooltip}}"
+                    aria-label="{{blocktitle_tooltip}}">?</button>
         </div>
-        <span class="badge rounded-pill text-bg-secondary ms-2"
-              title="{{weeknumber_tooltip}}"
-              style="cursor:help;">{{#str}}weeknumber, block_workload, {{weeknumber}}{{/str}}</span>
+        <div class="workload-week-nav d-flex align-items-center ms-2" style="gap:.15rem;">
+            {{#hasweeknav}}
+            <button type="button"
+                    class="workload-week-prev"
+                    style="background:none;border:0;padding:0 .1rem;color:#fff;cursor:pointer;font-size:.65rem;line-height:1;opacity:.8;{{#prevdisabled}}visibility:hidden;{{/prevdisabled}}"
+                    aria-label="{{#str}}prevweek, block_workload{{/str}}"
+                    title="{{#str}}prevweek, block_workload{{/str}}"
+                    {{#prevdisabled}}disabled{{/prevdisabled}}>&#9666;</button>
+            {{/hasweeknav}}
+            <span class="workload-week-badge badge rounded-pill text-bg-secondary"
+                  title="{{weeknumber_tooltip}}"
+                  style="cursor:help;">{{#str}}weeknumber, block_workload, {{weeknumber}}{{/str}}</span>
+            {{#hasweeknav}}
+            <button type="button"
+                    class="workload-week-next"
+                    style="background:none;border:0;padding:0 .1rem;color:#fff;cursor:pointer;font-size:.65rem;line-height:1;opacity:.8;{{#nextdisabled}}visibility:hidden;{{/nextdisabled}}"
+                    aria-label="{{#str}}nextweek, block_workload{{/str}}"
+                    title="{{#str}}nextweek, block_workload{{/str}}"
+                    {{#nextdisabled}}disabled{{/nextdisabled}}>&#9656;</button>
+            {{/hasweeknav}}
+        </div>
     </div>
 
     {{#hascourses}}

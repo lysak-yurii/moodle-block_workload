@@ -205,6 +205,11 @@ class block_workload extends block_base {
 
         $haspagination = ($coursesperpage > 0 && count($coursedata) > $coursesperpage);
 
+        // Editable-week bounds for the week navigation (year * 100 + week).
+        $bounds  = \block_workload\helper::get_editable_week_bounds((int)$USER->id);
+        $weekint = $year * 100 + $weeknumber;
+        $hasnav  = ($bounds['min'] < $bounds['max']);
+
         $templatecontext = [
             'courses'            => array_values($coursedata),
             'weeknumber'         => $weeknumber,
@@ -218,13 +223,21 @@ class block_workload extends block_base {
             'hascourses'         => !empty($coursedata),
             'haspagination'      => $haspagination,
             'hourstep'           => $hourstep,
+            'hasweeknav'         => $hasnav,
+            'prevdisabled'       => ($weekint <= $bounds['min']),
+            'nextdisabled'       => ($weekint >= $bounds['max']),
+            'blocktitle_tooltip' => get_string($hasnav ? 'blocktitle_tooltip_nav' : 'blocktitle_tooltip', 'block_workload'),
         ];
 
-        // Load AMD module for the +/- button interactivity and pagination.
+        // Load AMD module for the +/- button interactivity, week navigation and pagination.
         $this->page->requires->js_call_amd('block_workload/workload', 'init', [[
             'weeknumber'     => $weeknumber,
             'year'           => $year,
             'coursesperpage' => $haspagination ? $coursesperpage : 0,
+            'minweekint'     => (int) $bounds['min'],
+            'maxweekint'     => (int) $bounds['max'],
+            'weeklabeltpl'   => get_string('weeknumber', 'block_workload', '{w}'),
+            'weektooltiptpl' => get_string('weeknumber_tooltip', 'block_workload', (object)['week' => '{w}', 'year' => '{y}']),
         ]]);
 
         $this->content->text = $OUTPUT->render_from_template('block_workload/block', $templatecontext);
