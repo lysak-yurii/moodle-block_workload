@@ -120,7 +120,7 @@
                                id="wl-addcourses-master"
                                data-action="toggle"
                                data-togglegroup="wl-addcourses-group"
-                               data-toggle="master"
+                               data-toggle="toggler"
                                title="{{#str}}selectall{{/str}}"
                                checked>
                     </th>
@@ -143,7 +143,7 @@
                                checked
                                data-action="toggle"
                                data-togglegroup="wl-addcourses-group"
-                               data-toggle="slave">
+                               data-toggle="target">
                         {{/already}}
                     </td>
                     <td>
@@ -189,7 +189,7 @@
                                id="wl-assigned-master"
                                data-action="toggle"
                                data-togglegroup="wl-assigned-group"
-                               data-toggle="master"
+                               data-toggle="toggler"
                                title="{{#str}}selectall{{/str}}">
                     </th>
                     <th>{{#str}}course, block_workload{{/str}}</th>
@@ -209,7 +209,7 @@
                                value="{{id}}"
                                data-action="toggle"
                                data-togglegroup="wl-assigned-group"
-                               data-toggle="slave">
+                               data-toggle="target">
                     </td>
                     <td>
                         <a href="{{{courseurl}}}" target="_blank"{{#excluded}} class="text-muted"{{/excluded}}>{{name}}</a>

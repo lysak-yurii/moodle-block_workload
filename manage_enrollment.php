@@ -659,7 +659,7 @@ function render_student_detail(int $userid, int $catid, bool $includesubcats = f
         );
     }
 
-    $PAGE->requires->js_call_amd('core/checkbox-toggleall', 'init');
+    $PAGE->requires->js_call_amd('block_workload/toggleall', 'init');
     echo $OUTPUT->render_from_template('block_workload/enrollment_detail', $templatecontext);
     $PAGE->requires->js_call_amd('block_workload/enrollment', 'init', [[
         'noResultsStr' => get_string('nouserfound', 'block_workload'),

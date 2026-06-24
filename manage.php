@@ -552,7 +552,7 @@ function action_members(int $id): void {
     // Build template context.
 
     $PAGE->requires->js_call_amd('block_workload/manage', 'initMembers', []);
-    $PAGE->requires->js_call_amd('core/checkbox-toggleall', 'init');
+    $PAGE->requires->js_call_amd('block_workload/toggleall', 'init');
 
     // Filter option lists.
     $deptopts = ['' => get_string('selectdepartment', 'block_workload')]
@@ -1013,7 +1013,7 @@ function action_courses(int $id): void {
     // Build template context.
 
     $PAGE->requires->js_call_amd('block_workload/manage', 'initCourses', []);
-    $PAGE->requires->js_call_amd('core/checkbox-toggleall', 'init');
+    $PAGE->requires->js_call_amd('block_workload/toggleall', 'init');
 
     $selectedcategory = optional_param('categoryid', 0, PARAM_INT);
     $includesubcats   = optional_param('includesubcats', 0, PARAM_BOOL);

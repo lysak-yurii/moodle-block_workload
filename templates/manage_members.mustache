@@ -176,7 +176,7 @@
                                        id="wl-add-master"
                                        data-action="toggle"
                                        data-togglegroup="addmembers-group"
-                                       data-toggle="master"
+                                       data-toggle="toggler"
                                        title="{{#str}}selectall{{/str}}">
                             </th>
                             <th scope="col">{{#str}}fullnameuser{{/str}}</th>
@@ -200,7 +200,7 @@
                                        checked
                                        data-action="toggle"
                                        data-togglegroup="addmembers-group"
-                                       data-toggle="slave">
+                                       data-toggle="target">
                                 {{/already}}
                             </td>
                             <td>{{{fullname}}}</td>
@@ -282,7 +282,7 @@
                                        id="wl-mc-master"
                                        data-action="toggle"
                                        data-togglegroup="mcimport-group"
-                                       data-toggle="master"
+                                       data-toggle="toggler"
                                        title="{{#str}}selectall{{/str}}">
                             </th>
                             <th scope="col">{{#str}}fullnameuser{{/str}}</th>
@@ -306,7 +306,7 @@
                                        checked
                                        data-action="toggle"
                                        data-togglegroup="mcimport-group"
-                                       data-toggle="slave">
+                                       data-toggle="target">
                                 {{/already}}
                             </td>
                             <td>{{{fullname}}}</td>
@@ -395,7 +395,7 @@
                            id="wl-remove-master"
                            data-action="toggle"
                            data-togglegroup="removemembers-group"
-                           data-toggle="master"
+                           data-toggle="toggler"
                            title="{{#str}}selectall{{/str}}">
                 </th>
                 {{#sortheaders}}
@@ -415,7 +415,7 @@
                            value="{{id}}"
                            data-action="toggle"
                            data-togglegroup="removemembers-group"
-                           data-toggle="slave">
+                           data-toggle="target">
                 </td>
                 <td>{{{fullname}}}</td>
                 <td>{{email}}</td>
