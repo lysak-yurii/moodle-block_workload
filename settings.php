@@ -108,6 +108,14 @@ if ($ADMIN->fulltree) {
     ));
 
     $settings->add(new admin_setting_configcheckbox(
+        'block_workload/enrollmentactiveonly',
+        get_string('enrollmentactiveonly', 'block_workload'),
+        get_string('enrollmentactiveonly_desc', 'block_workload'),
+        1
+    ));
+    $settings->hide_if('block_workload/enrollmentactiveonly', 'block_workload/coursemode', 'neq', 'enrollment');
+
+    $settings->add(new admin_setting_configcheckbox(
         'block_workload/enablemoodlecohortimport',
         get_string('enablemoodlecohortimport', 'block_workload'),
         get_string('enablemoodlecohortimport_desc', 'block_workload'),

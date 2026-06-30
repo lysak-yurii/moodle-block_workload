@@ -724,6 +724,20 @@ class helper {
     public static function get_user_enrolled_courses(int $userid, string $order = 'sortorder'): array {
         global $DB;
 
+        // Optionally restrict to courses that are currently active (admin-configurable,
+        // on by default). "Active now" = started and not yet ended; an unset end date
+        // (enddate = 0) means open-ended and stays visible once started.
+        $rawflag    = get_config('block_workload', 'enrollmentactiveonly');
+        $activeonly = ($rawflag === false) ? true : (bool) $rawflag;
+
+        $datewhere  = '';
+        $dateparams = [];
+        if ($activeonly) {
+            $now        = time();
+            $datewhere  = ' AND co.startdate <= :now1 AND (co.enddate = 0 OR co.enddate >= :now2) ';
+            $dateparams = ['now1' => $now, 'now2' => $now];
+        }
+
         // Enrolled and not force-excluded.
         $enrolled = $DB->get_records_sql(
             "SELECT DISTINCT co.id, co.fullname, co.shortname
@@ -734,8 +748,8 @@ class helper {
                 AND NOT EXISTS (
                     SELECT 1 FROM {block_workload_user_courses} ov
                      WHERE ov.userid = :uid2 AND ov.courseid = co.id AND ov.active = 0
-                )",
-            ['uid' => $userid, 'uid2' => $userid, 'site' => SITEID]
+                )" . $datewhere,
+            ['uid' => $userid, 'uid2' => $userid, 'site' => SITEID] + $dateparams
         );
 
         // Force-added by manager (active=1) and NOT already enrolled.
@@ -750,8 +764,8 @@ class helper {
                     JOIN {user_enrolments} ue ON ue.enrolid = en.id
                     WHERE en.courseid = co.id AND en.status = 0
                       AND ue.userid = :uid2 AND ue.status = 0
-                )",
-            ['uid' => $userid, 'uid2' => $userid, 'site' => SITEID]
+                )" . $datewhere,
+            ['uid' => $userid, 'uid2' => $userid, 'site' => SITEID] + $dateparams
         );
 
         // Merge (keyed by courseid → no duplicates).

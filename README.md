@@ -3,7 +3,7 @@
 ![Moodle](https://img.shields.io/badge/Moodle-4.5+-orange?logo=moodle)
 ![PHP](https://img.shields.io/badge/PHP-7.4+-777BB4?logo=php&logoColor=white)
 ![License](https://img.shields.io/badge/License-GPL%20v3-green?logo=gnu)
-![Version](https://img.shields.io/badge/Release-1.0.1%20(beta)-blue)
+![Version](https://img.shields.io/badge/Release-1.0.2%20(beta)-blue)
 
 A Moodle block that lets students log the hours they spend on each course every week, and
 gives quality managers cohort-wide statistics on student workload across the semester.
@@ -29,6 +29,9 @@ gives quality managers cohort-wide statistics on student workload across the sem
 - **Course management mode** — *Cohort* (courses come from cohort assignments) or
   *Enrollment* (courses come from each student's Moodle enrolments, with per-student
   excludes and manual additions).
+- **Show only active courses** (Enrollment mode, on by default) — limits the student's block
+  to courses whose start/end dates contain the current date; courses with no end date stay
+  visible once started.
 
 ## Screenshots
 
