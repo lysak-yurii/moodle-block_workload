@@ -31,15 +31,41 @@ $yearto   = optional_param('yearto', null, PARAM_INT);
 $export   = optional_param('export', 0, PARAM_BOOL);
 $chartwk  = optional_param('chartwk', 0, PARAM_INT);
 $viewas   = optional_param('viewas', 0, PARAM_INT);
+$viewalias = optional_param('viewalias', '', PARAM_ALPHANUMEXT);
 
 $syscontext = context_system::instance();
 require_login();
 
+$anon = \block_workload\helper::is_anonymized();
+
 $targetuserid = $USER->id;
 $viewingother = false;
-if ($viewas > 0 && has_capability('block/workload:viewallstats', $syscontext)) {
+if ($viewalias !== '' && has_capability('block/workload:viewallstats', $syscontext)) {
+    $targetuserid = \block_workload\helper::resolve_pseudonym($viewalias);
+    if ($targetuserid === null) {
+        throw new moodle_exception('invaliduser');
+    }
+    $viewingother = true;
+} else if ($viewas > 0 && has_capability('block/workload:viewallstats', $syscontext)) {
+    if ($anon) {
+        // A numeric viewas would let an anonymized viewer probe the
+        // userid → pseudonym mapping and de-anonymize students.
+        throw new required_capability_exception(
+            $syscontext,
+            'block/workload:viewrealnames',
+            'nopermissions',
+            ''
+        );
+    }
     $targetuserid = $viewas;
     $viewingother = true;
+}
+
+// Request parameters actually in effect for the drill-down; reused for every
+// URL/form that must preserve the viewing context.
+$viewparam = [];
+if ($viewingother) {
+    $viewparam = ($viewalias !== '') ? ['viewalias' => $viewalias] : ['viewas' => $viewas];
 }
 
 require_capability('block/workload:viewownstats', $syscontext);
@@ -49,14 +75,17 @@ $targetuser = $viewingother
     : $USER;
 
 $PAGE->set_context($syscontext);
-$PAGE->set_url('/blocks/workload/mystats.php', array_filter([
+$PAGE->set_url('/blocks/workload/mystats.php', array_filter(array_merge([
     'weekfrom' => $weekfrom, 'yearfrom' => $yearfrom,
     'weekto'   => $weekto, 'yearto'   => $yearto,
-    'chartwk'  => $chartwk, 'viewas'   => $viewas,
-]));
+    'chartwk'  => $chartwk,
+], $viewparam)));
 $PAGE->set_pagelayout($viewingother ? 'admin' : 'base');
+$targetname = $viewingother
+    ? ($anon ? \block_workload\helper::pseudonym($targetuserid) : fullname($targetuser))
+    : fullname($targetuser);
 $pagetitle = $viewingother
-    ? get_string('viewingas', 'block_workload', fullname($targetuser))
+    ? get_string('viewingas', 'block_workload', $targetname)
     : get_string('mystats', 'block_workload');
 $PAGE->set_title($pagetitle);
 $PAGE->set_heading($pagetitle);
@@ -80,8 +109,11 @@ $entries = \block_workload\helper::get_student_entries(
 // CSV Export.
 $canexport = has_capability('block/workload:export', $syscontext);
 if ($export && $canexport) {
+    $exportname = ($viewingother && $anon)
+        ? \block_workload\helper::pseudonym_token($targetuserid)
+        : fullname($targetuser);
     $filename = get_string('exportfilename', 'block_workload')
-              . '_' . fullname($targetuser) . '_' . date('Ymd_His') . '.csv';
+              . '_' . $exportname . '_' . date('Ymd_His') . '.csv';
 
     header('Content-Type: text/csv; charset=utf-8');
     header('Content-Disposition: attachment; filename="' . $filename . '"');
@@ -234,19 +266,18 @@ $backlabel = $viewingother
     ? get_string('backtooverview', 'block_workload')
     : get_string('backtoblock', 'block_workload');
 
-// Clear-filter URL preserves viewas context.
+// Clear-filter URL preserves the viewing context.
 $clearurl = (new moodle_url(
     '/blocks/workload/mystats.php',
-    $viewas ? ['viewas' => $viewas] : []
+    $viewparam
 ))->out(false);
 
 // Export URL.
-$exportparams = array_filter([
+$exportparams = array_merge(array_filter([
     'weekfrom' => $weekfrom, 'yearfrom' => $yearfrom,
     'weekto'   => $weekto, 'yearto'   => $yearto,
     'export'   => 1,
-    'viewas'   => $viewas ?: null,
-]);
+]), $viewparam);
 $exporturl = (new moodle_url('/blocks/workload/mystats.php', $exportparams))->out(false);
 
 // KPI cards.
@@ -291,8 +322,8 @@ foreach (
         $chartweekfilter[] = ['name' => $n, 'value' => $v];
     }
 }
-if ($viewas) {
-    $chartweekfilter[] = ['name' => 'viewas', 'value' => $viewas];
+foreach ($viewparam as $n => $v) {
+    $chartweekfilter[] = ['name' => $n, 'value' => $v];
 }
 
 // Collapsible week table.
@@ -338,13 +369,17 @@ foreach ($weekgroups as $wd) {
     ];
 }
 
+$viewparamctx = [];
+foreach ($viewparam as $n => $v) {
+    $viewparamctx[] = ['name' => $n, 'value' => $v];
+}
+
 $templatecontext = [
     'viewingother' => $viewingother,
-    'hasviewas'    => $viewas > 0,
-    'viewas'       => $viewas,
+    'viewparam'    => $viewparamctx,
     'backurl'      => $backurl,
     'backlabel'    => $backlabel,
-    'viewingas'    => $viewingother ? fullname($targetuser) : '',
+    'viewingas'    => $viewingother ? $targetname : '',
 
     'filterform' => [
         'weekfrom'  => $queryweekfrom,

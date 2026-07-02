@@ -94,4 +94,17 @@ $capabilities = [
             'manager' => CAP_ALLOW,
         ],
     ],
+
+    // See real user identities in workload statistics even when the
+    // "Anonymise statistics" setting is enabled. Deliberately NOT granted
+    // to the auto-created workload_manager role — anonymization applies to
+    // Quality Managers unless an admin opts a role in.
+    'block/workload:viewrealnames' => [
+        'riskbitmask'  => RISK_PERSONAL,
+        'captype'      => 'read',
+        'contextlevel' => CONTEXT_SYSTEM,
+        'archetypes'   => [
+            'manager' => CAP_ALLOW,
+        ],
+    ],
 ];

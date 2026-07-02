@@ -81,7 +81,9 @@
         ],
         "tableempty": false,
         "emptystr": "No users found",
-        "pagingbar": ""
+        "pagingbar": "",
+        "showsearch": true,
+        "showemail": true
     }
 }}
 
@@ -90,7 +92,8 @@
     {{! Back navigation }}
     <a href="{{{backurl}}}" class="btn btn-outline-secondary mb-3">&larr; {{backlabel}}</a>
 
-    {{! Live user search }}
+    {{! Live user search (hidden for anonymized viewers) }}
+    {{#showsearch}}
     <div class="card p-3 mb-3">
         <label class="form-label small fw-semibold mb-2" for="wl-usersearch">
             {{#str}}viewstudent, block_workload{{/str}}:
@@ -114,6 +117,7 @@
             </a>
         </div>
     </div>
+    {{/showsearch}}
 
     {{! Date-range + cohort filter form }}
     <form method="get" class="card p-3 mb-4">
@@ -294,13 +298,17 @@
         <tbody>
             {{#tableempty}}
             <tr>
-                <td colspan="6" class="text-muted text-center">{{emptystr}}</td>
+                <td colspan="{{#showemail}}6{{/showemail}}{{^showemail}}5{{/showemail}}"
+                    class="text-muted text-center">{{emptystr}}</td>
             </tr>
             {{/tableempty}}
             {{#tablerows}}
             <tr>
-                <td><a href="{{{profileurl}}}">{{name}}</a></td>
-                <td>{{email}}</td>
+                <td>
+                    {{#profileurl}}<a href="{{{profileurl}}}">{{name}}</a>{{/profileurl}}
+                    {{^profileurl}}{{name}}{{/profileurl}}
+                </td>
+                {{#showemail}}<td>{{email}}</td>{{/showemail}}
                 <td>{{totalhours}}</td>
                 <td>{{weeksactive}}</td>
                 <td>{{avghours}}</td>

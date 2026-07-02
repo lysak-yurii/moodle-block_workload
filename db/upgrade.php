@@ -42,5 +42,19 @@ function xmldb_block_workload_upgrade(int $oldversion): bool {
         upgrade_block_savepoint(true, 2026061200, 'workload');
     }
 
+    if ($oldversion < 2026070200) {
+        // Statistics anonymization: secret used to derive stable,
+        // non-reversible pseudonyms.
+        // The new block/workload:viewrealnames capability is installed by
+        // update_capabilities(), which applies the 'manager' archetype
+        // default to existing manager-archetype roles. The workload_manager
+        // role has no archetype, so it is intentionally NOT granted.
+        if (!get_config('block_workload', 'anonsalt')) {
+            set_config('anonsalt', bin2hex(random_bytes(16)), 'block_workload');
+        }
+
+        upgrade_block_savepoint(true, 2026070200, 'workload');
+    }
+
     return true;
 }

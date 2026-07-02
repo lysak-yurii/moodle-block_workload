@@ -26,30 +26,16 @@
 define(['block_workload/usersearch'], function(UserSearch) {
 
     /**
-     * @param {Object} cfg  PHP-supplied config: noResultsStr
+     * @param {Object} cfg  PHP-supplied config: noResultsStr, showSearch
      */
     function init(cfg) {
 
         // Live user search – navigates to mystats.php?viewas=ID with current filter params.
-        UserSearch.init({
-            inputId: 'wl-usersearch',
-            listId: 'wl-usersearch-results',
-            btnId: 'wl-usersearch-btn',
-            clearId: 'wl-usersearch-clear',
-            ajaxPath: '/blocks/workload/ajax_usersearch.php',
-            cohortFieldId: 'wl-cohortid',
-            noResultsStr: cfg.noResultsStr,
-            buildTargetUrl: function(uid) {
-                var p = '?viewas=' + uid;
-                ['weekfrom', 'yearfrom', 'weekto', 'yearto'].forEach(function(n) {
-                    var el = document.getElementById(n);
-                    if (el && el.value) {
-                        p += '&' + n + '=' + encodeURIComponent(el.value);
-                    }
-                });
-                return M.cfg.wwwroot + '/blocks/workload/mystats.php' + p;
-            },
-        });
+        // Skipped for anonymized viewers: the widget is not rendered and the
+        // AJAX endpoint rejects them anyway.
+        if (cfg.showSearch !== false) {
+            initUserSearch(cfg);
+        }
 
         // CSV export modal – opens on click of [data-wl-exportmodal].
         document.addEventListener('click', function(e) {
@@ -79,6 +65,31 @@ define(['block_workload/usersearch'], function(UserSearch) {
                     return;
                 });
             });
+        });
+    }
+
+    /**
+     * @param {Object} cfg  PHP-supplied config: noResultsStr
+     */
+    function initUserSearch(cfg) {
+        UserSearch.init({
+            inputId: 'wl-usersearch',
+            listId: 'wl-usersearch-results',
+            btnId: 'wl-usersearch-btn',
+            clearId: 'wl-usersearch-clear',
+            ajaxPath: '/blocks/workload/ajax_usersearch.php',
+            cohortFieldId: 'wl-cohortid',
+            noResultsStr: cfg.noResultsStr,
+            buildTargetUrl: function(uid) {
+                var p = '?viewas=' + uid;
+                ['weekfrom', 'yearfrom', 'weekto', 'yearto'].forEach(function(n) {
+                    var el = document.getElementById(n);
+                    if (el && el.value) {
+                        p += '&' + n + '=' + encodeURIComponent(el.value);
+                    }
+                });
+                return M.cfg.wwwroot + '/blocks/workload/mystats.php' + p;
+            },
         });
     }
 

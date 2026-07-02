@@ -43,6 +43,14 @@ $syscontext = context_system::instance();
 require_login();
 require_capability('block/workload:viewallstats', $syscontext);
 
+$anon = \block_workload\helper::is_anonymized();
+if ($anon) {
+    // Name-initial filters would leak identity information, even when
+    // crafted directly in the URL.
+    $firstletter = '';
+    $lastletter  = '';
+}
+
 $PAGE->set_context($syscontext);
 $PAGE->set_pagelayout('admin');
 $PAGE->set_title(get_string('statisticstitle', 'block_workload'));
@@ -73,6 +81,15 @@ $yt = $yearto ?: null;
 if ($export && has_capability('block/workload:export', $syscontext)) {
     if ($exporttype === 'detailed') {
         $rows     = \block_workload\helper::get_cohort_detailed_export($cohortid, $wf, $yf, $wt, $yt);
+        if ($anon) {
+            // The SQL orders by lastname; re-sort so row order does not leak
+            // alphabetical rank.
+            $rows = array_values($rows);
+            usort($rows, fn($a, $b) => strcmp(
+                \block_workload\helper::pseudonym_token($a->userid) . $a->coursename,
+                \block_workload\helper::pseudonym_token($b->userid) . $b->coursename
+            ));
+        }
         $filename = get_string('exportfilenamedetailed', 'block_workload') . '_' . date('Ymd_His') . '.csv';
         header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename="' . $filename . '"');
@@ -87,8 +104,10 @@ if ($export && has_capability('block/workload:export', $syscontext)) {
         ]);
         foreach ($rows as $r) {
             fputcsv($out, [
-                $r->firstname . ' ' . $r->lastname, $r->email,
-                $r->department ?? '', $r->institution ?? '',
+                $anon ? \block_workload\helper::pseudonym($r->userid) : $r->firstname . ' ' . $r->lastname,
+                $anon ? '' : $r->email,
+                $anon ? '' : ($r->department ?? ''),
+                $anon ? '' : ($r->institution ?? ''),
                 $r->coursename, $r->roles,
                 number_format((float)$r->coursehours, 1),
             ]);
@@ -112,8 +131,10 @@ if ($export && has_capability('block/workload:export', $syscontext)) {
         foreach ($rows as $r) {
             $avg = $r->weeksactive > 0 ? round((float)$r->totalhours / (int)$r->weeksactive, 2) : 0;
             fputcsv($out, [
-                $r->firstname . ' ' . $r->lastname, $r->email,
-                $r->department ?? '', $r->institution ?? '',
+                $anon ? \block_workload\helper::pseudonym($r->userid) : $r->firstname . ' ' . $r->lastname,
+                $anon ? '' : $r->email,
+                $anon ? '' : ($r->department ?? ''),
+                $anon ? '' : ($r->institution ?? ''),
                 number_format((float)$r->totalhours, 1),
                 (int)$r->weeksactive, number_format($avg, 2),
             ]);
@@ -212,7 +233,9 @@ if (!empty($topusers)) {
     $pielabels = [];
     $pievalues = [];
     foreach ($topusers as $r) {
-        $pielabels[] = $truncate($r->firstname . ' ' . $r->lastname);
+        $pielabels[] = $anon
+            ? \block_workload\helper::pseudonym($r->userid)
+            : $truncate($r->firstname . ' ' . $r->lastname);
         $pievalues[] = (float)$r->totalhours;
     }
     $charttopusers = new \core\chart_pie();
@@ -283,10 +306,11 @@ $filterbase = new moodle_url('/blocks/workload/statistics.php', [
     'submitted' => 1,
 ]);
 
-// A-Z initial filter bars.
+// A-Z initial filter bars. Hidden entirely for anonymized viewers:
+// filtering by name initial would leak identity information.
 $alphabars = [];
 foreach (
-    [
+    $anon ? [] : [
     ['firstinitial', get_string('firstname'), 'firstletter', $firstletter, $lastletter],
     ['lastinitial', get_string('lastname'), 'lastletter', $lastletter, $firstletter],
     ] as [$bartype, $barlabel, $param, $current, $other]
@@ -349,29 +373,35 @@ foreach ($tableusers as $r) {
         ? round((float)$r->totalhours / (int)$r->weeksactive, 1)
         : 0;
     $tablerows[] = [
-        'name'       => $r->firstname . ' ' . $r->lastname,
-        'profileurl' => (new moodle_url(
+        'name'       => $anon
+            ? \block_workload\helper::pseudonym($r->userid)
+            : $r->firstname . ' ' . $r->lastname,
+        'profileurl' => $anon ? '' : (new moodle_url(
             '/user/view.php',
             ['id' => $r->userid, 'course' => SITEID]
         ))->out(false),
-        'email'      => $r->email,
+        'email'      => $anon ? '' : $r->email,
         'totalhours' => number_format((float)$r->totalhours, 1),
         'weeksactive' => (int)$r->weeksactive,
         'avghours'   => number_format($avg, 1),
-        'viewurl'    => (new moodle_url($viewbase, ['viewas' => $r->userid]))->out(false),
+        'viewurl'    => (new moodle_url($viewbase, $anon
+            ? ['viewalias' => \block_workload\helper::pseudonym_token($r->userid)]
+            : ['viewas' => $r->userid]))->out(false),
         'viewlabel'  => get_string('viewstudent', 'block_workload') . ' →',
     ];
 }
 
-// Table headings.
-$tableheads = [
-    get_string('student', 'block_workload'),
-    get_string('email'),
-    get_string('totalhours', 'block_workload'),
-    get_string('weeksactive', 'block_workload'),
-    get_string('averagehours', 'block_workload'),
-    '',
-];
+// Table headings. The email column is dropped for anonymized viewers.
+$tableheads = array_merge(
+    [get_string('student', 'block_workload')],
+    $anon ? [] : [get_string('email')],
+    [
+        get_string('totalhours', 'block_workload'),
+        get_string('weeksactive', 'block_workload'),
+        get_string('averagehours', 'block_workload'),
+        '',
+    ]
+);
 
 // Paging bar.
 $pagingbar = '';
@@ -427,6 +457,9 @@ $templatecontext = [
     'tableempty'   => empty($tableusers),
     'emptystr'     => get_string('nouserfound', 'block_workload'),
     'pagingbar'    => $pagingbar,
+
+    'showsearch'   => !$anon,
+    'showemail'    => !$anon,
 ];
 
 // Output.
@@ -435,5 +468,6 @@ echo $OUTPUT->header();
 echo $OUTPUT->render_from_template('block_workload/statistics', $templatecontext);
 $PAGE->requires->js_call_amd('block_workload/statistics', 'init', [[
     'noResultsStr' => get_string('nouserfound', 'block_workload'),
+    'showSearch'   => !$anon,
 ]]);
 echo $OUTPUT->footer();

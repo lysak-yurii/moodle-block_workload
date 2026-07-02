@@ -44,6 +44,18 @@ if (
     die;
 }
 
+// Anonymized statistics viewers must not search by real name/email — a match
+// would reveal which pseudonym belongs to whom. Managers keep search for the
+// management UI, which is outside the anonymization scope.
+if (
+    !has_capability('block/workload:manage', $syscontext) &&
+    \block_workload\helper::is_anonymized()
+) {
+    http_response_code(403);
+    echo json_encode([]);
+    die;
+}
+
 $q        = optional_param('q', '', PARAM_TEXT);
 $cohortid = optional_param('cohortid', 0, PARAM_INT);
 

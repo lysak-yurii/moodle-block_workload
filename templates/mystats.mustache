@@ -26,8 +26,7 @@
     Example context (json):
     {
         "viewingother": false,
-        "hasviewas": false,
-        "viewas": 0,
+        "viewparam": [],
         "backurl": "http://example.com/my",
         "backlabel": "Back to dashboard",
         "viewingas": "",
@@ -81,7 +80,7 @@
 
     {{! Date-range filter form }}
     <form method="get" class="card p-3 mb-4">
-        {{#hasviewas}}<input type="hidden" name="viewas" value="{{viewas}}">{{/hasviewas}}
+        {{#viewparam}}<input type="hidden" name="{{name}}" value="{{value}}">{{/viewparam}}
         <div class="row g-3 align-items-end">
 
             {{#filterform}}

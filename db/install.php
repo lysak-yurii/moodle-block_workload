@@ -51,5 +51,12 @@ function xmldb_block_workload_install(): void {
         assign_capability('block/workload:manage', CAP_ALLOW, $managerid, $syscontext->id);
         assign_capability('block/workload:viewallstats', CAP_ALLOW, $managerid, $syscontext->id);
         assign_capability('block/workload:export', CAP_ALLOW, $managerid, $syscontext->id);
+        // Note: block/workload:viewrealnames is intentionally NOT assigned.
+        // When the "Anonymise statistics" setting is enabled, Workload
+        // Managers must see pseudonyms unless an admin opts their role in.
     }
+
+    // Secret used to derive stable, non-reversible pseudonyms for the
+    // statistics anonymization feature.
+    set_config('anonsalt', bin2hex(random_bytes(16)), 'block_workload');
 }

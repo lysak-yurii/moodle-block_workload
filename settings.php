@@ -121,4 +121,11 @@ if ($ADMIN->fulltree) {
         get_string('enablemoodlecohortimport_desc', 'block_workload'),
         0
     ));
+
+    $settings->add(new admin_setting_configcheckbox(
+        'block_workload/anonymizestats',
+        get_string('anonymizestats', 'block_workload'),
+        get_string('anonymizestats_desc', 'block_workload'),
+        0
+    ));
 }

@@ -1749,4 +1749,144 @@ class helper {
 
         return $rows;
     }
+
+    // Anonymization.
+
+
+    /**
+     * Should statistics be anonymized for the given viewer?
+     *
+     * True when the anonymizestats setting is enabled AND the viewer lacks
+     * the block/workload:viewrealnames capability (site admins always pass
+     * capability checks, so they are never anonymized).
+     *
+     * @param int|null $userid viewer to check, defaults to the current user.
+     * @return bool
+     */
+    public static function is_anonymized(?int $userid = null): bool {
+        if (!get_config('block_workload', 'anonymizestats')) {
+            return false;
+        }
+
+        // No extra caching: has_capability() caches internally and is
+        // invalidated correctly on role changes.
+        return !has_capability(
+            'block/workload:viewrealnames',
+            \context_system::instance(),
+            $userid
+        );
+    }
+
+    /**
+     * Return the per-site secret used to derive pseudonym tokens.
+     *
+     * Normally created at install/upgrade time; generated lazily here as a
+     * fallback so pseudonyms always work.
+     *
+     * @return string 32 hex chars.
+     */
+    public static function anonsalt(): string {
+        $salt = get_config('block_workload', 'anonsalt');
+        if (empty($salt)) {
+            $salt = bin2hex(random_bytes(16));
+            set_config('anonsalt', $salt, 'block_workload');
+        }
+        return $salt;
+    }
+
+    /**
+     * Stable, non-reversible pseudonym token for a user.
+     *
+     * HMAC of the userid keyed with the per-site secret: stable across
+     * sessions/pages/exports, but a viewer can neither derive the userid from
+     * the token nor compute the token for a known userid. 10 hex chars
+     * (40 bits) keeps labels readable; collision probability is ~n²/2^41
+     * (about 0.005% for 10,000 students) and a collision would only make two
+     * students share a label — no identity leak.
+     *
+     * @param int $userid
+     * @return string 10 uppercase hex chars, e.g. "3F7A2C91D4".
+     */
+    public static function pseudonym_token(int $userid): string {
+        // Memoized per salt so a config reset (e.g. between unit tests)
+        // invalidates the cache naturally.
+        static $cache = [];
+        $salt = self::anonsalt();
+        if (!isset($cache[$salt][$userid])) {
+            $cache[$salt][$userid] = strtoupper(
+                substr(hash_hmac('sha256', (string)$userid, $salt), 0, 10)
+            );
+        }
+        return $cache[$salt][$userid];
+    }
+
+    /**
+     * Adjectives for friendly pseudonyms. Deliberately English-only: the
+     * names act as language-independent codenames (two managers with
+     * different UI languages must see the same name), and adjective–noun
+     * agreement does not survive translation anyway.
+     */
+    private const PSEUDONYM_ADJECTIVES = [
+        'Amber', 'Azure', 'Brave', 'Bright', 'Calm', 'Cheerful', 'Clever', 'Cosmic',
+        'Crimson', 'Curious', 'Daring', 'Eager', 'Emerald', 'Gentle', 'Golden', 'Happy',
+        'Jolly', 'Kind', 'Lively', 'Lucky', 'Mellow', 'Nimble', 'Polite', 'Proud',
+        'Quick', 'Quiet', 'Silent', 'Silver', 'Sunny', 'Swift', 'Violet', 'Wise',
+    ];
+
+    /** Animals for friendly pseudonyms; see PSEUDONYM_ADJECTIVES on language. */
+    private const PSEUDONYM_ANIMALS = [
+        'Alpaca', 'Badger', 'Beaver', 'Bison', 'Dolphin', 'Falcon', 'Fox', 'Gazelle',
+        'Hedgehog', 'Heron', 'Ibex', 'Koala', 'Lynx', 'Marmot', 'Mole', 'Otter',
+        'Owl', 'Panda', 'Parrot', 'Pelican', 'Penguin', 'Rabbit', 'Raccoon', 'Raven',
+        'Salamander', 'Seal', 'Sparrow', 'Squirrel', 'Stork', 'Swan', 'Turtle', 'Zebra',
+    ];
+
+    /**
+     * Display form of a user's pseudonym, e.g. "Brave Panda 3F7A".
+     *
+     * Adjective and animal are picked deterministically from the same HMAC
+     * that produces the token, so the name is as stable as the token itself.
+     * The 4-char code is the start of the token: it disambiguates word
+     * collisions and lets a manager match the display name to drill-down
+     * URLs and export filenames.
+     *
+     * @param int $userid
+     * @return string
+     */
+    public static function pseudonym(int $userid): string {
+        $hash = hash_hmac('sha256', (string)$userid, self::anonsalt());
+        return get_string('pseudonym', 'block_workload', (object) [
+            'adjective' => self::PSEUDONYM_ADJECTIVES[hexdec(substr($hash, 10, 4)) % count(self::PSEUDONYM_ADJECTIVES)],
+            'animal'    => self::PSEUDONYM_ANIMALS[hexdec(substr($hash, 14, 4)) % count(self::PSEUDONYM_ANIMALS)],
+            'code'      => substr(self::pseudonym_token($userid), 0, 4),
+        ]);
+    }
+
+    /**
+     * Resolve a pseudonym token back to a userid.
+     *
+     * The HMAC is not reversible, so this scans the bounded candidate set of
+     * users the plugin tracks (cohort members plus anyone with workload
+     * entries, covering enrollment mode) and matches tokens.
+     *
+     * @param string $token as produced by pseudonym_token().
+     * @return int|null userid, or null if no tracked user matches.
+     */
+    public static function resolve_pseudonym(string $token): ?int {
+        global $DB;
+
+        $token = strtoupper($token);
+
+        $userids = $DB->get_fieldset_sql(
+            "SELECT DISTINCT userid FROM {block_workload_members}
+              UNION
+             SELECT DISTINCT userid FROM {block_workload_entries}"
+        );
+        foreach ($userids as $userid) {
+            if (self::pseudonym_token((int)$userid) === $token) {
+                return (int)$userid;
+            }
+        }
+        return null;
+    }
 }
