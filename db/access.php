@@ -17,9 +17,9 @@
 /**
  * Workload Assessment block capability definitions.
  *
- * The two plugin roles (workload_student, workload_manager) are created
- * automatically by db/install.php — the administrator only needs to assign
- * users to those roles after installation.
+ * The plugin role (workload_manager) is created automatically by
+ * db/install.php — the administrator only needs to assign users to that
+ * role after installation.
  *
  * @package   block_workload
  * @copyright  2026 Yurii Lysak
@@ -98,13 +98,31 @@ $capabilities = [
     // See real user identities in workload statistics even when the
     // "Anonymise statistics" setting is enabled. Deliberately NOT granted
     // to the auto-created workload_manager role — anonymization applies to
-    // Quality Managers unless an admin opts a role in.
+    // Quality Managers unless an admin opts a role in. Declared at course
+    // level so it can also be granted per course/category (de-anonymizing
+    // the teacher course statistics selectively); system-level grants still
+    // apply everywhere via context aggregation.
     'block/workload:viewrealnames' => [
         'riskbitmask'  => RISK_PERSONAL,
         'captype'      => 'read',
-        'contextlevel' => CONTEXT_SYSTEM,
+        'contextlevel' => CONTEXT_COURSE,
         'archetypes'   => [
             'manager' => CAP_ALLOW,
+        ],
+    ],
+
+    // Teacher: view aggregated workload statistics of the students in their
+    // own courses (enrollment mode only). RISK_PERSONAL because it exposes
+    // per-student workload behaviour, and real names/emails when the
+    // "Anonymise teacher statistics" setting is disabled.
+    'block/workload:viewcoursestats' => [
+        'riskbitmask'  => RISK_PERSONAL,
+        'captype'      => 'read',
+        'contextlevel' => CONTEXT_COURSE,
+        'archetypes'   => [
+            'editingteacher' => CAP_ALLOW,
+            'teacher'        => CAP_ALLOW,
+            'manager'        => CAP_ALLOW,
         ],
     ],
 ];

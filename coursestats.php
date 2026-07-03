@@ -15,16 +15,21 @@
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
- * Quality Manager – workload statistics overview.
+ * Teacher – workload statistics for the students of one course.
+ *
+ * Enrollment mode only. Access is per course via the
+ * block/workload:viewcoursestats capability; identities are pseudonymized
+ * unless the anonymizeteacherstats setting is off or the viewer holds
+ * block/workload:viewrealnames in this course.
  *
  * @package   block_workload
- * @copyright  2026 Yurii Lysak
+ * @copyright 2026 Yurii Lysak
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 require_once('../../config.php');
 
-$cohortid    = optional_param('cohortid', 0, PARAM_INT);
+$courseid    = optional_param('id', 0, PARAM_INT);
 $weekfrom    = optional_param('weekfrom', (int)date('W'), PARAM_INT);
 $yearfrom    = optional_param('yearfrom', (int)date('o'), PARAM_INT);
 $weekto      = optional_param('weekto', (int)date('W'), PARAM_INT);
@@ -40,57 +45,153 @@ $perpage     = optional_param('perpage', 25, PARAM_INT);
 $page        = optional_param('page', 0, PARAM_INT);
 
 $syscontext = context_system::instance();
-require_login();
-require_capability('block/workload:viewallstats', $syscontext);
 
-$anon = \block_workload\helper::is_anonymized();
-if ($anon) {
-    // Name-initial filters would leak identity information, even when
-    // crafted directly in the URL.
-    $firstletter = '';
-    $lastletter  = '';
+if ($courseid) {
+    $course = get_course($courseid);
+    require_login($course);
+    $coursecontext = context_course::instance($course->id);
+    require_capability('block/workload:viewcoursestats', $coursecontext);
+} else {
+    $course = null;
+    require_login();
 }
 
-$PAGE->set_context($syscontext);
-$PAGE->set_pagelayout('admin');
-$PAGE->set_title(get_string('statisticstitle', 'block_workload'));
-$PAGE->set_heading(get_string('statisticstitle', 'block_workload'));
-$PAGE->set_url('/blocks/workload/statistics.php', array_filter([
-    'cohortid'    => $cohortid,
-    'weekfrom'    => $weekfrom, 'yearfrom'    => $yearfrom,
-    'weekto'      => $weekto, 'yearto'      => $yearto,
+// This view exists only in enrollment mode; in cohort mode statistics are
+// the Quality Manager's cohort overview.
+$coursemode = get_config('block_workload', 'coursemode') ?: 'cohort';
+if ($coursemode !== 'enrollment') {
+    redirect(
+        new moodle_url('/my'),
+        get_string('coursestatsdisabled', 'block_workload'),
+        null,
+        \core\output\notification::NOTIFY_INFO
+    );
+}
+
+// Courses where the viewer may see statistics. $doanything = false so site
+// admins get their explicitly-taught courses here, not every course on the
+// site; they can still open any course directly by URL (require_capability
+// above honours doanything).
+$mycourses = get_user_capability_course(
+    'block/workload:viewcoursestats',
+    null,
+    false,
+    'fullname,shortname',
+    'fullname ASC'
+) ?: [];
+
+if (!$course && count($mycourses) === 1) {
+    redirect(new moodle_url('/blocks/workload/coursestats.php', ['id' => reset($mycourses)->id]));
+}
+
+$PAGE->set_url('/blocks/workload/coursestats.php', array_filter([
+    'id'          => $courseid,
+    'weekfrom'    => $weekfrom, 'yearfrom' => $yearfrom,
+    'weekto'      => $weekto, 'yearto' => $yearto,
     'firstletter' => $firstletter, 'lastletter' => $lastletter,
     'perpage'     => ($perpage !== 25) ? $perpage : 0,
     'page'        => $page,
 ]));
-
-global $DB, $OUTPUT;
-
-$coursemode = get_config('block_workload', 'coursemode') ?: 'cohort';
-if ($coursemode === 'enrollment') {
-    $cohortid = 0;
+if (!$course) {
+    $PAGE->set_context($syscontext);
 }
+$PAGE->set_pagelayout('report');
+$pagetitle = get_string('coursestatstitle', 'block_workload');
+if ($course) {
+    $pagetitle .= ': ' . format_string($course->fullname);
+}
+$PAGE->set_title($pagetitle);
+$PAGE->set_heading($pagetitle);
 
-// CSV export.
+global $DB, $OUTPUT, $USER;
 
 $wf = $weekfrom ?: null;
 $yf = $yearfrom ?: null;
 $wt = $weekto ?: null;
 $yt = $yearto ?: null;
 
-if ($export && has_capability('block/workload:export', $syscontext)) {
+$anon       = false;
+$suppressed = false;
+$kpisdata   = null;
+$staffids   = [];
+if ($course) {
+    $anon = \block_workload\helper::is_teacher_anonymized($coursecontext);
+    if ($anon) {
+        // Name-initial filters would leak identity information, even when
+        // crafted directly in the URL.
+        $firstletter = '';
+        $lastletter  = '';
+
+        // Course staff (viewcoursestats holders) are not pseudonymized:
+        // anonymization protects students from staff, not staff from each
+        // other, and identified rows let teachers clean up accidentally
+        // recorded staff hours.
+        $staffids = \block_workload\helper::get_course_staff_userids($coursecontext);
+    }
+
+    $kpisdata = \block_workload\helper::get_course_overview_kpis($course->id, $wf, $yf, $wt, $yt);
+    // A teacher knows the roster: with only 1-2 students recording,
+    // pseudonyms are trivially reversible, so per-student data (table, pie
+    // chart, exports) is withheld and only aggregates remain. Staff (and the
+    // viewer, who may hold the page capability via doanything) are excluded
+    // from the count — their identified rows must not mask how few
+    // pseudonymized students remain.
+    $studentrecorders = (int)$kpisdata->usercount;
+    if ($anon) {
+        $excludeids = array_unique(array_merge($staffids, [(int)$USER->id]));
+        $studentrecorders -= \block_workload\helper::count_course_users_with_entries(
+            $course->id,
+            $excludeids,
+            $wf,
+            $yf,
+            $wt,
+            $yt
+        );
+    }
+    $suppressed = $anon
+        && $studentrecorders > 0
+        && $studentrecorders < \block_workload\helper::ANON_MIN_GROUP;
+}
+
+// Row identification and export ordering: the viewer's own rows come first
+// (real name — it is their own data), then other course staff (real names),
+// then students (pseudonymized when anonymized).
+$groupof = function ($userid) use ($USER, &$staffids): int {
+    if ((int)$userid === (int)$USER->id) {
+        return 0;
+    }
+    return in_array((int)$userid, $staffids, true) ? 1 : 2;
+};
+$showreal = function ($userid) use ($anon, $groupof): bool {
+    return !$anon || $groupof($userid) < 2;
+};
+
+// CSV export. The suppression guard must live here, server-side: the export
+// URL can be crafted directly.
+
+if ($course && $export && !$suppressed && has_capability('block/workload:export', $syscontext)) {
     if ($exporttype === 'detailed') {
-        $rows     = \block_workload\helper::get_cohort_detailed_export($cohortid, $wf, $yf, $wt, $yt);
-        if ($anon) {
-            // The SQL orders by lastname; re-sort so row order does not leak
-            // alphabetical rank.
-            $rows = array_values($rows);
-            usort($rows, fn($a, $b) => strcmp(
-                \block_workload\helper::pseudonym_token($a->userid) . $a->coursename,
-                \block_workload\helper::pseudonym_token($b->userid) . $b->coursename
-            ));
-        }
-        $filename = get_string('exportfilenamedetailed', 'block_workload') . '_' . date('Ymd_His') . '.csv';
+        $rows = array_values(
+            \block_workload\helper::get_course_detailed_export($course->id, $wf, $yf, $wt, $yt)
+        );
+        // Own rows first, then other staff, then students. Under
+        // anonymization student rows are re-sorted by pseudonym token so row
+        // order does not leak alphabetical rank (the SQL orders by
+        // lastname); usort() is stable, so identified rows keep their order.
+        usort($rows, function ($a, $b) use ($anon, $groupof) {
+            $cmp = $groupof($a->userid) <=> $groupof($b->userid);
+            if ($cmp !== 0 || !$anon || $groupof($a->userid) < 2) {
+                return $cmp;
+            }
+            return strcmp(
+                \block_workload\helper::pseudonym_token($a->userid)
+                    . sprintf('%06d', $a->year * 100 + $a->weeknumber),
+                \block_workload\helper::pseudonym_token($b->userid)
+                    . sprintf('%06d', $b->year * 100 + $b->weeknumber)
+            );
+        });
+        $filename = get_string('exportfilenamedetailed', 'block_workload')
+            . '_' . clean_filename($course->shortname) . '_' . date('Ymd_His') . '.csv';
         header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename="' . $filename . '"');
         header('Pragma: no-cache');
@@ -99,23 +200,30 @@ if ($export && has_capability('block/workload:export', $syscontext)) {
         fputcsv($out, [
             get_string('student', 'block_workload'), get_string('email'),
             get_string('department'), get_string('institution'),
-            get_string('course', 'block_workload'), get_string('role', 'block_workload'),
-            get_string('coursehours', 'block_workload'),
+            get_string('week', 'block_workload'),
+            get_string('hours', 'block_workload'),
         ]);
         foreach ($rows as $r) {
+            $real = $showreal($r->userid);
             fputcsv($out, [
-                $anon ? \block_workload\helper::pseudonym($r->userid) : $r->firstname . ' ' . $r->lastname,
-                $anon ? '' : $r->email,
-                $anon ? '' : ($r->department ?? ''),
-                $anon ? '' : ($r->institution ?? ''),
-                $r->coursename, $r->roles,
-                number_format((float)$r->coursehours, 1),
+                $real ? $r->firstname . ' ' . $r->lastname : \block_workload\helper::pseudonym($r->userid),
+                $real ? $r->email : '',
+                $real ? ($r->department ?? '') : '',
+                $real ? ($r->institution ?? '') : '',
+                sprintf('%04d-W%02d', (int)$r->year, (int)$r->weeknumber),
+                number_format((float)$r->hours, 1),
             ]);
         }
         fclose($out);
     } else {
-        $rows     = \block_workload\helper::get_cohort_top_users($cohortid, 0, $wf, $yf, $wt, $yt);
-        $filename = get_string('exportfilename', 'block_workload') . '_' . date('Ymd_His') . '.csv';
+        $rows = array_values(
+            \block_workload\helper::get_course_top_users($course->id, 0, $wf, $yf, $wt, $yt)
+        );
+        // Own row first, then other staff; student rows keep the totalhours
+        // order (usort() is stable), which leaks no name rank.
+        usort($rows, fn($a, $b) => $groupof($a->userid) <=> $groupof($b->userid));
+        $filename = get_string('exportfilename', 'block_workload')
+            . '_' . clean_filename($course->shortname) . '_' . date('Ymd_His') . '.csv';
         header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename="' . $filename . '"');
         header('Pragma: no-cache');
@@ -129,12 +237,13 @@ if ($export && has_capability('block/workload:export', $syscontext)) {
             get_string('averagehours', 'block_workload'),
         ]);
         foreach ($rows as $r) {
-            $avg = $r->weeksactive > 0 ? round((float)$r->totalhours / (int)$r->weeksactive, 2) : 0;
+            $real = $showreal($r->userid);
+            $avg  = $r->weeksactive > 0 ? round((float)$r->totalhours / (int)$r->weeksactive, 2) : 0;
             fputcsv($out, [
-                $anon ? \block_workload\helper::pseudonym($r->userid) : $r->firstname . ' ' . $r->lastname,
-                $anon ? '' : $r->email,
-                $anon ? '' : ($r->department ?? ''),
-                $anon ? '' : ($r->institution ?? ''),
+                $real ? $r->firstname . ' ' . $r->lastname : \block_workload\helper::pseudonym($r->userid),
+                $real ? $r->email : '',
+                $real ? ($r->department ?? '') : '',
+                $real ? ($r->institution ?? '') : '',
                 number_format((float)$r->totalhours, 1),
                 (int)$r->weeksactive, number_format($avg, 2),
             ]);
@@ -146,32 +255,41 @@ if ($export && has_capability('block/workload:export', $syscontext)) {
 
 // Fetch display data.
 
-$weeklytotals = \block_workload\helper::get_cohort_weekly_totals($cohortid, $wf, $yf, $wt, $yt);
-$topusers     = \block_workload\helper::get_cohort_top_users($cohortid, 10, $wf, $yf, $wt, $yt);
-$kpisdata     = \block_workload\helper::get_cohort_overview_kpis($cohortid, $wf, $yf, $wt, $yt);
+$weeklytotals = [];
+$topusers     = [];
+$tableusers   = [];
+$totalcount   = 0;
+$enrolledcount = 0;
+if ($course) {
+    $weeklytotals  = \block_workload\helper::get_course_weekly_totals($course->id, $wf, $yf, $wt, $yt);
+    $enrolledcount = count_enrolled_users($coursecontext, '', 0, true);
 
-$totalcount = \block_workload\helper::get_cohort_top_users_count(
-    $cohortid,
-    $wf,
-    $yf,
-    $wt,
-    $yt,
-    $firstletter,
-    $lastletter
-);
-$perpageeff = ($perpage > 0) ? $perpage : 0;
-$offseteff  = ($perpage > 0) ? max(0, $page) * $perpage : 0;
-$tableusers = \block_workload\helper::get_cohort_top_users(
-    $cohortid,
-    $perpageeff,
-    $wf,
-    $yf,
-    $wt,
-    $yt,
-    $firstletter,
-    $lastletter,
-    $offseteff
-);
+    if (!$suppressed) {
+        $topusers   = \block_workload\helper::get_course_top_users($course->id, 10, $wf, $yf, $wt, $yt);
+        $totalcount = \block_workload\helper::get_course_top_users_count(
+            $course->id,
+            $wf,
+            $yf,
+            $wt,
+            $yt,
+            $firstletter,
+            $lastletter
+        );
+        $perpageeff = ($perpage > 0) ? $perpage : 0;
+        $offseteff  = ($perpage > 0) ? max(0, $page) * $perpage : 0;
+        $tableusers = \block_workload\helper::get_course_top_users(
+            $course->id,
+            $perpageeff,
+            $wf,
+            $yf,
+            $wt,
+            $yt,
+            $firstletter,
+            $lastletter,
+            $offseteff
+        );
+    }
+}
 
 // Build charts.
 
@@ -233,9 +351,9 @@ if (!empty($topusers)) {
     $pielabels = [];
     $pievalues = [];
     foreach ($topusers as $r) {
-        $pielabels[] = $anon
-            ? \block_workload\helper::pseudonym($r->userid)
-            : $truncate($r->firstname . ' ' . $r->lastname);
+        $pielabels[] = $showreal($r->userid)
+            ? $truncate($r->firstname . ' ' . $r->lastname)
+            : \block_workload\helper::pseudonym($r->userid);
         $pievalues[] = (float)$r->totalhours;
     }
     $charttopusers = new \core\chart_pie();
@@ -254,27 +372,35 @@ if (!empty($topusers)) {
 
 // Build template context.
 
-// Cohort selector options.
-$allcohorts = ($coursemode === 'cohort')
-    ? $DB->get_records('block_workload_cohorts', null, 'name ASC')
-    : [];
-$cohortopts = [];
-$cohortopts[] = ['value' => 0, 'label' => get_string('allcohorts', 'block_workload'),
-                 'selected' => $cohortid === 0];
-foreach ($allcohorts as $c) {
-    $cohortopts[] = [
+// Course selector options. The currently viewed course is appended if it is
+// not in the list (e.g. a site admin opening a course they do not teach).
+$courseopts = [];
+$inlist     = false;
+foreach ($mycourses as $c) {
+    $selected = $course && (int)$c->id === (int)$course->id;
+    $inlist   = $inlist || $selected;
+    $courseopts[] = [
         'value'    => (int)$c->id,
-        'label'    => format_string($c->name) . ' – ' . format_string($c->degree_program),
-        'selected' => (int)$c->id === $cohortid,
+        'label'    => format_string($c->fullname),
+        'selected' => $selected,
     ];
 }
+if ($course && !$inlist) {
+    array_unshift($courseopts, [
+        'value'    => (int)$course->id,
+        'label'    => format_string($course->fullname),
+        'selected' => true,
+    ]);
+}
 
-// KPI cards.
+// KPI cards. The enrolled count is a participation-gap indicator: it counts
+// all active enrolled users (teachers included), so it may slightly exceed
+// the true student count.
 $kpis = $kpisdata ? [
+    ['value' => (string)$enrolledcount,
+     'label' => get_string('enrolledstudents', 'block_workload')],
     ['value' => (string)(int)$kpisdata->usercount,
-     'label' => get_string('students', 'block_workload')],
-    ['value' => (string)(int)$kpisdata->coursecount,
-     'label' => get_string('courses', 'block_workload')],
+     'label' => get_string('studentsrecording', 'block_workload')],
     ['value' => (string)(int)$kpisdata->weekcount,
      'label' => get_string('weeksactive', 'block_workload')],
     ['value' => number_format((float)$kpisdata->totalhours, 1),
@@ -282,27 +408,27 @@ $kpis = $kpisdata ? [
 ] : [];
 
 // Export URLs and labels.
-$canexport  = has_capability('block/workload:export', $syscontext);
+$canexport  = $course && !$suppressed && has_capability('block/workload:export', $syscontext);
 $exportbase = [
-    'cohortid' => $cohortid,
+    'id'       => $courseid,
     'weekfrom' => $weekfrom, 'yearfrom' => $yearfrom,
-    'weekto'   => $weekto, 'yearto'   => $yearto,
+    'weekto'   => $weekto, 'yearto' => $yearto,
     'export'   => 1,
 ];
 $exportquickurl  = (new moodle_url(
-    '/blocks/workload/statistics.php',
+    '/blocks/workload/coursestats.php',
     array_merge($exportbase, ['exporttype' => 'quick'])
 ))->out(false);
 $exportdetailurl = (new moodle_url(
-    '/blocks/workload/statistics.php',
+    '/blocks/workload/coursestats.php',
     array_merge($exportbase, ['exporttype' => 'detailed'])
 ))->out(false);
 
 // Base URL for letter-filter and per-page links.
-$filterbase = new moodle_url('/blocks/workload/statistics.php', [
-    'cohortid' => $cohortid,
+$filterbase = new moodle_url('/blocks/workload/coursestats.php', [
+    'id'       => $courseid,
     'weekfrom' => $weekfrom, 'yearfrom' => $yearfrom,
-    'weekto'   => $weekto, 'yearto'   => $yearto,
+    'weekto'   => $weekto, 'yearto' => $yearto,
     'submitted' => 1,
 ]);
 
@@ -310,7 +436,7 @@ $filterbase = new moodle_url('/blocks/workload/statistics.php', [
 // filtering by name initial would leak identity information.
 $alphabars = [];
 foreach (
-    $anon ? [] : [
+    ($anon || !$course) ? [] : [
     ['firstinitial', get_string('firstname'), 'firstletter', $firstletter, $lastletter],
     ['lastinitial', get_string('lastname'), 'lastletter', $lastletter, $firstletter],
     ] as [$bartype, $barlabel, $param, $current, $other]
@@ -362,32 +488,25 @@ foreach (
     ];
 }
 
-// Student table rows.
-$viewbase  = new moodle_url('/blocks/workload/mystats.php', array_filter([
-    'weekfrom' => $weekfrom, 'yearfrom' => $yearfrom,
-    'weekto'   => $weekto, 'yearto'   => $yearto,
-]));
+// Student table rows. No drill-down: teachers see aggregates only.
 $tablerows = [];
 foreach ($tableusers as $r) {
-    $avg = $r->weeksactive > 0
+    $real = $showreal($r->userid);
+    $avg  = $r->weeksactive > 0
         ? round((float)$r->totalhours / (int)$r->weeksactive, 1)
         : 0;
     $tablerows[] = [
-        'name'       => $anon
-            ? \block_workload\helper::pseudonym($r->userid)
-            : $r->firstname . ' ' . $r->lastname,
-        'profileurl' => $anon ? '' : (new moodle_url(
+        'name'       => $real
+            ? $r->firstname . ' ' . $r->lastname
+            : \block_workload\helper::pseudonym($r->userid),
+        'profileurl' => !$real ? '' : (new moodle_url(
             '/user/view.php',
-            ['id' => $r->userid, 'course' => SITEID]
+            ['id' => $r->userid, 'course' => $course->id]
         ))->out(false),
-        'email'      => $anon ? '' : $r->email,
+        'email'      => $real ? $r->email : '',
         'totalhours' => number_format((float)$r->totalhours, 1),
         'weeksactive' => (int)$r->weeksactive,
         'avghours'   => number_format($avg, 1),
-        'viewurl'    => (new moodle_url($viewbase, $anon
-            ? ['viewalias' => \block_workload\helper::pseudonym_token($r->userid)]
-            : ['viewas' => $r->userid]))->out(false),
-        'viewlabel'  => get_string('viewstudent', 'block_workload') . ' →',
     ];
 }
 
@@ -399,7 +518,6 @@ $tableheads = array_merge(
         get_string('totalhours', 'block_workload'),
         get_string('weeksactive', 'block_workload'),
         get_string('averagehours', 'block_workload'),
-        '',
     ]
 );
 
@@ -416,19 +534,26 @@ if ($perpage > 0 && $totalcount > $perpage) {
 $hasresults = !empty($tableusers) || !empty($weeklytotals);
 
 $templatecontext = [
-    'backurl'   => (new moodle_url('/blocks/workload/manage.php'))->out(false),
-    'backlabel' => get_string('managetitle', 'block_workload'),
+    'backurl'   => $course
+        ? (new moodle_url('/course/view.php', ['id' => $course->id]))->out(false)
+        : '',
+    'backlabel' => get_string('backtocourse', 'block_workload'),
 
-    'cohortmode' => $coursemode === 'cohort',
-    'cohortopts' => array_values($cohortopts),
+    'hascourse'    => (bool)$course,
+    'hascourseopts' => !empty($courseopts),
+    'courseopts'   => array_values($courseopts),
+    'nocoursesstr' => get_string('coursestatsnocourses', 'block_workload'),
 
     'filterform' => [
         'weekfrom' => $weekfrom, 'yearfrom' => $yearfrom,
-        'weekto'   => $weekto, 'yearto'   => $yearto,
+        'weekto'   => $weekto, 'yearto' => $yearto,
     ],
 
     'hasresults' => $hasresults,
     'canexport'  => $canexport && $hasresults,
+
+    'suppressed'    => $suppressed,
+    'suppressedstr' => get_string('anonsmallgroup', 'block_workload', \block_workload\helper::ANON_MIN_GROUP),
 
     'exportquickurl'   => $exportquickurl,
     'exportdetailurl'  => $exportdetailurl,
@@ -436,11 +561,11 @@ $templatecontext = [
     'exportlabelquick' => get_string('exportquick', 'block_workload'),
     'exportlabeldetail' => get_string('exportdetailed', 'block_workload'),
     'exportdescquick'  => get_string(
-        $anon ? 'exportquickanon_desc' : 'exportquick_desc',
+        $anon ? 'exportquickcourseanon_desc' : 'exportquick_desc',
         'block_workload'
     ),
     'exportdescdetail' => get_string(
-        $anon ? 'exportdetailedanon_desc' : 'exportdetailed_desc',
+        $anon ? 'exportdetailedcourseanon_desc' : 'exportdetailedcourse_desc',
         'block_workload'
     ),
 
@@ -464,16 +589,14 @@ $templatecontext = [
     'emptystr'     => get_string('nouserfound', 'block_workload'),
     'pagingbar'    => $pagingbar,
 
-    'showsearch'   => !$anon,
     'showemail'    => !$anon,
 ];
 
 // Output.
 
 echo $OUTPUT->header();
-echo $OUTPUT->render_from_template('block_workload/statistics', $templatecontext);
+echo $OUTPUT->render_from_template('block_workload/coursestats', $templatecontext);
 $PAGE->requires->js_call_amd('block_workload/statistics', 'init', [[
-    'noResultsStr' => get_string('nouserfound', 'block_workload'),
-    'showSearch'   => !$anon,
+    'showSearch' => false,
 ]]);
 echo $OUTPUT->footer();

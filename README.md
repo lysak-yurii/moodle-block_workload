@@ -3,10 +3,11 @@
 ![Moodle](https://img.shields.io/badge/Moodle-4.5+-orange?logo=moodle)
 ![PHP](https://img.shields.io/badge/PHP-7.4+-777BB4?logo=php&logoColor=white)
 ![License](https://img.shields.io/badge/License-GPL%20v3-green?logo=gnu)
-![Version](https://img.shields.io/badge/Release-1.0.3%20(beta)-blue)
+![Version](https://img.shields.io/badge/Release-1.1.0%20(beta)-blue)
 
-A Moodle block that lets students log the hours they spend on each course every week, and
-gives quality managers cohort-wide statistics on student workload across the semester.
+A Moodle block that lets students log the hours they spend on each course every week, gives
+quality managers cohort-wide statistics on student workload across the semester, and gives
+teachers anonymized workload statistics for their own courses (Enrollment mode).
 
 <p align="center"><img src="screenshots/block_workload.png" alt="Workload Assessment Block" width="320" /></p>
 
@@ -15,6 +16,19 @@ gives quality managers cohort-wide statistics on student workload across the sem
 **For students**
 - Log weekly hours per course directly in the block with `+` / `−` buttons or an `h:mm` field.
 - Personal **My Statistics** page: KPI cards, weekly and per-course charts, and CSV export.
+
+**For teachers** *(Enrollment mode)*
+- **Course Statistics** page for every course they teach: KPI cards (enrolled students vs.
+  students recording hours), weekly charts, top-10 pie chart, a filterable student table, and
+  quick (per student) / detailed (per student per week) CSV export.
+- **Anonymized by default** — students appear as stable pseudonyms (e.g. *Brave Panda 3F7A*);
+  course staff and the teacher's own entries stay identified (own rows first in exports) so
+  accidentally recorded staff hours are easy to spot and clean up. If fewer than 3 students
+  recorded hours in the selected period, per-student data is withheld and only aggregates
+  are shown — a teacher knows the roster, so tiny groups would be trivially re-identifiable.
+- Access is controlled by the `block/workload:viewcoursestats` capability (granted to editing
+  and non-editing teachers by default); admins can add or remove any role, including custom
+  ones, via the standard permissions UI or per-course overrides.
 
 **For quality managers**
 - Manage student **cohorts** (study programme, department, activation period).
@@ -37,6 +51,11 @@ gives quality managers cohort-wide statistics on student workload across the sem
   CSV exports. Identities stay hidden while individual workload patterns remain trackable; 
   roles holding the `block/workload:viewrealnames` capability (and site administrators) still 
   see real names.
+- **Anonymise teacher statistics** (Enrollment mode, **on** by default) — the same pseudonym
+  system applied to the teachers' Course Statistics page and its exports. Students keep the
+  same pseudonym in both views, so QMs and teachers can discuss a codename without revealing
+  anyone. The `block/workload:viewrealnames` capability is honoured at course level, so a
+  role can be de-anonymized selectively in a single course or category.
 
 ## Screenshots
 
@@ -85,6 +104,9 @@ gives quality managers cohort-wide statistics on student workload across the sem
 
 **Students** — add the *Workload Assessment* block to your dashboard, log hours each week per
 course, and open **My Statistics** for your history.
+
+**Teachers** *(Enrollment mode)* — open **Course Statistics** from the block footer, pick one
+of your courses, filter by week range, and export the data as CSV if needed.
 
 **Quality managers** — open **Workload Management**, create a cohort, assign students and
 courses (optionally set an activation period), then review **Workload Statistics**.

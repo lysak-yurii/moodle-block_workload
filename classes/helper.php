@@ -1750,6 +1750,330 @@ class helper {
         return $rows;
     }
 
+    // Course-scoped statistics (teacher view, enrollment mode).
+
+
+    /**
+     * Append the ISO week/year range conditions shared by the course-scoped
+     * statistics queries to $where/$params.
+     *
+     * A year given without a week snaps to the start/end of that year,
+     * matching the behaviour of the cohort statistics queries.
+     *
+     * @param array    $where    SQL conditions, appended in place.
+     * @param array    $params   Named parameters, appended in place.
+     * @param int|null $weekfrom
+     * @param int|null $yearfrom
+     * @param int|null $weekto
+     * @param int|null $yearto
+     */
+    private static function apply_weekrange(
+        array &$where,
+        array &$params,
+        ?int $weekfrom,
+        ?int $yearfrom,
+        ?int $weekto,
+        ?int $yearto
+    ): void {
+        if ($yearfrom !== null && !$weekfrom) {
+            $weekfrom = 1;
+        }
+        if ($yearto !== null && !$weekto) {
+            $weekto = 53;
+        }
+
+        if ($weekfrom && $yearfrom) {
+            $where[]      = '(e.year * 100 + e.weeknumber) >= :wf';
+            $params['wf'] = $yearfrom * 100 + $weekfrom;
+        }
+        if ($weekto && $yearto) {
+            $where[]      = '(e.year * 100 + e.weeknumber) <= :wt';
+            $params['wt'] = $yearto * 100 + $weekto;
+        }
+    }
+
+    /**
+     * Weekly totals for a single course.
+     *
+     * Course-scoped counterpart of get_cohort_weekly_totals(). Includes every
+     * entry recorded for the course regardless of the student's current
+     * enrolment status: dropping since-unenrolled students would silently
+     * deflate historical weeks, and the totals must match what a Quality
+     * Manager sees for the same course.
+     *
+     * @param int      $courseid
+     * @param int|null $weekfrom
+     * @param int|null $yearfrom
+     * @param int|null $weekto
+     * @param int|null $yearto
+     * @return array of stdClass {year, weeknumber, totalhours, usercount}, sorted asc.
+     */
+    public static function get_course_weekly_totals(
+        int $courseid,
+        ?int $weekfrom = null,
+        ?int $yearfrom = null,
+        ?int $weekto = null,
+        ?int $yearto = null
+    ): array {
+        global $DB;
+        $where  = ['e.courseid = :courseid'];
+        $params = ['courseid' => $courseid];
+        self::apply_weekrange($where, $params, $weekfrom, $yearfrom, $weekto, $yearto);
+
+        return $DB->get_records_sql(
+            'SELECT MIN(e.id) AS id, e.year, e.weeknumber,
+                    SUM(e.hours)             AS totalhours,
+                    COUNT(DISTINCT e.userid) AS usercount
+               FROM {block_workload_entries} e
+              WHERE ' . implode(' AND ', $where) . '
+             GROUP BY e.year, e.weeknumber
+             ORDER BY e.year ASC, e.weeknumber ASC',
+            $params
+        );
+    }
+
+    /**
+     * Top N users by total hours in a single course.
+     *
+     * $limit = 0 means no limit (all matching users).
+     * Returns array keyed by userid: {userid, firstname, lastname, email,
+     * department, institution, totalhours, weeksactive}.
+     *
+     * @param int      $courseid
+     * @param int      $limit       0 = no limit.
+     * @param int|null $weekfrom
+     * @param int|null $yearfrom
+     * @param int|null $weekto
+     * @param int|null $yearto
+     * @param string   $firstletter A-Z filter on firstname, or empty string.
+     * @param string   $lastletter  A-Z filter on lastname, or empty string.
+     * @param int      $offset      Pagination offset.
+     * @return array
+     */
+    public static function get_course_top_users(
+        int $courseid,
+        int $limit = 10,
+        ?int $weekfrom = null,
+        ?int $yearfrom = null,
+        ?int $weekto = null,
+        ?int $yearto = null,
+        string $firstletter = '',
+        string $lastletter = '',
+        int $offset = 0
+    ): array {
+        global $DB;
+        $where  = ['e.courseid = :courseid'];
+        $params = ['courseid' => $courseid];
+        self::apply_weekrange($where, $params, $weekfrom, $yearfrom, $weekto, $yearto);
+
+        if ($firstletter !== '') {
+            $where[]      = $DB->sql_like('u.firstname', ':fl', false);
+            $params['fl'] = $DB->sql_like_escape($firstletter) . '%';
+        }
+        if ($lastletter !== '') {
+            $where[]      = $DB->sql_like('u.lastname', ':ll', false);
+            $params['ll'] = $DB->sql_like_escape($lastletter) . '%';
+        }
+
+        return $DB->get_records_sql(
+            'SELECT e.userid,
+                    u.firstname, u.lastname, u.email,
+                    u.department, u.institution,
+                    SUM(e.hours)  AS totalhours,
+                    COUNT(DISTINCT e.year * 100 + e.weeknumber) AS weeksactive
+               FROM {block_workload_entries} e
+               JOIN {user} u ON u.id = e.userid
+              WHERE ' . implode(' AND ', $where) . '
+             GROUP BY e.userid, u.firstname, u.lastname, u.email, u.department, u.institution
+             ORDER BY totalhours DESC',
+            $params,
+            $offset,
+            $limit
+        );
+    }
+
+    /**
+     * Count of users matching the course filters — pagination counterpart
+     * of get_course_top_users().
+     *
+     * @param int      $courseid
+     * @param int|null $weekfrom
+     * @param int|null $yearfrom
+     * @param int|null $weekto
+     * @param int|null $yearto
+     * @param string   $firstletter A-Z filter on firstname, or empty string.
+     * @param string   $lastletter  A-Z filter on lastname, or empty string.
+     * @return int
+     */
+    public static function get_course_top_users_count(
+        int $courseid,
+        ?int $weekfrom = null,
+        ?int $yearfrom = null,
+        ?int $weekto = null,
+        ?int $yearto = null,
+        string $firstletter = '',
+        string $lastletter = ''
+    ): int {
+        global $DB;
+        $where  = ['e.courseid = :courseid'];
+        $params = ['courseid' => $courseid];
+        self::apply_weekrange($where, $params, $weekfrom, $yearfrom, $weekto, $yearto);
+
+        if ($firstletter !== '') {
+            $where[]      = $DB->sql_like('u.firstname', ':fl', false);
+            $params['fl'] = $DB->sql_like_escape($firstletter) . '%';
+        }
+        if ($lastletter !== '') {
+            $where[]      = $DB->sql_like('u.lastname', ':ll', false);
+            $params['ll'] = $DB->sql_like_escape($lastletter) . '%';
+        }
+
+        return (int) $DB->count_records_sql(
+            'SELECT COUNT(DISTINCT e.userid)
+               FROM {block_workload_entries} e
+               JOIN {user} u ON u.id = e.userid
+              WHERE ' . implode(' AND ', $where),
+            $params
+        );
+    }
+
+    /**
+     * Overview KPIs for a single course.
+     * Single aggregate query: no per-row data returned.
+     *
+     * @param int      $courseid
+     * @param int|null $weekfrom
+     * @param int|null $yearfrom
+     * @param int|null $weekto
+     * @param int|null $yearto
+     * @return \stdClass {usercount, weekcount, totalhours}.
+     */
+    public static function get_course_overview_kpis(
+        int $courseid,
+        ?int $weekfrom = null,
+        ?int $yearfrom = null,
+        ?int $weekto = null,
+        ?int $yearto = null
+    ): \stdClass {
+        global $DB;
+        $where  = ['e.courseid = :courseid'];
+        $params = ['courseid' => $courseid];
+        self::apply_weekrange($where, $params, $weekfrom, $yearfrom, $weekto, $yearto);
+
+        $row = $DB->get_record_sql(
+            'SELECT COUNT(DISTINCT e.userid)                    AS usercount,
+                    COUNT(DISTINCT e.year * 100 + e.weeknumber) AS weekcount,
+                    COALESCE(SUM(e.hours), 0)                   AS totalhours
+               FROM {block_workload_entries} e
+              WHERE ' . implode(' AND ', $where),
+            $params
+        );
+
+        return $row ?: (object)[
+            'usercount' => 0, 'weekcount' => 0, 'totalhours' => 0,
+        ];
+    }
+
+    /**
+     * Userids of the course "staff": everyone who may themselves view the
+     * course statistics (block/workload:viewcoursestats in this course).
+     *
+     * Used by the teacher view to decide whose rows are NOT pseudonymized:
+     * anonymization protects students from staff, not staff from each other,
+     * and identified staff rows let teachers spot (and clean up) accidentally
+     * recorded hours. Which roles count as staff is thereby controlled by
+     * admins through the same capability that grants access to the page.
+     *
+     * @param \context_course $context
+     * @return int[]
+     */
+    public static function get_course_staff_userids(\context_course $context): array {
+        $users = get_users_by_capability($context, 'block/workload:viewcoursestats', 'u.id');
+        return array_map('intval', array_keys($users));
+    }
+
+    /**
+     * How many of the given users have entries in a course within the range.
+     *
+     * Used to subtract staff recorders from the anonymization minimum-group
+     * check: staff entries must not inflate the count that decides whether
+     * the remaining (pseudonymized) students are identifiable.
+     *
+     * @param int      $courseid
+     * @param int[]    $userids  Empty array returns 0.
+     * @param int|null $weekfrom
+     * @param int|null $yearfrom
+     * @param int|null $weekto
+     * @param int|null $yearto
+     * @return int
+     */
+    public static function count_course_users_with_entries(
+        int $courseid,
+        array $userids,
+        ?int $weekfrom = null,
+        ?int $yearfrom = null,
+        ?int $weekto = null,
+        ?int $yearto = null
+    ): int {
+        global $DB;
+        if (empty($userids)) {
+            return 0;
+        }
+        $where  = ['e.courseid = :courseid'];
+        $params = ['courseid' => $courseid];
+        self::apply_weekrange($where, $params, $weekfrom, $yearfrom, $weekto, $yearto);
+
+        [$insql, $inparams] = $DB->get_in_or_equal($userids, SQL_PARAMS_NAMED, 'sid');
+        $where[] = "e.userid $insql";
+
+        return (int) $DB->count_records_sql(
+            'SELECT COUNT(DISTINCT e.userid)
+               FROM {block_workload_entries} e
+              WHERE ' . implode(' AND ', $where),
+            array_merge($params, $inparams)
+        );
+    }
+
+    /**
+     * Detailed export for a single course: one row per user per week.
+     *
+     * Unlike the cohort detailed export (one row per user per course), the
+     * per-course breakdown collapses into the quick export inside a single
+     * course, so the useful extra detail here is the weekly one. No role
+     * column: everyone with entries in the course recorded them as a student.
+     *
+     * @param int      $courseid
+     * @param int|null $weekfrom
+     * @param int|null $yearfrom
+     * @param int|null $weekto
+     * @param int|null $yearto
+     * @return array of stdClass {userid, firstname, lastname, email,
+     *               department, institution, year, weeknumber, hours}.
+     */
+    public static function get_course_detailed_export(
+        int $courseid,
+        ?int $weekfrom = null,
+        ?int $yearfrom = null,
+        ?int $weekto = null,
+        ?int $yearto = null
+    ): array {
+        global $DB;
+        $where  = ['e.courseid = :courseid'];
+        $params = ['courseid' => $courseid];
+        self::apply_weekrange($where, $params, $weekfrom, $yearfrom, $weekto, $yearto);
+
+        return $DB->get_records_sql(
+            'SELECT e.id, e.userid, e.year, e.weeknumber, e.hours,
+                    u.firstname, u.lastname, u.email,
+                    u.department, u.institution
+               FROM {block_workload_entries} e
+               JOIN {user} u ON u.id = e.userid
+              WHERE ' . implode(' AND ', $where) . '
+             ORDER BY u.lastname ASC, u.firstname ASC, e.year ASC, e.weeknumber ASC',
+            $params
+        );
+    }
+
     // Anonymization.
 
 
@@ -1775,6 +2099,47 @@ class helper {
             \context_system::instance(),
             $userid
         );
+    }
+
+    /**
+     * Minimum number of distinct students with entries before the anonymized
+     * teacher view shows per-student data.
+     *
+     * A teacher knows their roster, so in a very small group pseudonyms are
+     * trivially reversible; below this threshold the per-student table, chart
+     * and exports are suppressed (aggregates stay visible). Deliberately a
+     * constant rather than a setting — a knob would invite lowering it until
+     * it protects nobody. The QM statistics page has no threshold: it
+     * operates at cohort/site scale where this rarely bites.
+     */
+    public const ANON_MIN_GROUP = 3;
+
+    /**
+     * Should course statistics be anonymized for the given teacher/viewer?
+     *
+     * Counterpart of is_anonymized() for the teacher course view, controlled
+     * by the separate anonymizeteacherstats setting (default ON). The
+     * viewrealnames bypass is checked at course context so an admin can
+     * de-anonymize selectively via a course or category role override;
+     * system-level grants (managers, admins) still pass through context
+     * aggregation. Pseudonyms use the same site salt as the QM view, so a
+     * student keeps the same codename on both pages — QMs and teachers can
+     * discuss "Brave Panda 3F7A" without de-anonymizing anyone.
+     *
+     * @param \context_course $context course being viewed.
+     * @param int|null $userid viewer to check, defaults to the current user.
+     * @return bool
+     */
+    public static function is_teacher_anonymized(\context_course $context, ?int $userid = null): bool {
+        $raw = get_config('block_workload', 'anonymizeteacherstats');
+        // Unset config (false) must mean enabled: anonymization is the
+        // privacy default even if the upgrade step seeding the value has
+        // not run yet.
+        if ($raw !== false && !$raw) {
+            return false;
+        }
+
+        return !has_capability('block/workload:viewrealnames', $context, $userid);
     }
 
     /**

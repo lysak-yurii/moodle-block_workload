@@ -79,6 +79,7 @@ class block_workload extends block_base {
         $this->content->footer = '';
 
         $syscontext = context_system::instance();
+        $coursemode = get_config('block_workload', 'coursemode') ?: 'cohort';
 
         // Quality Manager footer links.
         $links = [];
@@ -92,6 +93,21 @@ class block_workload extends block_base {
             $links[] = html_writer::link(
                 new moodle_url('/blocks/workload/statistics.php'),
                 get_string('statisticstitle', 'block_workload')
+            );
+        }
+
+        // Teacher footer link (enrollment mode): statistics for the students
+        // of their own courses. get_user_capability_course() is cheap here —
+        // it derives the check from the already-loaded access data and
+        // returns false without touching the course table when the user
+        // holds the capability nowhere; otherwise a single LIMIT 1 query.
+        if (
+            $coursemode === 'enrollment'
+                && get_user_capability_course('block/workload:viewcoursestats', null, false, '', '', 1)
+        ) {
+            $links[] = html_writer::link(
+                new moodle_url('/blocks/workload/coursestats.php'),
+                get_string('coursestatstitle', 'block_workload')
             );
         }
         if ($links) {
@@ -116,7 +132,6 @@ class block_workload extends block_base {
             return $this->content;
         }
 
-        $coursemode     = get_config('block_workload', 'coursemode') ?: 'cohort';
         $courseorder    = get_config('block_workload', 'courseorder') ?: 'sortorder';
         $raw            = get_config('block_workload', 'coursesperpage');
         $coursesperpage = max(0, (int)($raw !== false ? $raw : 6));

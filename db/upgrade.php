@@ -56,5 +56,20 @@ function xmldb_block_workload_upgrade(int $oldversion): bool {
         upgrade_block_savepoint(true, 2026070200, 'workload');
     }
 
+    if ($oldversion < 2026070300) {
+        // Teacher course statistics. The new block/workload:viewcoursestats
+        // capability is installed by update_capabilities(), which applies
+        // the editingteacher/teacher/manager archetype defaults to existing
+        // roles. Intentionally NOT granted to the workload_manager role — it
+        // already holds the site-wide viewallstats.
+        // Seed the anonymizeteacherstats default explicitly so get_config()
+        // never returns false-meaning-unset (the privacy default is ON).
+        if (get_config('block_workload', 'anonymizeteacherstats') === false) {
+            set_config('anonymizeteacherstats', 1, 'block_workload');
+        }
+
+        upgrade_block_savepoint(true, 2026070300, 'workload');
+    }
+
     return true;
 }

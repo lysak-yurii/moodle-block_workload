@@ -1,0 +1,327 @@
+{{!
+    This file is part of Moodle - http://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+}}
+{{!
+    @template block_workload/coursestats
+
+    Teacher workload statistics for the students of one course
+    (enrollment mode). No per-student drill-down: aggregates only.
+
+    @package   block_workload
+    @copyright 2026 Yurii Lysak
+    @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+
+    Example context (json):
+    {
+        "backurl": "http://example.com/course/view.php?id=3",
+        "backlabel": "Back to course",
+        "hascourse": true,
+        "hascourseopts": true,
+        "courseopts": [
+            {"value": 3, "label": "Algebra I", "selected": true},
+            {"value": 7, "label": "Statistics", "selected": false}
+        ],
+        "nocoursesstr": "You do not have permission to view workload statistics in any course.",
+        "filterform": {
+            "weekfrom": 22, "yearfrom": 2026,
+            "weekto": 22,   "yearto": 2026
+        },
+        "hasresults": true,
+        "canexport": true,
+        "suppressed": false,
+        "suppressedstr": "To protect anonymity, per-student data is hidden…",
+        "exportquickurl":  "http://example.com/?export=1&exporttype=quick",
+        "exportdetailurl": "http://example.com/?export=1&exporttype=detailed",
+        "exporttitle":     "Export CSV",
+        "exportlabelquick":  "Quick export",
+        "exportlabeldetail": "Detailed export",
+        "exportdescquick":   "One row per student",
+        "exportdescdetail":  "One row per student per week",
+        "kpis": [
+            {"value": "30",    "label": "Enrolled students"},
+            {"value": "28",    "label": "Students recording hours"},
+            {"value": "12",    "label": "Weeks with entries"},
+            {"value": "210.5", "label": "Total hours"}
+        ],
+        "hasweeklycharts": true,
+        "chartweekavghtml": "<div>chart</div>",
+        "chartweekusershtml": "<div>chart</div>",
+        "hastopusers": true,
+        "charttopusershtml": "<div>chart</div>",
+        "tableheading": "Students (28)",
+        "alphabars": [
+            {
+                "bartype": "firstinitial", "barlabel": "First name",
+                "allstr": "All", "allurl": "http://example.com/", "allactive": true,
+                "letters": [{"letter": "A", "url": "http://example.com/?fl=A", "active": false}]
+            }
+        ],
+        "perpageopts": [
+            {"label": "25", "active": true,  "islink": false, "url": ""},
+            {"label": "50", "active": false, "islink": true,  "url": "http://example.com/?pp=50"}
+        ],
+        "perpagestr": "Per page",
+        "tableheads": ["Student", "Email", "Total hrs", "Weeks active", "Avg hrs/week"],
+        "tablerows": [
+            {
+                "name": "Brave Panda 3F7A", "profileurl": "",
+                "email": "",
+                "totalhours": "10.5", "weeksactive": 3, "avghours": "3.5"
+            }
+        ],
+        "tableempty": false,
+        "emptystr": "No users found",
+        "pagingbar": "",
+        "showemail": false
+    }
+}}
+
+<div class="block_workload-coursestats">
+
+    {{! Back navigation }}
+    {{#backurl}}
+    <a href="{{{backurl}}}" class="btn btn-outline-secondary mb-3">&larr; {{backlabel}}</a>
+    {{/backurl}}
+
+    {{! No viewable courses at all }}
+    {{^hascourseopts}}
+    <div class="alert alert-info" role="alert">
+        {{nocoursesstr}}
+    </div>
+    {{/hascourseopts}}
+
+    {{#hascourseopts}}
+
+    {{! Course + date-range filter form }}
+    <form method="get" class="card p-3 mb-4">
+        <input type="hidden" name="submitted" value="1">
+        <div class="row g-3 align-items-end">
+
+            <div class="col-12 col-sm-auto d-flex flex-column">
+                <label for="wl-courseid" class="form-label small">
+                    {{#str}}choosecoursestats, block_workload{{/str}}
+                </label>
+                <select name="id" id="wl-courseid"
+                        class="select custom-select form-select form-select-sm" style="min-width:220px;">
+                    {{^hascourse}}
+                    <option value="" selected>{{#str}}choosedots, core{{/str}}</option>
+                    {{/hascourse}}
+                    {{#courseopts}}
+                    <option value="{{value}}"{{#selected}} selected{{/selected}}>{{label}}</option>
+                    {{/courseopts}}
+                </select>
+            </div>
+
+            {{#hascourse}}
+            {{#filterform}}
+
+            <div class="col-auto">
+                <label class="form-label small fw-semibold d-block" for="weekfrom">
+                    {{#str}}datefrom, block_workload{{/str}}
+                </label>
+                <div class="d-flex align-items-center gap-1">
+                    <input type="number" name="weekfrom" id="weekfrom"
+                           value="{{weekfrom}}" min="1" max="53"
+                           class="form-control" style="width:5rem;"
+                           placeholder="{{#str}}week, block_workload{{/str}}">
+                    <input type="number" name="yearfrom" id="yearfrom"
+                           value="{{yearfrom}}" min="2025"
+                           class="form-control" style="width:6rem;"
+                           placeholder="{{#str}}year, block_workload{{/str}}">
+                </div>
+            </div>
+
+            <div class="col-auto">
+                <label class="form-label small fw-semibold d-block" for="weekto">
+                    {{#str}}dateto, block_workload{{/str}}
+                </label>
+                <div class="d-flex align-items-center gap-1">
+                    <input type="number" name="weekto" id="weekto"
+                           value="{{weekto}}" min="1" max="53"
+                           class="form-control" style="width:5rem;"
+                           placeholder="{{#str}}week, block_workload{{/str}}">
+                    <input type="number" name="yearto" id="yearto"
+                           value="{{yearto}}" min="2025"
+                           class="form-control" style="width:6rem;"
+                           placeholder="{{#str}}year, block_workload{{/str}}">
+                </div>
+            </div>
+
+            {{/filterform}}
+            {{/hascourse}}
+
+            <div class="col-auto">
+                <span class="form-label small d-block">&nbsp;</span>
+                <button type="submit" class="btn btn-primary">
+                    {{#str}}filterresults, block_workload{{/str}}
+                </button>
+            </div>
+
+        </div>
+    </form>
+
+    {{#hascourse}}
+
+    {{! No-results state }}
+    {{^hasresults}}
+    <div class="alert alert-info" role="alert">
+        {{#str}}nostatsfound, block_workload{{/str}}
+    </div>
+    {{/hasresults}}
+
+    {{#hasresults}}
+
+    {{! Export button }}
+    {{#canexport}}
+    <div class="mb-3 text-end">
+        <button type="button"
+                class="btn btn-outline-success btn-sm"
+                data-wl-exportmodal="1"
+                data-quick-url="{{{exportquickurl}}}"
+                data-detail-url="{{{exportdetailurl}}}"
+                data-title="{{exporttitle}}"
+                data-label-quick="{{exportlabelquick}}"
+                data-label-detail="{{exportlabeldetail}}"
+                data-desc-quick="{{exportdescquick}}"
+                data-desc-detail="{{exportdescdetail}}">
+            &#8595;&nbsp;{{#str}}exportcsv, block_workload{{/str}}
+        </button>
+    </div>
+    {{/canexport}}
+
+    {{! KPI summary cards }}
+    <div class="row g-3 mb-4">
+        {{#kpis}}
+        <div class="col-6 col-md-3">
+            <div class="card text-center p-3 h-100 shadow-sm wl-kpi-card">
+                <div class="display-6 fw-bold text-primary lh-1 mb-1">{{value}}</div>
+                <div class="text-muted small">{{label}}</div>
+            </div>
+        </div>
+        {{/kpis}}
+    </div>
+
+    {{! Weekly charts side by side }}
+    {{#hasweeklycharts}}
+    <div class="row g-4 mb-4">
+        <div class="col-12 col-md-6">
+            <div class="wl-chart-card card shadow-sm" style="overflow:hidden;">
+                <div class="card-body p-3">{{{chartweekavghtml}}}</div>
+            </div>
+        </div>
+        <div class="col-12 col-md-6">
+            <div class="wl-chart-card card shadow-sm" style="overflow:hidden;">
+                <div class="card-body p-3">{{{chartweekusershtml}}}</div>
+            </div>
+        </div>
+    </div>
+    {{/hasweeklycharts}}
+
+    {{! Per-student data withheld: anonymized view with a very small group }}
+    {{#suppressed}}
+    <div class="alert alert-info" role="alert">
+        {{suppressedstr}}
+    </div>
+    {{/suppressed}}
+
+    {{^suppressed}}
+
+    {{! Top students pie chart }}
+    {{#hastopusers}}
+    <div class="wl-chart-card card shadow-sm mb-4" style="overflow:hidden;">
+        <div class="card-body p-3">{{{charttopusershtml}}}</div>
+    </div>
+    {{/hastopusers}}
+
+    {{! Students table }}
+    <h5 class="mt-2 mb-3">{{tableheading}}</h5>
+
+    {{! A-Z initial filter bars }}
+    {{#alphabars}}
+    <div class="initialbar {{bartype}} d-flex flex-wrap justify-content-center justify-content-md-start mb-2">
+        <span class="initialbarlabel me-2">{{barlabel}}</span>
+        <nav class="initialbargroups d-flex flex-wrap justify-content-center justify-content-md-start">
+            <ul class="pagination pagination-sm">
+                <li id="{{bartype}}_page-item_All"
+                    class="initialbarall page-item{{#allactive}} active{{/allactive}}">
+                    <a data-initial="" class="page-link" href="{{{allurl}}}"
+                       {{#allactive}}aria-current="true"{{/allactive}}>{{allstr}}</a>
+                </li>
+            </ul>
+            <ul class="pagination pagination-sm">
+                {{#letters}}
+                <li id="{{barid}}_page-item_{{letter}}"
+                    data-initial="{{letter}}"
+                    class="page-item {{letter}}{{#active}} active{{/active}}">
+                    <a class="page-link" href="{{{url}}}"
+                       {{#active}}aria-current="true"{{/active}}>{{letter}}</a>
+                </li>
+                {{/letters}}
+            </ul>
+        </nav>
+    </div>
+    {{/alphabars}}
+
+    {{! Per-page selector }}
+    <div class="mb-3 small">
+        <span class="small fw-semibold me-1">{{perpagestr}}:</span>
+        {{#perpageopts}}
+        {{#active}}<strong class="me-2">{{label}}</strong>{{/active}}
+        {{^active}}{{#islink}}<a href="{{{url}}}" class="me-2 small">{{label}}</a>{{/islink}}{{/active}}
+        {{/perpageopts}}
+    </div>
+
+    {{! Student table (no drill-down column) }}
+    <table class="generaltable table-sm table-striped table-hover">
+        <thead>
+            <tr>
+                {{#tableheads}}<th>{{.}}</th>{{/tableheads}}
+            </tr>
+        </thead>
+        <tbody>
+            {{#tableempty}}
+            <tr>
+                <td colspan="{{#showemail}}5{{/showemail}}{{^showemail}}4{{/showemail}}"
+                    class="text-muted text-center">{{emptystr}}</td>
+            </tr>
+            {{/tableempty}}
+            {{#tablerows}}
+            <tr>
+                <td>
+                    {{#profileurl}}<a href="{{{profileurl}}}">{{name}}</a>{{/profileurl}}
+                    {{^profileurl}}{{name}}{{/profileurl}}
+                </td>
+                {{#showemail}}<td>{{email}}</td>{{/showemail}}
+                <td>{{totalhours}}</td>
+                <td>{{weeksactive}}</td>
+                <td>{{avghours}}</td>
+            </tr>
+            {{/tablerows}}
+        </tbody>
+    </table>
+
+    {{! Paging bar (pre-rendered) }}
+    {{{pagingbar}}}
+
+    {{/suppressed}}
+
+    {{/hasresults}}
+
+    {{/hascourse}}
+
+    {{/hascourseopts}}
+
+</div>

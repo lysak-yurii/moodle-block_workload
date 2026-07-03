@@ -128,4 +128,12 @@ if ($ADMIN->fulltree) {
         get_string('anonymizestats_desc', 'block_workload'),
         0
     ));
+
+    $settings->add(new admin_setting_configcheckbox(
+        'block_workload/anonymizeteacherstats',
+        get_string('anonymizeteacherstats', 'block_workload'),
+        get_string('anonymizeteacherstats_desc', 'block_workload'),
+        1
+    ));
+    $settings->hide_if('block_workload/anonymizeteacherstats', 'block_workload/coursemode', 'neq', 'enrollment');
 }
