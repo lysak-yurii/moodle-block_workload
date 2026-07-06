@@ -84,16 +84,16 @@ class block_workload extends block_base {
         // Quality Manager footer links.
         $links = [];
         if (has_capability('block/workload:manage', $syscontext)) {
-            $links[] = html_writer::link(
-                new moodle_url('/blocks/workload/manage.php'),
-                get_string('managedashboard', 'block_workload')
-            );
+            $links[] = [
+                'url'   => (new moodle_url('/blocks/workload/manage.php'))->out(false),
+                'label' => get_string('managedashboard', 'block_workload'),
+            ];
         }
         if (has_capability('block/workload:viewallstats', $syscontext)) {
-            $links[] = html_writer::link(
-                new moodle_url('/blocks/workload/statistics.php'),
-                get_string('statisticstitle', 'block_workload')
-            );
+            $links[] = [
+                'url'   => (new moodle_url('/blocks/workload/statistics.php'))->out(false),
+                'label' => get_string('statisticstitle', 'block_workload'),
+            ];
         }
 
         // Teacher footer link (enrollment mode): statistics for the students
@@ -105,26 +105,28 @@ class block_workload extends block_base {
             $coursemode === 'enrollment'
                 && get_user_capability_course('block/workload:viewcoursestats', null, false, '', '', 1)
         ) {
-            $links[] = html_writer::link(
-                new moodle_url('/blocks/workload/coursestats.php'),
-                get_string('coursestatstitle', 'block_workload')
-            );
-        }
-        if ($links) {
-            $this->content->footer = implode(' &middot; ', $links);
+            $links[] = [
+                'url'   => (new moodle_url('/blocks/workload/coursestats.php'))->out(false),
+                'label' => get_string('coursestatstitle', 'block_workload'),
+            ];
         }
 
         // Student stats link — shown based on viewownstats, independent of submit.
         if (has_capability('block/workload:viewownstats', $syscontext)) {
-            $statslink = html_writer::link(
-                new moodle_url('/blocks/workload/mystats.php'),
-                get_string('viewmystats', 'block_workload')
-            );
-            if ($this->content->footer) {
-                $this->content->footer = $statslink . ' &middot; ' . $this->content->footer;
-            } else {
-                $this->content->footer = $statslink;
+            array_unshift($links, [
+                'url'   => (new moodle_url('/blocks/workload/mystats.php'))->out(false),
+                'label' => get_string('viewmystats', 'block_workload'),
+            ]);
+        }
+
+        if ($links) {
+            foreach ($links as $i => $link) {
+                $links[$i]['separator'] = ($i < count($links) - 1);
             }
+            $this->content->footer = $OUTPUT->render_from_template(
+                'block_workload/block_footer',
+                ['links' => $links]
+            );
         }
 
         // Student block content.
@@ -166,10 +168,7 @@ class block_workload extends block_base {
             }
 
             if (empty($activecohorts)) {
-                $this->content->text = html_writer::div(
-                    get_string('workloadinactive', 'block_workload'),
-                    'text-muted small p-2'
-                );
+                $this->content->text = $OUTPUT->render_from_template('block_workload/block_inactive', []);
                 return $this->content;
             }
 

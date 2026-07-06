@@ -32,8 +32,9 @@ define([
     'core/ajax',
     'core/modal',
     'core/modal_events',
+    'core/templates',
     'jquery'
-], function(Ajax, Modal, ModalEvents, $) {
+], function(Ajax, Modal, ModalEvents, Templates, $) {
 
     /**
      * Enable/disable a form's submit button based on whether any named
@@ -102,11 +103,17 @@ define([
                 var large = !!($(this).data('modal-large'));
                 var maxw = $(this).data('modal-maxwidth') || null;
 
-                Modal.create({
+                // Render the iframe body first so the load handler below can
+                // rely on the iframe being present in the modal DOM.
+                Templates.render('block_workload/modal_iframe', {
+                    url: url,
                     title: title,
-                    body: '<iframe src="' + url
-                          + '" style="width:100%;min-height:160px;border:none;display:block;"></iframe>',
-                    large: large,
+                }).then(function(html) {
+                    return Modal.create({
+                        title: title,
+                        body: html,
+                        large: large,
+                    });
                 }).then(function(modal) {
                     modal.show();
                     if (maxw) {

@@ -1,0 +1,46 @@
+{{!
+    This file is part of Moodle - http://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+}}
+{{!
+    @template block_workload/modal_done
+
+    Minimal standalone document loaded into the manage-page modal iframe
+    after a modal form completes. Intentionally rendered WITHOUT the Moodle
+    header/footer: the page must stay tiny, and core_renderer::footer()
+    would consume the session notifications queued for the parent page
+    (they must survive until the parent reloads). Because there is no page
+    footer, AMD is unavailable and a raw script tag is used — the same
+    approach as core_privacy/htmlpage. The "wl_modal_done" token is the
+    contract with the block_workload/manage AMD module (initList message
+    listener).
+
+    @package   block_workload
+    @copyright 2026 Yurii Lysak
+    @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+
+    Example context (json):
+    {}
+}}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>{{#str}} managetitle, block_workload {{/str}}</title>
+</head>
+<body>
+<script>window.parent.postMessage("wl_modal_done", "*");</script>
+</body>
+</html>

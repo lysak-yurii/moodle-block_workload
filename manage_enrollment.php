@@ -538,65 +538,36 @@ function block_workload_render_student_detail(int $userid, int $catid, bool $inc
 
         // Status badge.
         if ($isadded) {
-            $statusbadge = '<span class="badge bg-primary text-white">'
-                . get_string('statusadded', 'block_workload') . '</span>';
+            $statuslabel      = get_string('statusadded', 'block_workload');
+            $statusbadgeclass = 'bg-primary text-white';
         } else if ($excluded) {
-            $statusbadge = '<span class="badge bg-secondary text-white">'
-                . get_string('statusexcluded', 'block_workload') . '</span>';
+            $statuslabel      = get_string('statusexcluded', 'block_workload');
+            $statusbadgeclass = 'bg-secondary text-white';
         } else {
-            $statusbadge = '<span class="badge bg-success text-white">'
-                . get_string('statusincluded', 'block_workload') . '</span>';
+            $statuslabel      = get_string('statusincluded', 'block_workload');
+            $statusbadgeclass = 'bg-success text-white';
         }
 
         // Action link.
         if ($isadded) {
-            $actionhtml = html_writer::link(
-                new moodle_url($baseurl, [
-                    'userid' => $userid, 'courseid' => $course->id, 'action' => 'removecourse',
-                ]),
-                get_string('removecourse', 'block_workload'),
-                ['class' => 'btn btn-outline-secondary btn-sm']
-            );
+            $actionurl = new moodle_url($baseurl, [
+                'userid' => $userid, 'courseid' => $course->id, 'action' => 'removecourse',
+            ]);
+            $actionlabel    = get_string('removecourse', 'block_workload');
+            $actionbtnclass = 'btn-outline-secondary';
         } else if ($excluded) {
-            $actionhtml = html_writer::link(
-                new moodle_url($baseurl, [
-                    'userid' => $userid, 'courseid' => $course->id,
-                    'action' => 'restore', 'sesskey' => sesskey(),
-                ]),
-                get_string('restorecourse', 'block_workload'),
-                ['class' => 'btn btn-outline-success btn-sm']
-            );
+            $actionurl = new moodle_url($baseurl, [
+                'userid' => $userid, 'courseid' => $course->id,
+                'action' => 'restore', 'sesskey' => sesskey(),
+            ]);
+            $actionlabel    = get_string('restorecourse', 'block_workload');
+            $actionbtnclass = 'btn-outline-success';
         } else {
-            $actionhtml = html_writer::link(
-                new moodle_url($baseurl, [
-                    'userid' => $userid, 'courseid' => $course->id, 'action' => 'exclude',
-                ]),
-                get_string('excludecourse', 'block_workload'),
-                ['class' => 'btn btn-outline-secondary btn-sm']
-            );
-        }
-
-        // Order arrows.
-        $orderhtml = '';
-        if ($showordercolumn) {
-            $isfirst = ($idx === 0);
-            $islast  = ($idx === $coursecount - 1);
-            if (!$isfirst) {
-                $orderhtml .= $OUTPUT->action_icon(
-                    new moodle_url('/blocks/workload/manage_enrollment.php', [
-                        'userid' => $userid, 'moveup' => $course->id, 'sesskey' => sesskey(),
-                    ]),
-                    new pix_icon('t/up', get_string('moveup', 'moodle'))
-                );
-            }
-            if (!$islast) {
-                $orderhtml .= $OUTPUT->action_icon(
-                    new moodle_url('/blocks/workload/manage_enrollment.php', [
-                        'userid' => $userid, 'movedown' => $course->id, 'sesskey' => sesskey(),
-                    ]),
-                    new pix_icon('t/down', get_string('movedown', 'moodle'))
-                );
-            }
+            $actionurl = new moodle_url($baseurl, [
+                'userid' => $userid, 'courseid' => $course->id, 'action' => 'exclude',
+            ]);
+            $actionlabel    = get_string('excludecourse', 'block_workload');
+            $actionbtnclass = 'btn-outline-secondary';
         }
 
         $courserows[] = [
@@ -610,18 +581,25 @@ function block_workload_render_student_detail(int $userid, int $catid, bool $inc
             'enddate'         => !empty($course->enddate)
                 ? userdate($course->enddate, get_string('strftimedate', 'langconfig'))
                 : $datedisabled,
-            'statusbadge'     => $statusbadge,
-            'actionhtml'      => $actionhtml,
-            'orderhtml'       => $orderhtml,
+            'statuslabel'      => $statuslabel,
+            'statusbadgeclass' => $statusbadgeclass,
+            'actionurl'        => $actionurl->out(false),
+            'actionlabel'      => $actionlabel,
+            'actionbtnclass'   => $actionbtnclass,
+            'showup'          => $showordercolumn && $idx > 0,
+            'showdown'        => $showordercolumn && $idx < $coursecount - 1,
+            'moveupurl'       => (new moodle_url('/blocks/workload/manage_enrollment.php', [
+                'userid' => $userid, 'moveup' => $course->id, 'sesskey' => sesskey(),
+            ]))->out(false),
+            'movedownurl'     => (new moodle_url('/blocks/workload/manage_enrollment.php', [
+                'userid' => $userid, 'movedown' => $course->id, 'sesskey' => sesskey(),
+            ]))->out(false),
+            'moveuplabel'     => get_string('moveup', 'moodle'),
+            'movedownlabel'   => get_string('movedown', 'moodle'),
             'showordercolumn' => $showordercolumn,
             'excluded'        => $excluded,
         ];
     }
-
-    $assignedheading = get_string('assignedcourses', 'block_workload')
-        . (!empty($courses)
-            ? ' <span class="text-muted fw-normal small ms-1">(' . count($courses) . ')</span>'
-            : '');
 
     $templatecontext = [
         'backurl'    => (new moodle_url('/blocks/workload/manage_enrollment.php'))->out(false),
@@ -639,7 +617,7 @@ function block_workload_render_student_detail(int $userid, int $catid, bool $inc
         'catresultinfo'  => $catresultinfo,
         'addcourserows'  => array_values($addcourserows),
 
-        'assignedheading' => $assignedheading,
+        'assignedcount'   => count($courses),
         'hascourses'      => !empty($courses),
         'nocourses'       => empty($courses),
         'showordercolumn' => $showordercolumn,

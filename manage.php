@@ -46,20 +46,18 @@ if ((get_config('block_workload', 'coursemode') ?: 'cohort') === 'enrollment') {
     redirect(new moodle_url('/blocks/workload/manage_enrollment.php'));
 }
 
-// Modal-done: tiny response that tells the parent frame to close the modal and reload.
-// Must be handled before PAGE setup so we can bypass Moodle's full page output.
-if ($action === 'modaldone') {
-    echo '<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body>';
-    echo '<script>window.parent.postMessage("wl_modal_done","*");</script>';
-    echo '</body></html>';
-    exit;
-}
-
 $PAGE->set_context($syscontext);
 $PAGE->set_pagelayout('admin');
 $PAGE->set_title(get_string('managetitle', 'block_workload'));
 $PAGE->set_heading(get_string('managetitle', 'block_workload'));
 $PAGE->set_url('/blocks/workload/manage.php', ['action' => $action, 'id' => $id]);
+
+// Modal-done: minimal response telling the parent frame to close the modal and
+// reload. Rendered without header/footer — see templates/modal_done.mustache.
+if ($action === 'modaldone') {
+    echo $OUTPUT->render_from_template('block_workload/modal_done', []);
+    exit;
+}
 
 $PAGE->navbar->add(get_string('managetitle', 'block_workload'), new moodle_url('/blocks/workload/manage.php'));
 

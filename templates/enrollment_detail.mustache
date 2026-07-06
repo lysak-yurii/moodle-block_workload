@@ -40,7 +40,7 @@
         "catresultinfo": "",
         "addcourserows": [],
         "nocoursesincat": false,
-        "assignedheading": "Assigned courses (3)",
+        "assignedcount": 3,
         "hascourses": true,
         "nocourses": false,
         "showordercolumn": true,
@@ -49,9 +49,18 @@
                 "id": 10, "name": "Moodle 101", "shortname": "MDL101",
                 "courseurl": "http://example.com/course/view.php?id=10",
                 "startdate": "01.01.2026", "enddate": "30.06.2026",
-                "statusbadge": "<span class=\"badge bg-success\">Included</span>",
-                "actionhtml": "<a href=\"...\">Exclude</a>",
-                "orderhtml": "<a href=\"...\">↑</a><a href=\"...\">↓</a>",
+                "statuslabel": "Included",
+                "statusbadgeclass": "bg-success text-white",
+                "actionurl": "http://example.com/blocks/workload/manage_enrollment.php?userid=5&courseid=10&action=exclude",
+                "actionlabel": "Exclude",
+                "actionbtnclass": "btn-outline-secondary",
+                "showup": false,
+                "showdown": true,
+                "moveupurl": "http://example.com/blocks/workload/manage_enrollment.php?userid=5&moveup=10&sesskey=abc123",
+                "movedownurl": "http://example.com/blocks/workload/manage_enrollment.php?userid=5&movedown=10&sesskey=abc123",
+                "moveuplabel": "Move up",
+                "movedownlabel": "Move down",
+                "showordercolumn": true,
                 "excluded": false
             }
         ],
@@ -169,7 +178,7 @@
     {{/nocoursesincat}}
 
     {{! Assigned courses table }}
-    <h5 class="mt-4 mb-2">{{{assignedheading}}}</h5>
+    <h5 class="mt-4 mb-2">{{#str}}assignedcourses, block_workload{{/str}}{{#hascourses}} <span class="text-muted fw-normal small ms-1">({{assignedcount}})</span>{{/hascourses}}</h5>
 
     {{#nocourses}}
     <div class="text-muted small mb-3">
@@ -217,9 +226,24 @@
                     </td>
                     <td>{{startdate}}</td>
                     <td>{{enddate}}</td>
-                    <td>{{{statusbadge}}}</td>
-                    {{#showordercolumn}}<td>{{{orderhtml}}}</td>{{/showordercolumn}}
-                    <td>{{{actionhtml}}}</td>
+                    <td><span class="badge {{statusbadgeclass}}">{{statuslabel}}</span></td>
+                    {{#showordercolumn}}
+                    <td>
+                        {{#showup}}
+                        <a href="{{{moveupurl}}}" title="{{moveuplabel}}">
+                            {{#pix}}t/up, core, {{moveuplabel}}{{/pix}}
+                        </a>
+                        {{/showup}}
+                        {{^showup}}<span style="display:inline-block;width:1.4rem;"></span>{{/showup}}
+                        {{#showdown}}
+                        <a href="{{{movedownurl}}}" title="{{movedownlabel}}">
+                            {{#pix}}t/down, core, {{movedownlabel}}{{/pix}}
+                        </a>
+                        {{/showdown}}
+                        {{^showdown}}<span style="display:inline-block;width:1.4rem;"></span>{{/showdown}}
+                    </td>
+                    {{/showordercolumn}}
+                    <td><a href="{{{actionurl}}}" class="btn {{actionbtnclass}} btn-sm">{{actionlabel}}</a></td>
                 </tr>
                 {{/courserows}}
             </tbody>
