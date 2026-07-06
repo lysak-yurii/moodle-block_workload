@@ -77,7 +77,7 @@ define(['block_workload/usersearch'], function(UserSearch) {
             listId: 'wl-usersearch-results',
             btnId: 'wl-usersearch-btn',
             clearId: 'wl-usersearch-clear',
-            ajaxPath: '/blocks/workload/ajax_usersearch.php',
+            methodname: 'block_workload_search_stats_users',
             cohortFieldId: 'wl-cohortid',
             noResultsStr: cfg.noResultsStr,
             buildTargetUrl: function(uid) {

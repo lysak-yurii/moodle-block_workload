@@ -21,9 +21,10 @@
  *   listId         {string}   – ID of the <ul> results list
  *   btnId          {string}   – ID of the "go" anchor/button
  *   clearId        {string}   – ID of the clear button
- *   ajaxPath       {string}   – server path for the search endpoint
+ *   methodname     {string}   – external function to call (must accept
+ *                               {query, cohortid} args and return {users: []})
  *   cohortFieldId  {string}   – optional ID of a cohort <select> whose value is
- *                               appended to the search request
+ *                               passed as the cohortid argument
  *   noResultsStr   {string}   – localised "no results" message
  *   buildTargetUrl {function} – receives userid, returns the navigation href
  *
@@ -32,7 +33,7 @@
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-define([], function() {
+define(['core/ajax'], function(Ajax) {
 
     /**
      * Initialise one autocomplete instance.
@@ -98,18 +99,16 @@ define([], function() {
          * @param {string} q Search query
          */
         function doSearch(q) {
-            var url = M.cfg.wwwroot + cfg.ajaxPath + '?q=' + encodeURIComponent(q);
+            var args = {query: q, cohortid: 0};
             if (cfg.cohortFieldId) {
                 var cel = document.getElementById(cfg.cohortFieldId);
                 if (cel) {
-                    url += '&cohortid=' + encodeURIComponent(cel.value);
+                    args.cohortid = parseInt(cel.value, 10) || 0;
                 }
             }
-            fetch(url, {credentials: 'same-origin'})
-                .then(function(r) {
-                    return r.json();
-                })
-                .then(function(data) {
+            Ajax.call([{methodname: cfg.methodname, args: args}])[0]
+                .then(function(response) {
+                    var data = response.users;
                     list.innerHTML = '';
                     if (!data || !data.length) {
                         var li = document.createElement('li');

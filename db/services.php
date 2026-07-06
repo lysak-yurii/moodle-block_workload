@@ -55,4 +55,14 @@ $functions = [
         'loginrequired' => true,
         'capabilities'  => 'block/workload:manage',
     ],
+
+    'block_workload_search_stats_users' => [
+        'classname'     => 'block_workload\external\search_stats_users',
+        'methodname'    => 'execute',
+        'description'   => 'Search users by name or email for the statistics and enrollment user lookup',
+        'type'          => 'read',
+        'ajax'          => true,
+        'loginrequired' => true,
+        'capabilities'  => 'block/workload:viewallstats',
+    ],
 ];

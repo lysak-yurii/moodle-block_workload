@@ -37,7 +37,7 @@ define(['block_workload/usersearch'], function(UserSearch) {
             listId: 'wl-enrol-results',
             btnId: 'wl-enrol-btn',
             clearId: 'wl-enrol-clear',
-            ajaxPath: '/blocks/workload/ajax_usersearch.php',
+            methodname: 'block_workload_search_stats_users',
             noResultsStr: cfg.noResultsStr,
             buildTargetUrl: function(uid) {
                 return M.cfg.wwwroot + '/blocks/workload/manage_enrollment.php?userid=' + uid;
