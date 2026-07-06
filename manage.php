@@ -176,10 +176,18 @@ function block_workload_action_list(): void {
 
     $cohorts = $DB->get_records('block_workload_cohorts', null, 'timecreated DESC');
 
+    // Preload per-cohort counts in two grouped queries instead of two queries per cohort.
+    $membercounts = $DB->get_records_sql_menu(
+        'SELECT cohortid, COUNT(1) FROM {block_workload_members} GROUP BY cohortid'
+    );
+    $coursecounts = $DB->get_records_sql_menu(
+        'SELECT cohortid, COUNT(1) FROM {block_workload_courses} WHERE active = 1 GROUP BY cohortid'
+    );
+
     $cohortrows = [];
     foreach ($cohorts as $cohort) {
-        $membercount = $DB->count_records('block_workload_members', ['cohortid' => $cohort->id]);
-        $coursecount = $DB->count_records('block_workload_courses', ['cohortid' => $cohort->id, 'active' => 1]);
+        $membercount = (int)($membercounts[$cohort->id] ?? 0);
+        $coursecount = (int)($coursecounts[$cohort->id] ?? 0);
 
         $cohortrows[] = [
             'id'             => $cohort->id,
@@ -479,10 +487,14 @@ function block_workload_action_members(int $id): void {
     $dobulkremove   = optional_param('dobulkremove', 0, PARAM_BOOL);
     if ($confirmbulkids !== '' && $dobulkremove && confirm_sesskey()) {
         $ids = array_filter(array_map('intval', explode(',', $confirmbulkids)));
-        $removed = 0;
-        foreach ($ids as $uid) {
-            $DB->delete_records('block_workload_members', ['cohortid' => $id, 'userid' => $uid]);
-            $removed++;
+        $removed = count($ids);
+        if ($removed > 0) {
+            [$insql, $inparams] = $DB->get_in_or_equal($ids, SQL_PARAMS_NAMED);
+            $DB->delete_records_select(
+                'block_workload_members',
+                "cohortid = :cohortid AND userid $insql",
+                $inparams + ['cohortid' => $id]
+            );
         }
         \block_workload\event\members_removed::create([
             'objectid' => $id, 'context' => context_system::instance(),
@@ -524,16 +536,33 @@ function block_workload_action_members(int $id): void {
     // Add members (POST).
     $addusers = optional_param_array('addusers', [], PARAM_INT);
     if (!empty($addusers) && confirm_sesskey()) {
-        $added = 0;
-        foreach ($addusers as $uid) {
-            if (!$DB->record_exists('block_workload_members', ['cohortid' => $id, 'userid' => (int)$uid])) {
-                $r              = new stdClass();
-                $r->cohortid    = $id;
-                $r->userid      = (int)$uid;
-                $r->timecreated = time();
-                $DB->insert_record('block_workload_members', $r);
-                $added++;
+        $adduserids = array_unique(array_map('intval', $addusers));
+
+        // One query to find users already in the cohort, then a single batch insert.
+        [$insql, $inparams] = $DB->get_in_or_equal($adduserids, SQL_PARAMS_NAMED);
+        $existingids = array_map('intval', $DB->get_records_select_menu(
+            'block_workload_members',
+            "cohortid = :cohortid AND userid $insql",
+            $inparams + ['cohortid' => $id],
+            '',
+            'id, userid'
+        ));
+        $now     = time();
+        $records = [];
+        foreach ($adduserids as $uid) {
+            if (!in_array($uid, $existingids, true)) {
+                $records[] = (object)[
+                    'cohortid'    => $id,
+                    'userid'      => $uid,
+                    'timecreated' => $now,
+                ];
             }
+        }
+        $added = count($records);
+        if ($added > 0) {
+            $transaction = $DB->start_delegated_transaction();
+            $DB->insert_records('block_workload_members', $records);
+            $transaction->allow_commit();
         }
         if ($added > 0) {
             \block_workload\event\members_added::create([
@@ -889,10 +918,14 @@ function block_workload_action_courses(int $id): void {
     $dobulkremove   = optional_param('dobulkremove', 0, PARAM_BOOL);
     if ($confirmbulkids !== '' && $dobulkremove && confirm_sesskey()) {
         $ids = array_filter(array_map('intval', explode(',', $confirmbulkids)));
-        $removed = 0;
-        foreach ($ids as $aid) {
-            $DB->delete_records('block_workload_courses', ['id' => $aid, 'cohortid' => $id]);
-            $removed++;
+        $removed = count($ids);
+        if ($removed > 0) {
+            [$insql, $inparams] = $DB->get_in_or_equal($ids, SQL_PARAMS_NAMED);
+            $DB->delete_records_select(
+                'block_workload_courses',
+                "cohortid = :cohortid AND id $insql",
+                $inparams + ['cohortid' => $id]
+            );
         }
         \block_workload\event\courses_removed::create([
             'objectid' => $id, 'context' => context_system::instance(),
@@ -965,11 +998,16 @@ function block_workload_action_courses(int $id): void {
             }
             $swapidx = $moveup ? $i - 1 : $i + 1;
             if ($swapidx >= 0 && $swapidx < $count) {
+                $transaction = $DB->start_delegated_transaction();
+                // Normalise to sequential positions, writing only rows that changed.
                 foreach ($ordered as $j => $r) {
-                    $DB->set_field('block_workload_courses', 'sortorder', $j, ['id' => $r->id]);
+                    if ($j !== $i && $j !== $swapidx && (int)$r->sortorder !== $j) {
+                        $DB->set_field('block_workload_courses', 'sortorder', $j, ['id' => $r->id]);
+                    }
                 }
                 $DB->set_field('block_workload_courses', 'sortorder', $swapidx, ['id' => $ordered[$i]->id]);
                 $DB->set_field('block_workload_courses', 'sortorder', $i, ['id' => $ordered[$swapidx]->id]);
+                $transaction->allow_commit();
             }
             break;
         }
@@ -983,18 +1021,35 @@ function block_workload_action_courses(int $id): void {
             'SELECT COALESCE(MAX(sortorder), -1) FROM {block_workload_courses} WHERE cohortid = :cohortid',
             ['cohortid' => $id]
         );
-        $added = 0;
-        foreach ($addcourses as $cid) {
-            if (!$DB->record_exists('block_workload_courses', ['cohortid' => $id, 'courseid' => $cid])) {
-                $r              = new stdClass();
-                $r->cohortid    = $id;
-                $r->courseid    = $cid;
-                $r->active      = 1;
-                $r->sortorder   = $nextsort++;
-                $r->timecreated = time();
-                $DB->insert_record('block_workload_courses', $r);
-                $added++;
+        $addcourseids = array_unique(array_map('intval', $addcourses));
+
+        // One query to find courses already assigned, then a single batch insert.
+        [$insql, $inparams] = $DB->get_in_or_equal($addcourseids, SQL_PARAMS_NAMED);
+        $existingids = array_map('intval', $DB->get_records_select_menu(
+            'block_workload_courses',
+            "cohortid = :cohortid AND courseid $insql",
+            $inparams + ['cohortid' => $id],
+            '',
+            'id, courseid'
+        ));
+        $now     = time();
+        $records = [];
+        foreach ($addcourseids as $cid) {
+            if (!in_array($cid, $existingids, true)) {
+                $records[] = (object)[
+                    'cohortid'    => $id,
+                    'courseid'    => $cid,
+                    'active'      => 1,
+                    'sortorder'   => $nextsort++,
+                    'timecreated' => $now,
+                ];
             }
+        }
+        $added = count($records);
+        if ($added > 0) {
+            $transaction = $DB->start_delegated_transaction();
+            $DB->insert_records('block_workload_courses', $records);
+            $transaction->allow_commit();
         }
         if ($added > 0) {
             \block_workload\event\courses_assigned::create([

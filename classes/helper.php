@@ -323,6 +323,26 @@ class helper {
     }
 
     /**
+     * Filter cohort records down to those whose activation window contains the
+     * current ISO week.
+     *
+     * In-memory companion to is_workload_active(): callers that already hold
+     * full cohort records (e.g. from get_user_active_cohorts()) should use this
+     * instead of calling is_workload_active() once per cohort.
+     *
+     * @param array $cohorts Cohort records, keyed by id.
+     * @return array The currently-active subset, original keys preserved.
+     */
+    public static function filter_cohorts_active_now(array $cohorts): array {
+        $year = (int) date('o');
+        $week = (int) date('W');
+        return array_filter(
+            $cohorts,
+            static fn($c) => self::is_workload_active_for($c, $year, $week)
+        );
+    }
+
+    /**
      * Configured backfill window: how many weeks before the current week a student
      * may still edit. Returns 0 (current week only) when backfilling is disabled.
      *
@@ -363,12 +383,15 @@ class helper {
      * values, future weeks, weeks older than the rolling backfill window, and (in cohort
      * mode) weeks that fall outside every cohort window the user belongs to.
      *
-     * @param int $userid
-     * @param int $year
-     * @param int $week
+     * @param int        $userid
+     * @param int        $year
+     * @param int        $week
+     * @param array|null $cohorts Preloaded active cohorts of the user (cohort mode only);
+     *                            null = load them here. Lets callers that test several
+     *                            weeks avoid one query per week.
      * @return bool
      */
-    public static function is_week_editable(int $userid, int $year, int $week): bool {
+    public static function is_week_editable(int $userid, int $year, int $week, ?array $cohorts = null): bool {
         // Basic range sanity.
         if ($week < 1 || $week > 53 || $year < 2000 || $year > 2100) {
             return false;
@@ -396,7 +419,7 @@ class helper {
         }
 
         // Cohort mode: the week must fall within at least one of the user's cohort windows.
-        foreach (self::get_user_active_cohorts($userid) as $cohort) {
+        foreach ($cohorts ?? self::get_user_active_cohorts($userid) as $cohort) {
             if (self::is_workload_active_for($cohort, $year, $week)) {
                 return true;
             }
@@ -419,10 +442,14 @@ class helper {
         $maxint = (int) date('o') * 100 + (int) date('W');
         $minint = $maxint;
 
+        // Load the user's cohorts once for all week checks (unused in enrollment mode).
+        $coursemode = get_config('block_workload', 'coursemode') ?: 'cohort';
+        $cohorts    = ($coursemode === 'enrollment') ? null : self::get_user_active_cohorts($userid);
+
         $n = self::get_backfill_weeks();
         for ($i = 1; $i <= $n; $i++) {
             $wk = self::iso_week_offset($i);
-            if (self::is_week_editable($userid, $wk['year'], $wk['week'])) {
+            if (self::is_week_editable($userid, $wk['year'], $wk['week'], $cohorts)) {
                 $minint = $wk['year'] * 100 + $wk['week'];
             } else {
                 break;
@@ -952,17 +979,26 @@ class helper {
         // Full management list, currently sorted by (sortorder, fullname).
         $all = array_values(self::get_user_courses_for_management($userid));
 
+        // Preload all override rows in one query; (userid, courseid) is unique,
+        // so keying by courseid is safe.
+        $overrides = $DB->get_records(
+            'block_workload_user_courses',
+            ['userid' => $userid],
+            '',
+            'courseid, id, active, sortorder'
+        );
+
+        $transaction = $DB->start_delegated_transaction();
+
         // Lazy-initialise: ensure every visible course has an override row with
         // a valid, sequential sortorder so the whole list can be reordered.
+        // Positions in $all are the normalised order, so no reload is needed.
         foreach ($all as $i => $course) {
-            $existing = $DB->get_record(
-                'block_workload_user_courses',
-                ['userid' => $userid, 'courseid' => $course->id]
-            );
+            $existing = $overrides[$course->id] ?? null;
             if (!$existing) {
                 // Enrolled course with no override yet — insert a tracking record.
                 // active=1 has no display effect for an enrolled course.
-                $DB->insert_record('block_workload_user_courses', (object)[
+                $newid = $DB->insert_record('block_workload_user_courses', (object)[
                     'userid'        => $userid,
                     'courseid'      => $course->id,
                     'active'        => 1,
@@ -970,34 +1006,33 @@ class helper {
                     'timecreated'   => $now,
                     'timemodified'  => $now,
                 ]);
-            } else {
+                $overrides[$course->id] = (object)[
+                    'courseid'  => $course->id,
+                    'id'        => $newid,
+                    'active'    => 1,
+                    'sortorder' => $i,
+                ];
+            } else if ((int)$existing->sortorder !== $i) {
                 $DB->set_field('block_workload_user_courses', 'sortorder', $i, ['id' => $existing->id]);
             }
         }
 
-        // Reload after normalisation so positions are sequential 0…n-1.
-        $all   = array_values(self::get_user_courses_for_management($userid));
         $count = count($all);
-
         foreach ($all as $i => $course) {
             if ((int)$course->id !== $courseid) {
                 continue;
             }
             $swapidx = $moveup ? $i - 1 : $i + 1;
             if ($swapidx >= 0 && $swapidx < $count) {
-                $reca = $DB->get_record(
-                    'block_workload_user_courses',
-                    ['userid' => $userid, 'courseid' => $all[$i]->id]
-                );
-                $recb = $DB->get_record(
-                    'block_workload_user_courses',
-                    ['userid' => $userid, 'courseid' => $all[$swapidx]->id]
-                );
+                $reca = $overrides[$all[$i]->id];
+                $recb = $overrides[$all[$swapidx]->id];
                 $DB->set_field('block_workload_user_courses', 'sortorder', $swapidx, ['id' => $reca->id]);
                 $DB->set_field('block_workload_user_courses', 'sortorder', $i, ['id' => $recb->id]);
             }
             break;
         }
+
+        $transaction->allow_commit();
     }
 
     /**

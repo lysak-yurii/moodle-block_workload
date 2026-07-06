@@ -84,6 +84,10 @@ class save_hours extends external_api {
 
         $coursemode = get_config('block_workload', 'coursemode') ?: 'cohort';
 
+        // Loaded in cohort mode below and reused by is_week_editable(); stays
+        // null in enrollment mode, which never consults cohort windows.
+        $allcohorts = null;
+
         if ($coursemode === 'enrollment') {
             // Enrollment mode: validate via Moodle enrollment + manager overrides.
             require_once($CFG->libdir . '/enrollib.php');
@@ -105,7 +109,7 @@ class save_hours extends external_api {
         } else {
             // Cohort mode: verify the user has at least one currently-active cohort.
             $allcohorts    = \block_workload\helper::get_user_active_cohorts($USER->id);
-            $activecohorts = array_filter($allcohorts, fn($c) => \block_workload\helper::is_workload_active($c->id));
+            $activecohorts = \block_workload\helper::filter_cohorts_active_now($allcohorts);
             if (empty($activecohorts)) {
                 throw new \moodle_exception('workloadinactive', 'block_workload');
             }
@@ -125,7 +129,7 @@ class save_hours extends external_api {
         }
 
         // Enforce the editable-week window (future weeks, rolling backfill floor, cohort start).
-        if (!\block_workload\helper::is_week_editable($USER->id, $params['year'], $params['weeknumber'])) {
+        if (!\block_workload\helper::is_week_editable($USER->id, $params['year'], $params['weeknumber'], $allcohorts)) {
             throw new \moodle_exception('weeknoteditable', 'block_workload');
         }
 

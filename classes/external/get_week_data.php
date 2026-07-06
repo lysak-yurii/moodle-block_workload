@@ -75,8 +75,9 @@ class get_week_data extends external_api {
             }
             $courses = \block_workload\helper::get_user_enrolled_courses((int) $USER->id);
         } else {
-            $allcohorts    = \block_workload\helper::get_user_active_cohorts($USER->id);
-            $activecohorts = array_filter($allcohorts, fn($c) => \block_workload\helper::is_workload_active($c->id));
+            $activecohorts = \block_workload\helper::filter_cohorts_active_now(
+                \block_workload\helper::get_user_active_cohorts($USER->id)
+            );
             if (empty($activecohorts)) {
                 return ['courses' => []];
             }

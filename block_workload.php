@@ -159,7 +159,7 @@ class block_workload extends block_base {
         } else {
             // Cohort mode (default).
             $allcohorts    = \block_workload\helper::get_user_active_cohorts($USER->id);
-            $activecohorts = array_filter($allcohorts, fn($c) => \block_workload\helper::is_workload_active($c->id));
+            $activecohorts = \block_workload\helper::filter_cohorts_active_now($allcohorts);
 
             if (empty($allcohorts)) {
                 return $this->content;
