@@ -272,6 +272,10 @@ class helper {
      * optional date range stored on the cohort (week_from/year_from to week_to/year_to).
      * If no range is set the cohort is always active when active = 1.
      *
+     * Queries the DB per call — for single-record checks only. When iterating
+     * over already-loaded cohort records, use filter_cohorts_active_now() or
+     * is_workload_active_for() instead.
+     *
      * @param int $cohortid
      * @return bool
      */
@@ -283,17 +287,7 @@ class helper {
             return false;
         }
 
-        // No date range → always active.
-        if (!$cohort->week_from && !$cohort->week_to) {
-            return true;
-        }
-
-        // Build comparable integer: year * 100 + week.
-        $current = (int) date('o') * 100 + (int) date('W');
-        $from    = $cohort->year_from ? ((int)$cohort->year_from * 100 + (int)$cohort->week_from) : 0;
-        $to      = $cohort->year_to ? ((int)$cohort->year_to * 100 + (int)$cohort->week_to) : PHP_INT_MAX;
-
-        return ($current >= $from && $current <= $to);
+        return self::is_workload_active_for($cohort, (int) date('o'), (int) date('W'));
     }
 
     /**

@@ -540,17 +540,17 @@ function block_workload_action_members(int $id): void {
 
         // One query to find users already in the cohort, then a single batch insert.
         [$insql, $inparams] = $DB->get_in_or_equal($adduserids, SQL_PARAMS_NAMED);
-        $existingids = array_map('intval', $DB->get_records_select_menu(
+        $existing = $DB->get_records_select_menu(
             'block_workload_members',
             "cohortid = :cohortid AND userid $insql",
             $inparams + ['cohortid' => $id],
             '',
-            'id, userid'
-        ));
+            'userid, id'
+        );
         $now     = time();
         $records = [];
         foreach ($adduserids as $uid) {
-            if (!in_array($uid, $existingids, true)) {
+            if (!isset($existing[$uid])) {
                 $records[] = (object)[
                     'cohortid'    => $id,
                     'userid'      => $uid,
@@ -563,8 +563,7 @@ function block_workload_action_members(int $id): void {
             $transaction = $DB->start_delegated_transaction();
             $DB->insert_records('block_workload_members', $records);
             $transaction->allow_commit();
-        }
-        if ($added > 0) {
+
             \block_workload\event\members_added::create([
                 'objectid' => $id, 'context' => context_system::instance(),
                 'other'    => ['cohortname' => $cohort->name, 'count' => $added],
@@ -1025,17 +1024,17 @@ function block_workload_action_courses(int $id): void {
 
         // One query to find courses already assigned, then a single batch insert.
         [$insql, $inparams] = $DB->get_in_or_equal($addcourseids, SQL_PARAMS_NAMED);
-        $existingids = array_map('intval', $DB->get_records_select_menu(
+        $existing = $DB->get_records_select_menu(
             'block_workload_courses',
             "cohortid = :cohortid AND courseid $insql",
             $inparams + ['cohortid' => $id],
             '',
-            'id, courseid'
-        ));
+            'courseid, id'
+        );
         $now     = time();
         $records = [];
         foreach ($addcourseids as $cid) {
-            if (!in_array($cid, $existingids, true)) {
+            if (!isset($existing[$cid])) {
                 $records[] = (object)[
                     'cohortid'    => $id,
                     'courseid'    => $cid,
@@ -1050,8 +1049,7 @@ function block_workload_action_courses(int $id): void {
             $transaction = $DB->start_delegated_transaction();
             $DB->insert_records('block_workload_courses', $records);
             $transaction->allow_commit();
-        }
-        if ($added > 0) {
+
             \block_workload\event\courses_assigned::create([
                 'objectid' => $id, 'context' => context_system::instance(),
                 'other'    => ['cohortname' => $cohort->name, 'count' => $added],
