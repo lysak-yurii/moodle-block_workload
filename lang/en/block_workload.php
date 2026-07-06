@@ -245,6 +245,9 @@ $string['privacy:metadata:block_workload_user_courses:active']        = 'Overrid
 $string['privacy:metadata:block_workload_user_courses:courseid']      = 'The ID of the course.';
 $string['privacy:metadata:block_workload_user_courses:sortorder']     = 'The manual sort position of this course in the student\'s list.';
 $string['privacy:metadata:block_workload_user_courses:userid']        = 'The ID of the student.';
+$string['privacy:metadata:block_workload_user_settings']              = 'Stores per-student workload widget settings set by the Quality Manager in enrollment mode (whether the workload widget is enabled for that student).';
+$string['privacy:metadata:block_workload_user_settings:active']       = 'Whether the workload widget is enabled for the student: 1 = enabled, 0 = disabled.';
+$string['privacy:metadata:block_workload_user_settings:userid']       = 'The ID of the student.';
 $string['pseudonym'] = '{$a->adjective} {$a->animal} {$a->code}';
 $string['removecourse']      = 'Remove';
 $string['removemember']       = 'Remove';

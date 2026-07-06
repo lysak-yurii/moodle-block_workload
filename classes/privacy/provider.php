@@ -65,6 +65,11 @@ class provider implements
             'sortorder' => 'privacy:metadata:block_workload_user_courses:sortorder',
         ], 'privacy:metadata:block_workload_user_courses');
 
+        $collection->add_database_table('block_workload_user_settings', [
+            'userid' => 'privacy:metadata:block_workload_user_settings:userid',
+            'active' => 'privacy:metadata:block_workload_user_settings:active',
+        ], 'privacy:metadata:block_workload_user_settings');
+
         return $collection;
     }
 
@@ -84,7 +89,8 @@ class provider implements
                          EXISTS (SELECT 1 FROM {block_workload_entries}     WHERE userid    = :uid1)
                       OR EXISTS (SELECT 1 FROM {block_workload_members}     WHERE userid    = :uid2)
                       OR EXISTS (SELECT 1 FROM {block_workload_user_courses} WHERE userid   = :uid3)
-                      OR EXISTS (SELECT 1 FROM {block_workload_cohorts}     WHERE createdby = :uid4)
+                      OR EXISTS (SELECT 1 FROM {block_workload_user_settings} WHERE userid  = :uid4)
+                      OR EXISTS (SELECT 1 FROM {block_workload_cohorts}     WHERE createdby = :uid5)
                    )";
         $contextlist->add_from_sql($sql, [
             'ctxlevel' => CONTEXT_SYSTEM,
@@ -92,6 +98,7 @@ class provider implements
             'uid2'     => $userid,
             'uid3'     => $userid,
             'uid4'     => $userid,
+            'uid5'     => $userid,
         ]);
         return $contextlist;
     }
@@ -108,6 +115,7 @@ class provider implements
         $userlist->add_from_sql('userid', 'SELECT DISTINCT userid    FROM {block_workload_entries}', []);
         $userlist->add_from_sql('userid', 'SELECT DISTINCT userid    FROM {block_workload_members}', []);
         $userlist->add_from_sql('userid', 'SELECT DISTINCT userid    FROM {block_workload_user_courses}', []);
+        $userlist->add_from_sql('userid', 'SELECT DISTINCT userid    FROM {block_workload_user_settings}', []);
         $userlist->add_from_sql('createdby', 'SELECT DISTINCT createdby FROM {block_workload_cohorts}', []);
     }
 
@@ -146,6 +154,14 @@ class provider implements
             );
         }
 
+        $settings = $DB->get_records('block_workload_user_settings', ['userid' => $userid]);
+        if ($settings) {
+            writer::with_context($context)->export_data(
+                [get_string('pluginname', 'block_workload'), 'user_settings'],
+                (object) ['user_settings' => array_values($settings)]
+            );
+        }
+
         $cohorts = $DB->get_records('block_workload_cohorts', ['createdby' => $userid]);
         if ($cohorts) {
             writer::with_context($context)->export_data(
@@ -168,6 +184,7 @@ class provider implements
         $DB->delete_records('block_workload_entries');
         $DB->delete_records('block_workload_members');
         $DB->delete_records('block_workload_user_courses');
+        $DB->delete_records('block_workload_user_settings');
         // Createdby is NOTNULL — anonymise rather than delete the cohort row.
         $DB->set_field('block_workload_cohorts', 'createdby', 0);
     }
@@ -193,6 +210,7 @@ class provider implements
         $DB->delete_records('block_workload_entries', ['userid' => $userid]);
         $DB->delete_records('block_workload_members', ['userid' => $userid]);
         $DB->delete_records('block_workload_user_courses', ['userid' => $userid]);
+        $DB->delete_records('block_workload_user_settings', ['userid' => $userid]);
         $DB->set_field('block_workload_cohorts', 'createdby', 0, ['createdby' => $userid]);
     }
 
@@ -214,6 +232,7 @@ class provider implements
         $DB->delete_records_select('block_workload_entries', "userid $insql", $params);
         $DB->delete_records_select('block_workload_members', "userid $insql", $params);
         $DB->delete_records_select('block_workload_user_courses', "userid $insql", $params);
+        $DB->delete_records_select('block_workload_user_settings', "userid $insql", $params);
         $DB->set_field_select('block_workload_cohorts', 'createdby', 0, "createdby $insql", $params);
     }
 }
