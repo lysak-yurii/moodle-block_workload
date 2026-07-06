@@ -319,10 +319,10 @@ if ($userid && ($moveup || $movedown) && confirm_sesskey()) {
 // Route to view.
 
 if ($userid) {
-    render_student_detail($userid, $catid, (bool)$includesubcats);
+    block_workload_render_student_detail($userid, $catid, (bool)$includesubcats);
     exit;
 }
-render_student_list($firstletter, $lastletter, $perpage, $alphabet);
+block_workload_render_student_list($firstletter, $lastletter, $perpage, $alphabet);
 
 // List view.
 
@@ -334,7 +334,7 @@ render_student_list($firstletter, $lastletter, $perpage, $alphabet);
  * @param int    $perpage
  * @param array  $alphabet
  */
-function render_student_list(
+function block_workload_render_student_list(
     string $firstletter,
     string $lastletter,
     int $perpage,
@@ -453,7 +453,7 @@ function render_student_list(
  * @param int  $catid
  * @param bool $includesubcats
  */
-function render_student_detail(int $userid, int $catid, bool $includesubcats = false): void {
+function block_workload_render_student_detail(int $userid, int $catid, bool $includesubcats = false): void {
     global $OUTPUT, $PAGE, $DB;
 
     $user     = $DB->get_record('user', ['id' => $userid, 'deleted' => 0], '*', MUST_EXIST);

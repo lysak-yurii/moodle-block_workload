@@ -67,31 +67,31 @@ $PAGE->navbar->add(get_string('managetitle', 'block_workload'), new moodle_url('
 switch ($action) {
     case 'add':
     case 'edit':
-        action_cohort_form($action, $id);
+        block_workload_action_cohort_form($action, $id);
         break;
 
     case 'delete':
-        action_delete($id, $confirm);
+        block_workload_action_delete($id, $confirm);
         break;
 
     case 'members':
-        action_members($id);
+        block_workload_action_members($id);
         break;
 
     case 'courses':
-        action_courses($id);
+        block_workload_action_courses($id);
         break;
 
     case 'activation':
-        action_activation($id);
+        block_workload_action_activation($id);
         break;
 
     case 'togglecohort':
-        action_toggle_cohort($id);
+        block_workload_action_toggle_cohort($id);
         break;
 
     default:
-        action_list();
+        block_workload_action_list();
         break;
 }
 
@@ -105,7 +105,7 @@ switch ($action) {
  * @param mixed  $current currently selected value
  * @return array
  */
-function build_select_opts(array $opts, $current): array {
+function block_workload_build_select_opts(array $opts, $current): array {
     $out = [];
     foreach ($opts as $val => $label) {
         $out[] = [
@@ -125,7 +125,7 @@ function build_select_opts(array $opts, $current): array {
  * @param array $allmemberids  Already-enrolled user ids (for the ✓ indicator).
  * @return array
  */
-function build_user_rows(array $users, array $allmemberids): array {
+function block_workload_build_user_rows(array $users, array $allmemberids): array {
     $rows = [];
     foreach ($users as $u) {
         $rows[] = [
@@ -147,7 +147,7 @@ function build_user_rows(array $users, array $allmemberids): array {
  *
  * @param int $id
  */
-function action_toggle_cohort(int $id): void {
+function block_workload_action_toggle_cohort(int $id): void {
     global $DB;
     require_sesskey();
     $cohort = $DB->get_record('block_workload_cohorts', ['id' => $id], '*', MUST_EXIST);
@@ -169,7 +169,7 @@ function action_toggle_cohort(int $id): void {
 /**
  * Render the cohort list page.
  */
-function action_list(): void {
+function block_workload_action_list(): void {
     global $DB, $OUTPUT, $PAGE;
 
     $PAGE->requires->js_call_amd('block_workload/manage', 'initList', []);
@@ -246,7 +246,7 @@ function action_list(): void {
  * @param string $action
  * @param int    $id
  */
-function action_cohort_form(string $action, int $id): void {
+function block_workload_action_cohort_form(string $action, int $id): void {
     global $DB, $OUTPUT, $PAGE;
 
     $modal  = optional_param('modal', 0, PARAM_BOOL);
@@ -347,7 +347,7 @@ function action_cohort_form(string $action, int $id): void {
  * @param int  $id
  * @param bool $confirmed
  */
-function action_delete(int $id, bool $confirmed): void {
+function block_workload_action_delete(int $id, bool $confirmed): void {
     global $DB, $OUTPUT;
 
     $cohort = $DB->get_record('block_workload_cohorts', ['id' => $id], '*', MUST_EXIST);
@@ -392,7 +392,7 @@ function action_delete(int $id, bool $confirmed): void {
  *
  * @param int $id Cohort id.
  */
-function action_members(int $id): void {
+function block_workload_action_members(int $id): void {
     global $DB, $OUTPUT, $PAGE;
 
     $cohort  = $DB->get_record('block_workload_cohorts', ['id' => $id], '*', MUST_EXIST);
@@ -785,16 +785,16 @@ function action_members(int $id): void {
             '/blocks/workload/manage.php',
             ['action' => 'members', 'id' => $id]
         ))->out(false),
-        'deptopts'         => build_select_opts($deptopts, $filterdepartment),
-        'instopts'         => build_select_opts($instopts, $filterinstitution),
-        'catopts'          => build_select_opts($catopts, $filtercategory),
+        'deptopts'         => block_workload_build_select_opts($deptopts, $filterdepartment),
+        'instopts'         => block_workload_build_select_opts($instopts, $filterinstitution),
+        'catopts'          => block_workload_build_select_opts($catopts, $filtercategory),
         'filtercategoryhelp' => $OUTPUT->help_icon('filterbycategory', 'block_workload'),
 
         // Search results.
         'hassearch'        => $hassearch,
         'nouserfound'      => $nouserfound,
         'searchresultinfo' => $searchresultinfo,
-        'searchrows'       => $hassearch ? build_user_rows($found, $allmemberids) : [],
+        'searchrows'       => $hassearch ? block_workload_build_user_rows($found, $allmemberids) : [],
 
         // Moodle cohort import.
         'importenabled'          => $importenabled,
@@ -804,7 +804,7 @@ function action_members(int $id): void {
         'nomoodlemembers'        => $hasmoodlecohortsection && empty($moodlemembers),
         'moodleimportinfo'       => $moodleimportinfo,
         'moodlerows'             => $hasmoodlecohortsection
-                                        ? build_user_rows($moodlemembers, $allmemberids)
+                                        ? block_workload_build_user_rows($moodlemembers, $allmemberids)
                                         : [],
 
         // A-Z bars + per-page switcher.
@@ -835,7 +835,7 @@ function action_members(int $id): void {
  *
  * @param int $id Cohort id.
  */
-function action_courses(int $id): void {
+function block_workload_action_courses(int $id): void {
     global $DB, $OUTPUT, $PAGE;
 
     $cohort = $DB->get_record('block_workload_cohorts', ['id' => $id], '*', MUST_EXIST);
@@ -1120,7 +1120,7 @@ function action_courses(int $id): void {
         'sesskey'           => sesskey(),
         'selectedcategory'  => $selectedcategory,
         'includesubcats'    => (bool)$includesubcats,
-        'catopts'           => build_select_opts($catopts, $selectedcategory),
+        'catopts'           => block_workload_build_select_opts($catopts, $selectedcategory),
         'hascatcourses'     => $hascatcourses,
         'nocatcourses'      => $nocatcourses,
         'catresultinfo'     => $catresultinfo,
@@ -1144,7 +1144,7 @@ function action_courses(int $id): void {
  *
  * @param int $id Cohort id.
  */
-function action_activation(int $id): void {
+function block_workload_action_activation(int $id): void {
     global $DB, $OUTPUT, $PAGE;
 
     $modal  = optional_param('modal', 0, PARAM_BOOL);
