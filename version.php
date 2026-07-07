@@ -24,7 +24,7 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version   = 2026070701;
+$plugin->version   = 2026070702;
 $plugin->requires  = 2024100700; // Moodle 4.5 or later.
 $plugin->component = 'block_workload';
 $plugin->maturity  = MATURITY_BETA;
