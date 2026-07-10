@@ -29,6 +29,9 @@
  * @return bool
  */
 function xmldb_block_workload_upgrade(int $oldversion): bool {
+    global $DB;
+
+    $dbman = $DB->get_manager();
 
     if ($oldversion < 2026061200) {
         // Allow regular users to export their own statistics as CSV.
@@ -69,6 +72,64 @@ function xmldb_block_workload_upgrade(int $oldversion): bool {
         }
 
         upgrade_block_savepoint(true, 2026070300, 'workload');
+    }
+
+    if ($oldversion < 2026071000) {
+        // Global course hiding for enrollment mode: courses listed here are
+        // hidden from every student's workload dashboard by default (a
+        // per-student force-include override still wins).
+        $table = new xmldb_table('block_workload_global_courses');
+
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $table->add_field('courseid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('createdby', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+        $table->add_key('fk_courseid', XMLDB_KEY_FOREIGN_UNIQUE, ['courseid'], 'course', ['id']);
+        $table->add_key('fk_createdby', XMLDB_KEY_FOREIGN, ['createdby'], 'user', ['id']);
+
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        upgrade_block_savepoint(true, 2026071000, 'workload');
+    }
+
+    if ($oldversion < 2026071001) {
+        // Make block_workload_user_courses.active nullable so a row can hold a
+        // sort position without asserting an include/exclude opinion. This
+        // disentangles the sort-order tracking rows (previously written as
+        // active=1 by the reorder feature) from deliberate force-includes, so
+        // the global-hide override can trust active=1 to mean "force-shown".
+        $table = new xmldb_table('block_workload_user_courses');
+        $field = new xmldb_field('active', XMLDB_TYPE_INTEGER, '1', null, null, null, null, 'courseid');
+        if ($dbman->field_exists($table, $field)) {
+            $dbman->change_field_notnull($table, $field);
+            $dbman->change_field_default($table, $field);
+        }
+
+        // Migrate existing sort-order tracking rows to NULL. Any active=1 row on
+        // a course the student is currently enrolled in was a reorder side-effect
+        // (there was no reason to force-include an already-enrolled course before
+        // global hide existed). Genuine force-adds (active=1 on a NOT-enrolled
+        // course) are left untouched.
+        $DB->execute("
+            UPDATE {block_workload_user_courses}
+               SET active = NULL
+             WHERE active = 1
+               AND EXISTS (
+                   SELECT 1
+                     FROM {user_enrolments} ue
+                     JOIN {enrol} e ON e.id = ue.enrolid
+                    WHERE e.courseid = {block_workload_user_courses}.courseid
+                      AND ue.userid = {block_workload_user_courses}.userid
+                      AND e.status = 0
+                      AND ue.status = 0
+               )
+        ");
+
+        upgrade_block_savepoint(true, 2026071001, 'workload');
     }
 
     return true;

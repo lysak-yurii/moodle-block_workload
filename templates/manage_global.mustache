@@ -1,0 +1,197 @@
+{{!
+    This file is part of Moodle - http://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+}}
+{{!
+    @template block_workload/manage_global
+
+    Enrollment mode – central management of globally-hidden courses.
+
+    @package   block_workload
+    @copyright 2026 Yurii Lysak
+    @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+
+    Example context (json):
+    {
+        "backurl": "http://example.com/blocks/workload/manage_enrollment.php",
+        "backlabel": "Back to student list",
+        "sesskey": "abc123",
+        "catformaction": "http://example.com/blocks/workload/manage_global.php",
+        "formaction": "http://example.com/blocks/workload/manage_global.php",
+        "catopts": [
+            {"value": 0, "label": "Select category…", "selected": true},
+            {"value": 3, "label": "Service Courses", "selected": false}
+        ],
+        "selectedcatid": 0,
+        "includesubcats": false,
+        "hascatresults": false,
+        "nocoursesincat": false,
+        "catresultinfo": "",
+        "addcourserows": [],
+        "hiddencount": 1,
+        "hashidden": true,
+        "nohidden": false,
+        "hiddenrows": [
+            {
+                "id": 12, "name": "Library Services", "shortname": "LIB",
+                "courseurl": "http://example.com/course/view.php?id=12",
+                "startdate": "01.01.2026", "enddate": "-",
+                "unhideurl": "http://example.com/blocks/workload/manage_global.php?action=unhide&courseid=12&sesskey=abc123"
+            }
+        ],
+        "unhidelabel": "Unhide"
+    }
+}}
+
+<div class="block_workload-global-hidden">
+
+    {{! Top bar: back to student list }}
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <a href="{{{backurl}}}" class="btn btn-outline-secondary">&larr; {{backlabel}}</a>
+    </div>
+
+    <p class="text-muted">{{#str}}globalhiddencourses_desc, block_workload{{/str}}</p>
+
+    {{! Add courses to the global hidden list }}
+    <h5 class="mt-3 mb-2">{{#str}}hidecoursesglobally, block_workload{{/str}}</h5>
+
+    {{! Category selector form }}
+    <form method="get" action="{{{catformaction}}}" class="mb-3">
+        <div class="d-flex align-items-end gap-2 flex-wrap">
+            <div class="d-flex flex-column">
+                <label for="wl-catid" class="form-label small">
+                    {{#str}}filterbycategory, block_workload{{/str}}
+                </label>
+                <select name="catid" id="wl-catid"
+                        class="select custom-select form-select form-select-sm" style="min-width:260px;">
+                    {{#catopts}}
+                    <option value="{{value}}"{{#selected}} selected{{/selected}}>{{label}}</option>
+                    {{/catopts}}
+                </select>
+            </div>
+            <div class="d-flex flex-column align-self-end">
+                <div class="form-check mb-1">
+                    <input type="checkbox" class="form-check-input" id="includesubcats"
+                           name="includesubcats" value="1"{{#includesubcats}} checked{{/includesubcats}}>
+                    <label class="form-check-label small" for="includesubcats">
+                        {{#str}}includesubcategories, block_workload{{/str}}
+                    </label>
+                </div>
+                <input type="submit"
+                       value="{{#str}}filterresults, block_workload{{/str}}"
+                       class="btn btn-secondary">
+            </div>
+        </div>
+    </form>
+
+    {{! Add-courses table (shown when a category is selected) }}
+    {{#hascatresults}}
+    <p class="small text-muted mb-2">{{catresultinfo}}</p>
+    <form method="post" action="{{{formaction}}}">
+        <input type="hidden" name="catid"       value="{{selectedcatid}}">
+        <input type="hidden" name="sesskey"     value="{{sesskey}}">
+        <input type="hidden" name="hidecourses" value="1">
+        <table class="generaltable table-sm table-hover mb-3">
+            <thead>
+                <tr>
+                    <th class="c0 shrink">
+                        <input type="checkbox"
+                               id="wl-hidecourses-master"
+                               data-action="toggle"
+                               data-togglegroup="wl-hidecourses-group"
+                               data-toggle="toggler"
+                               title="{{#str}}selectall{{/str}}">
+                    </th>
+                    <th>{{#str}}course, block_workload{{/str}}</th>
+                    <th>{{#str}}coursestartdate, block_workload{{/str}}</th>
+                    <th>{{#str}}courseenddate, block_workload{{/str}}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{#addcourserows}}
+                <tr{{#already}} class="text-muted"{{/already}}>
+                    <td class="c0 shrink">
+                        {{#already}}
+                        <span class="text-secondary fw-bold" title="{{alreadytitle}}">&#10003;</span>
+                        {{/already}}
+                        {{^already}}
+                        <input type="checkbox"
+                               name="hidecourseids[]"
+                               value="{{id}}"
+                               data-action="toggle"
+                               data-togglegroup="wl-hidecourses-group"
+                               data-toggle="target">
+                        {{/already}}
+                    </td>
+                    <td>
+                        <a href="{{{courseurl}}}" target="_blank">{{name}}</a>
+                        <span class="text-muted small"> ({{shortname}})</span>
+                    </td>
+                    <td>{{startdate}}</td>
+                    <td>{{enddate}}</td>
+                </tr>
+                {{/addcourserows}}
+            </tbody>
+        </table>
+        <button type="submit" class="btn btn-primary">
+            {{#str}}hideselectedglobally, block_workload{{/str}}
+        </button>
+    </form>
+    {{/hascatresults}}
+
+    {{#nocoursesincat}}
+    <div class="alert alert-info" role="alert">
+        {{#str}}nocoursesincategory, block_workload{{/str}}
+    </div>
+    {{/nocoursesincat}}
+
+    {{! Currently hidden courses }}
+    <h5 class="mt-4 mb-2">
+        {{#str}}currentlyhidden, block_workload{{/str}}{{#hashidden}} <span class="text-muted fw-normal small ms-1">({{hiddencount}})</span>{{/hashidden}}
+    </h5>
+
+    {{#nohidden}}
+    <div class="text-muted small mb-3">
+        {{#str}}nohiddencourses, block_workload{{/str}}
+    </div>
+    {{/nohidden}}
+
+    {{#hashidden}}
+    <table class="generaltable table-sm table-striped table-hover mb-2">
+        <thead>
+            <tr>
+                <th>{{#str}}course, block_workload{{/str}}</th>
+                <th>{{#str}}coursestartdate, block_workload{{/str}}</th>
+                <th>{{#str}}courseenddate, block_workload{{/str}}</th>
+                <th>{{#str}}actions, block_workload{{/str}}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{#hiddenrows}}
+            <tr>
+                <td>
+                    <a href="{{{courseurl}}}" target="_blank">{{name}}</a>
+                    <span class="text-muted small"> ({{shortname}})</span>
+                </td>
+                <td>{{startdate}}</td>
+                <td>{{enddate}}</td>
+                <td><a href="{{{unhideurl}}}" class="btn btn-outline-success btn-sm">{{unhidelabel}}</a></td>
+            </tr>
+            {{/hiddenrows}}
+        </tbody>
+    </table>
+    {{/hashidden}}
+
+</div>

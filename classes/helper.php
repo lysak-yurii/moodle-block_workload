@@ -759,7 +759,8 @@ class helper {
             $dateparams = ['now1' => $now, 'now2' => $now];
         }
 
-        // Enrolled and not force-excluded.
+        // Enrolled and not force-excluded, and not globally hidden unless the
+        // manager force-included this course for this student (active=1 wins).
         $enrolled = $DB->get_records_sql(
             "SELECT DISTINCT co.id, co.fullname, co.shortname
                FROM {course} co
@@ -769,8 +770,18 @@ class helper {
                 AND NOT EXISTS (
                     SELECT 1 FROM {block_workload_user_courses} ov
                      WHERE ov.userid = :uid2 AND ov.courseid = co.id AND ov.active = 0
+                )
+                AND (
+                    NOT EXISTS (
+                        SELECT 1 FROM {block_workload_global_courses} gh
+                         WHERE gh.courseid = co.id
+                    )
+                    OR EXISTS (
+                        SELECT 1 FROM {block_workload_user_courses} inc
+                         WHERE inc.userid = :uid3 AND inc.courseid = co.id AND inc.active = 1
+                    )
                 )" . $datewhere,
-            ['uid' => $userid, 'uid2' => $userid, 'site' => SITEID] + $dateparams
+            ['uid' => $userid, 'uid2' => $userid, 'uid3' => $userid, 'site' => SITEID] + $dateparams
         );
 
         // Force-added by manager (active=1) and NOT already enrolled.
@@ -853,6 +864,9 @@ class helper {
         // All overrides for this user.
         $overrides = $DB->get_records('block_workload_user_courses', ['userid' => $userid], '', 'courseid, active, sortorder');
 
+        // Courses hidden globally (used to flag them in the management view).
+        $globallyhidden = self::get_global_hidden_course_ids();
+
         // Force-added (active=1) and NOT enrolled.
         $added = $DB->get_records_sql(
             "SELECT co.id, co.fullname, co.shortname, co.startdate, co.enddate
@@ -881,8 +895,9 @@ class helper {
                 'startdate'       => $course->startdate,
                 'enddate'         => $course->enddate,
                 'enrolled'        => true,
-                'override_active' => $ov !== null ? (int)$ov->active : null,
+                'override_active' => ($ov !== null && $ov->active !== null) ? (int)$ov->active : null,
                 'sortorder'       => $ov !== null ? (int)$ov->sortorder : 99999,
+                'globally_hidden' => isset($globallyhidden[$course->id]),
             ];
         }
 
@@ -897,6 +912,7 @@ class helper {
                 'enrolled'        => false,
                 'override_active' => 1,
                 'sortorder'       => $ov !== null ? (int)$ov->sortorder : 99999,
+                'globally_hidden' => isset($globallyhidden[$course->id]),
             ];
         }
 
@@ -957,6 +973,79 @@ class helper {
     }
 
     /**
+     * Return the ids of all globally-hidden courses, keyed by courseid.
+     *
+     * A globally-hidden course is excluded from every student's workload
+     * dashboard in enrollment mode by default; a per-student force-include
+     * (active=1) override still wins for that individual student.
+     *
+     * @return array courseid => courseid
+     */
+    public static function get_global_hidden_course_ids(): array {
+        global $DB;
+        return $DB->get_records_menu('block_workload_global_courses', null, '', 'courseid, courseid AS cid');
+    }
+
+    /**
+     * Return the visible course records currently on the global hidden list,
+     * ordered by full name, for the management UI.
+     *
+     * @return array courseid => record (id, fullname, shortname, startdate, enddate)
+     */
+    public static function get_global_hidden_courses(): array {
+        global $DB;
+        return $DB->get_records_sql(
+            "SELECT co.id, co.fullname, co.shortname, co.startdate, co.enddate
+               FROM {block_workload_global_courses} gh
+               JOIN {course} co ON co.id = gh.courseid
+              WHERE co.id <> :site
+           ORDER BY co.fullname ASC",
+            ['site' => SITEID]
+        );
+    }
+
+    /**
+     * Whether a course is on the global hidden list.
+     *
+     * @param int $courseid
+     * @return bool
+     */
+    public static function is_course_globally_hidden(int $courseid): bool {
+        global $DB;
+        return $DB->record_exists('block_workload_global_courses', ['courseid' => $courseid]);
+    }
+
+    /**
+     * Add a course to the global hidden list (idempotent).
+     *
+     * @param int $courseid
+     * @return bool true if a new row was inserted, false if it was already hidden.
+     */
+    public static function add_global_hidden_course(int $courseid): bool {
+        global $DB, $USER;
+
+        if ($DB->record_exists('block_workload_global_courses', ['courseid' => $courseid])) {
+            return false;
+        }
+        $DB->insert_record('block_workload_global_courses', (object)[
+            'courseid'    => $courseid,
+            'createdby'   => (int)$USER->id,
+            'timecreated' => time(),
+        ]);
+        return true;
+    }
+
+    /**
+     * Remove a course from the global hidden list.
+     *
+     * @param int $courseid
+     */
+    public static function remove_global_hidden_course(int $courseid): void {
+        global $DB;
+        $DB->delete_records('block_workload_global_courses', ['courseid' => $courseid]);
+    }
+
+    /**
      * Move a course up or down in the per-student sort order (enrollment mode).
      *
      * On first call for a student, lazily initialises sortorder records for every
@@ -990,12 +1079,14 @@ class helper {
         foreach ($all as $i => $course) {
             $existing = $overrides[$course->id] ?? null;
             if (!$existing) {
-                // Enrolled course with no override yet — insert a tracking record.
-                // active=1 has no display effect for an enrolled course.
+                // Enrolled course with no override yet — insert a sort-order
+                // tracking record. active=NULL means "ordering only, no
+                // include/exclude opinion", so it is never mistaken for a
+                // deliberate force-include (which the global-hide override honours).
                 $newid = $DB->insert_record('block_workload_user_courses', (object)[
                     'userid'        => $userid,
                     'courseid'      => $course->id,
-                    'active'        => 1,
+                    'active'        => null,
                     'sortorder'     => $i,
                     'timecreated'   => $now,
                     'timemodified'  => $now,
@@ -1003,7 +1094,7 @@ class helper {
                 $overrides[$course->id] = (object)[
                     'courseid'  => $course->id,
                     'id'        => $newid,
-                    'active'    => 1,
+                    'active'    => null,
                     'sortorder' => $i,
                 ];
             } else if ((int)$existing->sortorder !== $i) {

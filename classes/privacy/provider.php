@@ -70,6 +70,10 @@ class provider implements
             'active' => 'privacy:metadata:block_workload_user_settings:active',
         ], 'privacy:metadata:block_workload_user_settings');
 
+        $collection->add_database_table('block_workload_global_courses', [
+            'createdby' => 'privacy:metadata:block_workload_global_courses:createdby',
+        ], 'privacy:metadata:block_workload_global_courses');
+
         return $collection;
     }
 
@@ -91,6 +95,7 @@ class provider implements
                       OR EXISTS (SELECT 1 FROM {block_workload_user_courses} WHERE userid   = :uid3)
                       OR EXISTS (SELECT 1 FROM {block_workload_user_settings} WHERE userid  = :uid4)
                       OR EXISTS (SELECT 1 FROM {block_workload_cohorts}     WHERE createdby = :uid5)
+                      OR EXISTS (SELECT 1 FROM {block_workload_global_courses} WHERE createdby = :uid6)
                    )";
         $contextlist->add_from_sql($sql, [
             'ctxlevel' => CONTEXT_SYSTEM,
@@ -99,6 +104,7 @@ class provider implements
             'uid3'     => $userid,
             'uid4'     => $userid,
             'uid5'     => $userid,
+            'uid6'     => $userid,
         ]);
         return $contextlist;
     }
@@ -117,6 +123,7 @@ class provider implements
         $userlist->add_from_sql('userid', 'SELECT DISTINCT userid    FROM {block_workload_user_courses}', []);
         $userlist->add_from_sql('userid', 'SELECT DISTINCT userid    FROM {block_workload_user_settings}', []);
         $userlist->add_from_sql('createdby', 'SELECT DISTINCT createdby FROM {block_workload_cohorts}', []);
+        $userlist->add_from_sql('createdby', 'SELECT DISTINCT createdby FROM {block_workload_global_courses}', []);
     }
 
     /**
@@ -169,6 +176,14 @@ class provider implements
                 (object) ['cohorts' => array_values($cohorts)]
             );
         }
+
+        $globalcourses = $DB->get_records('block_workload_global_courses', ['createdby' => $userid]);
+        if ($globalcourses) {
+            writer::with_context($context)->export_data(
+                [get_string('pluginname', 'block_workload'), 'global_hidden_courses'],
+                (object) ['global_hidden_courses' => array_values($globalcourses)]
+            );
+        }
     }
 
     /**
@@ -187,6 +202,7 @@ class provider implements
         $DB->delete_records('block_workload_user_settings');
         // Createdby is NOTNULL — anonymise rather than delete the cohort row.
         $DB->set_field('block_workload_cohorts', 'createdby', 0);
+        $DB->set_field('block_workload_global_courses', 'createdby', 0);
     }
 
     /**
@@ -212,6 +228,7 @@ class provider implements
         $DB->delete_records('block_workload_user_courses', ['userid' => $userid]);
         $DB->delete_records('block_workload_user_settings', ['userid' => $userid]);
         $DB->set_field('block_workload_cohorts', 'createdby', 0, ['createdby' => $userid]);
+        $DB->set_field('block_workload_global_courses', 'createdby', 0, ['createdby' => $userid]);
     }
 
     /**
@@ -234,5 +251,6 @@ class provider implements
         $DB->delete_records_select('block_workload_user_courses', "userid $insql", $params);
         $DB->delete_records_select('block_workload_user_settings', "userid $insql", $params);
         $DB->set_field_select('block_workload_cohorts', 'createdby', 0, "createdby $insql", $params);
+        $DB->set_field_select('block_workload_global_courses', 'createdby', 0, "createdby $insql", $params);
     }
 }

@@ -95,11 +95,17 @@ class save_hours extends external_api {
                 'userid'   => $USER->id,
                 'courseid' => $params['courseid'],
             ]);
-            $forceexcluded = $override && (int)$override->active === 0;
-            $forceincluded = $override && (int)$override->active === 1;
+            // Note: active === null is a sort-order tracking row (no include/exclude opinion).
+            $forceexcluded = $override && $override->active !== null && (int)$override->active === 0;
+            $forceincluded = $override && $override->active !== null && (int)$override->active === 1;
             $enrolled      = is_enrolled($coursecontext, $USER->id);
+            $globallyhidden = \block_workload\helper::is_course_globally_hidden($params['courseid']);
 
-            if ($forceexcluded || (!$enrolled && !$forceincluded)) {
+            // Mirror the dashboard resolution: a deliberate force-include always wins;
+            // otherwise the course must be enrolled, not force-excluded and not hidden
+            // globally. Anything else may not receive workload hours.
+            $visible = $forceincluded || ($enrolled && !$forceexcluded && !$globallyhidden);
+            if (!$visible) {
                 throw new \moodle_exception('invalidcourse', 'block_workload');
             }
         } else {

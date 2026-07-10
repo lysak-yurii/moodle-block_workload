@@ -430,6 +430,7 @@ function block_workload_render_student_list(
 
     $templatecontext = [
         'statsurl'    => (new moodle_url('/blocks/workload/statistics.php'))->out(false),
+        'globalurl'   => (new moodle_url('/blocks/workload/manage_global.php'))->out(false),
         'alphabars'   => array_values($alphabars),
         'perpagestr'  => get_string('perpage', 'block_workload'),
         'perpageopts' => array_values($perpageopts),
@@ -535,14 +536,30 @@ function block_workload_render_student_detail(int $userid, int $catid, bool $inc
         $excluded = $course->enrolled
             && $course->override_active !== null
             && (int)$course->override_active === 0;
+        $ghidden  = !empty($course->globally_hidden);
+        // Enrolled, hidden globally, and force-shown for this student (override=1).
+        $forceshown = $course->enrolled && $ghidden
+            && $course->override_active !== null && (int)$course->override_active === 1;
+        // Enrolled, hidden globally, no per-student override: not on the dashboard.
+        $hiddenonly = $course->enrolled && $ghidden && $course->override_active === null;
 
         // Status badge.
         if ($isadded) {
-            $statuslabel      = get_string('statusadded', 'block_workload');
+            // Manager-added (not enrolled). If it is also hidden globally, flag
+            // that it is shown for this student as an individual exception.
+            $statuslabel      = $ghidden
+                ? get_string('statushiddengloballyshown', 'block_workload')
+                : get_string('statusadded', 'block_workload');
             $statusbadgeclass = 'bg-primary text-white';
         } else if ($excluded) {
             $statuslabel      = get_string('statusexcluded', 'block_workload');
             $statusbadgeclass = 'bg-secondary text-white';
+        } else if ($hiddenonly) {
+            $statuslabel      = get_string('statushiddenglobally', 'block_workload');
+            $statusbadgeclass = 'bg-secondary text-white';
+        } else if ($forceshown) {
+            $statuslabel      = get_string('statushiddengloballyshown', 'block_workload');
+            $statusbadgeclass = 'bg-success text-white';
         } else {
             $statuslabel      = get_string('statusincluded', 'block_workload');
             $statusbadgeclass = 'bg-success text-white';
@@ -562,6 +579,22 @@ function block_workload_render_student_detail(int $userid, int $catid, bool $inc
             ]);
             $actionlabel    = get_string('restorecourse', 'block_workload');
             $actionbtnclass = 'btn-outline-success';
+        } else if ($hiddenonly) {
+            // Force-include this globally-hidden course for this one student.
+            $actionurl = new moodle_url($baseurl, [
+                'userid' => $userid, 'courseid' => $course->id,
+                'action' => 'addcourse', 'sesskey' => sesskey(),
+            ]);
+            $actionlabel    = get_string('showforstudent', 'block_workload');
+            $actionbtnclass = 'btn-outline-success';
+        } else if ($forceshown) {
+            // Drop the force-include so the course follows the global hide again.
+            $actionurl = new moodle_url($baseurl, [
+                'userid' => $userid, 'courseid' => $course->id,
+                'action' => 'restore', 'sesskey' => sesskey(),
+            ]);
+            $actionlabel    = get_string('followglobalhide', 'block_workload');
+            $actionbtnclass = 'btn-outline-secondary';
         } else {
             $actionurl = new moodle_url($baseurl, [
                 'userid' => $userid, 'courseid' => $course->id, 'action' => 'exclude',
