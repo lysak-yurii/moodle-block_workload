@@ -731,6 +731,38 @@ class helper {
 
 
     /**
+     * Whether the dashboard restricts enrollment-mode courses to their active
+     * date window (admin setting 'enrollmentactiveonly', on by default).
+     *
+     * @return bool
+     */
+    public static function enrollment_dates_enforced(): bool {
+        $rawflag = get_config('block_workload', 'enrollmentactiveonly');
+        return ($rawflag === false) ? true : (bool) $rawflag;
+    }
+
+    /**
+     * Date state of a course relative to $now. Mirrors the SQL date filter in
+     * get_user_enrolled_courses(): a course is "active" when it has started and
+     * has not yet ended; an unset end date (enddate = 0) is open-ended.
+     *
+     * @param int      $startdate course start date (unix time, 0 = unset)
+     * @param int      $enddate   course end date (unix time, 0 = unset)
+     * @param int|null $now       reference time, defaults to time()
+     * @return string 'notstarted' | 'ended' | 'active'
+     */
+    public static function course_date_status(int $startdate, int $enddate, ?int $now = null): string {
+        $now = $now ?? time();
+        if ($startdate > $now) {
+            return 'notstarted';
+        }
+        if ($enddate != 0 && $enddate < $now) {
+            return 'ended';
+        }
+        return 'active';
+    }
+
+    /**
      * Return courses shown to a student in enrollment mode:
      * - Moodle-enrolled courses that the manager has NOT excluded (active=0 override)
      * - PLUS courses the manager force-added (active=1 override, not enrolled)
@@ -747,9 +779,9 @@ class helper {
 
         // Optionally restrict to courses that are currently active (admin-configurable,
         // on by default). "Active now" = started and not yet ended; an unset end date
-        // (enddate = 0) means open-ended and stays visible once started.
-        $rawflag    = get_config('block_workload', 'enrollmentactiveonly');
-        $activeonly = ($rawflag === false) ? true : (bool) $rawflag;
+        // (enddate = 0) means open-ended and stays visible once started. The SQL date
+        // clause below is mirrored in PHP by self::course_date_status().
+        $activeonly = self::enrollment_dates_enforced();
 
         $datewhere  = '';
         $dateparams = [];

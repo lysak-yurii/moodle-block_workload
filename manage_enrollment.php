@@ -527,9 +527,10 @@ function block_workload_render_student_detail(int $userid, int $catid, bool $inc
 
     // Assigned courses table data.
 
-    $courserows  = [];
-    $allcoursesl = array_values($courses);
-    $coursecount = count($allcoursesl);
+    $courserows   = [];
+    $allcoursesl  = array_values($courses);
+    $coursecount  = count($allcoursesl);
+    $enforcedates = \block_workload\helper::enrollment_dates_enforced();
 
     foreach ($allcoursesl as $idx => $course) {
         $isadded  = !$course->enrolled;
@@ -564,6 +565,14 @@ function block_workload_render_student_detail(int $userid, int $catid, bool $inc
             $statuslabel      = get_string('statusincluded', 'block_workload');
             $statusbadgeclass = 'bg-success text-white';
         }
+
+        // Date window: for courses that would otherwise be shown, flag when the
+        // dashboard's active-only filter hides them (ended / not yet started).
+        $datestatus = ($enforcedates && !$excluded && !$hiddenonly)
+            ? \block_workload\helper::course_date_status((int)$course->startdate, (int)$course->enddate)
+            : 'active';
+        $dateended      = $datestatus === 'ended';
+        $datenotstarted = $datestatus === 'notstarted';
 
         // Action link.
         if ($isadded) {
@@ -616,6 +625,13 @@ function block_workload_render_student_detail(int $userid, int $catid, bool $inc
                 : $datedisabled,
             'statuslabel'      => $statuslabel,
             'statusbadgeclass' => $statusbadgeclass,
+            'datehidden'       => $dateended || $datenotstarted,
+            'datewarnlabel'    => $dateended
+                ? get_string('statusdateended', 'block_workload')
+                : ($datenotstarted ? get_string('statusdatenotstarted', 'block_workload') : ''),
+            'datewarntitle'    => get_string('datehiddentooltip', 'block_workload'),
+            'enddatealert'     => $dateended,
+            'startdatealert'   => $datenotstarted,
             'actionurl'        => $actionurl->out(false),
             'actionlabel'      => $actionlabel,
             'actionbtnclass'   => $actionbtnclass,

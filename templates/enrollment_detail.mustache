@@ -224,9 +224,12 @@
                         <a href="{{{courseurl}}}" target="_blank"{{#excluded}} class="text-muted"{{/excluded}}>{{name}}</a>
                         <span class="text-muted small"> ({{shortname}})</span>
                     </td>
-                    <td>{{startdate}}</td>
-                    <td>{{enddate}}</td>
-                    <td><span class="badge {{statusbadgeclass}}">{{statuslabel}}</span></td>
+                    <td{{#startdatealert}} class="text-danger fw-bold"{{/startdatealert}}>{{startdate}}</td>
+                    <td{{#enddatealert}} class="text-danger fw-bold"{{/enddatealert}}>{{enddate}}</td>
+                    <td>
+                        <span class="badge {{statusbadgeclass}}">{{statuslabel}}</span>
+                        {{#datehidden}} <span class="badge bg-warning text-dark" title="{{datewarntitle}}">{{datewarnlabel}}</span>{{/datehidden}}
+                    </td>
                     {{#showordercolumn}}
                     <td>
                         {{#showup}}
