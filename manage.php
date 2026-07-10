@@ -42,7 +42,7 @@ require_login();
 require_capability('block/workload:manage', $syscontext);
 
 // In enrollment mode the entire cohort management is disabled.
-if ((get_config('block_workload', 'coursemode') ?: 'cohort') === 'enrollment') {
+if ((get_config('block_workload', 'coursemode') ?: 'enrollment') === 'enrollment') {
     redirect(new moodle_url('/blocks/workload/manage_enrollment.php'));
 }
 

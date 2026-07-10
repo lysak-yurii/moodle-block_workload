@@ -66,7 +66,7 @@ $PAGE->set_url('/blocks/workload/statistics.php', array_filter([
 
 global $DB, $OUTPUT;
 
-$coursemode = get_config('block_workload', 'coursemode') ?: 'cohort';
+$coursemode = get_config('block_workload', 'coursemode') ?: 'enrollment';
 if ($coursemode === 'enrollment') {
     $cohortid = 0;
 }

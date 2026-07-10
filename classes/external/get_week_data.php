@@ -63,7 +63,7 @@ class get_week_data extends external_api {
         self::validate_context($syscontext);
         require_capability('block/workload:submit', $syscontext);
 
-        $coursemode = get_config('block_workload', 'coursemode') ?: 'cohort';
+        $coursemode = get_config('block_workload', 'coursemode') ?: 'enrollment';
 
         if ($coursemode === 'enrollment') {
             if (!\block_workload\helper::is_user_widget_active((int) $USER->id)) {

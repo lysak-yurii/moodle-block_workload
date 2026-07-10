@@ -406,7 +406,7 @@ class helper {
             return false;
         }
 
-        $coursemode = get_config('block_workload', 'coursemode') ?: 'cohort';
+        $coursemode = get_config('block_workload', 'coursemode') ?: 'enrollment';
         if ($coursemode === 'enrollment') {
             // No cohort window in enrollment mode; floor + not-future is enough.
             return self::is_user_widget_active($userid);
@@ -437,7 +437,7 @@ class helper {
         $minint = $maxint;
 
         // Load the user's cohorts once for all week checks (unused in enrollment mode).
-        $coursemode = get_config('block_workload', 'coursemode') ?: 'cohort';
+        $coursemode = get_config('block_workload', 'coursemode') ?: 'enrollment';
         $cohorts    = ($coursemode === 'enrollment') ? null : self::get_user_active_cohorts($userid);
 
         $n = self::get_backfill_weeks();

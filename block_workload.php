@@ -79,7 +79,7 @@ class block_workload extends block_base {
         $this->content->footer = '';
 
         $syscontext = context_system::instance();
-        $coursemode = get_config('block_workload', 'coursemode') ?: 'cohort';
+        $coursemode = get_config('block_workload', 'coursemode') ?: 'enrollment';
 
         // Quality Manager footer links.
         $links = [];

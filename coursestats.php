@@ -58,7 +58,7 @@ if ($courseid) {
 
 // This view exists only in enrollment mode; in cohort mode statistics are
 // the Quality Manager's cohort overview.
-$coursemode = get_config('block_workload', 'coursemode') ?: 'cohort';
+$coursemode = get_config('block_workload', 'coursemode') ?: 'enrollment';
 if ($coursemode !== 'enrollment') {
     redirect(
         new moodle_url('/my'),

@@ -100,7 +100,7 @@ if ($ADMIN->fulltree) {
         'block_workload/coursemode',
         get_string('coursemode', 'block_workload'),
         get_string('coursemode_desc', 'block_workload'),
-        'cohort',
+        'enrollment',
         [
             'cohort'     => get_string('coursemode_cohort', 'block_workload'),
             'enrollment' => get_string('coursemode_enrollment', 'block_workload'),

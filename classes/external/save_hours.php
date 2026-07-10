@@ -78,7 +78,7 @@ class save_hours extends external_api {
         $max   = (float)(get_config('block_workload', 'maxhours') ?: 40);
         $hours = max(0, min($max, $params['hours']));
 
-        $coursemode = get_config('block_workload', 'coursemode') ?: 'cohort';
+        $coursemode = get_config('block_workload', 'coursemode') ?: 'enrollment';
 
         // Loaded in cohort mode below and reused by is_week_editable(); stays
         // null in enrollment mode, which never consults cohort windows.

@@ -49,7 +49,7 @@ $syscontext = context_system::instance();
 require_login();
 require_capability('block/workload:manage', $syscontext);
 
-$coursemode = get_config('block_workload', 'coursemode') ?: 'cohort';
+$coursemode = get_config('block_workload', 'coursemode') ?: 'enrollment';
 if ($coursemode !== 'enrollment') {
     redirect(new moodle_url('/blocks/workload/manage.php'));
 }
