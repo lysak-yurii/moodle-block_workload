@@ -312,6 +312,7 @@ $string['role']                   = 'Role';
 $string['role_manager_desc'] = 'Quality Manager: manages cohorts, members, courses, and views all workload statistics.';
 $string['role_manager_name'] = 'Workload Manager';
 $string['save']           = 'Save changes';
+$string['searchcourses']    = 'Search courses';
 $string['searchresultcount']   = '{$a} user(s) found';
 $string['searchresultlimit']   = '(showing first 100)';
 $string['searchusers']         = 'Search by name or email';

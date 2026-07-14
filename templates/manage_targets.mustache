@@ -38,6 +38,11 @@
         "selectedcatid": 0,
         "includesubcats": 0,
         "coursecount": 1,
+        "search": "",
+        "pagingbartop": "",
+        "pagingbarbottom": "",
+        "perpagestr": "Per page",
+        "perpageopts": [{"label": "25", "active": true, "islink": false, "url": ""}],
         "hascourses": true,
         "rows": [{"courseid": 2, "name": "Course A", "shortname": "CA",
                   "courseurl": "http://example.com/course/view.php?id=2",
@@ -61,31 +66,53 @@
         <span class="text-muted small">{{defaultinfo}}</span>
     </div>
 
-    {{#isenrollment}}
-    {{! Category filter (enrollment mode: the universe is all courses) }}
-    <form method="get" action="{{{catformaction}}}" class="card p-3 mb-3">
+    {{! Filter: search always; category only in enrollment mode (cohort mode's universe
+        is the cohort-assigned courses). }}
+    <form method="get" action="{{{catformaction}}}" class="mb-3">
         <div class="d-flex align-items-end gap-2 flex-wrap">
-            <div>
-                <label class="form-label small fw-semibold" for="wl-targets-cat">
+            <div class="d-flex flex-column">
+                <label for="wl-targets-search" class="form-label small">
+                    {{#str}}searchcourses, block_workload{{/str}}
+                </label>
+                <input type="text" id="wl-targets-search" name="search"
+                       class="form-control" style="min-width:220px;"
+                       value="{{search}}"
+                       placeholder="{{#str}}searchcourses, block_workload{{/str}}">
+            </div>
+            {{#isenrollment}}
+            <div class="d-flex flex-column">
+                <label for="wl-targets-cat" class="form-label small">
                     {{#str}}filterbycategory, block_workload{{/str}}
                 </label>
-                <select id="wl-targets-cat" name="catid" class="form-select">
+                <select name="catid" id="wl-targets-cat"
+                        class="select custom-select form-select" style="min-width:260px;">
                     {{#catopts}}
                     <option value="{{value}}"{{#selected}} selected{{/selected}}>{{label}}</option>
                     {{/catopts}}
                 </select>
             </div>
-            <div class="form-check mb-2">
-                <input class="form-check-input" type="checkbox" name="includesubcats" value="1"
-                       id="wl-targets-subcats"{{#includesubcats}} checked{{/includesubcats}}>
-                <label class="form-check-label small" for="wl-targets-subcats">
-                    {{#str}}includesubcategories, block_workload{{/str}}
-                </label>
+            <div class="d-flex flex-column align-self-end">
+                <div class="form-check mb-1">
+                    <input type="checkbox" class="form-check-input" id="wl-targets-subcats"
+                           name="includesubcats" value="1"{{#includesubcats}} checked{{/includesubcats}}>
+                    <label class="form-check-label small" for="wl-targets-subcats">
+                        {{#str}}includesubcategories, block_workload{{/str}}
+                    </label>
+                </div>
+                <input type="submit"
+                       value="{{#str}}filterresults, block_workload{{/str}}"
+                       class="btn btn-secondary">
             </div>
-            <button type="submit" class="btn btn-secondary mb-1">{{#str}}filterresults, block_workload{{/str}}</button>
+            {{/isenrollment}}
+            {{^isenrollment}}
+            <div class="align-self-end">
+                <input type="submit"
+                       value="{{#str}}filterresults, block_workload{{/str}}"
+                       class="btn btn-secondary">
+            </div>
+            {{/isenrollment}}
         </div>
     </form>
-    {{/isenrollment}}
 
     {{! Course list with inline target editing }}
     <div class="card p-3 mb-3">
@@ -93,6 +120,19 @@
             <h5 class="mb-0">{{#str}}coursetargets, block_workload{{/str}}</h5>
             <span class="text-muted small">{{#str}}courseresultcount, block_workload, {{coursecount}}{{/str}}</span>
         </div>
+
+        {{#hascourses}}
+        <div class="d-flex justify-content-between align-items-center flex-wrap mb-2">
+            <div class="small">
+                <span class="font-weight-bold mr-1">{{perpagestr}}:</span>
+                {{#perpageopts}}
+                {{#islink}}<a href="{{{url}}}" class="mr-1">{{label}}</a>{{/islink}}
+                {{^islink}}<span class="mr-1 font-weight-bold">{{label}}</span>{{/islink}}
+                {{/perpageopts}}
+            </div>
+            <div>{{{pagingbartop}}}</div>
+        </div>
+        {{/hascourses}}
 
         {{^hascourses}}
         <p class="text-muted mb-0">{{#str}}notargetcourses, block_workload{{/str}}</p>
@@ -128,6 +168,7 @@
                 </tbody>
             </table>
         </div>
+        {{{pagingbarbottom}}}
         {{/hascourses}}
     </div>
 

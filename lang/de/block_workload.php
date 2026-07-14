@@ -312,6 +312,7 @@ $string['role']                   = 'Rolle';
 $string['role_manager_desc'] = 'Qualitätsmanager: verwaltet Kohorten, Mitglieder, Kurse und sieht alle Arbeitsaufwand-Statistiken ein.';
 $string['role_manager_name'] = 'Arbeitsaufwand-Manager';
 $string['save']           = 'Änderungen speichern';
+$string['searchcourses']    = 'Kurse suchen';
 $string['searchresultcount']   = '{$a} Benutzer gefunden';
 $string['searchresultlimit']   = '(zeige erste 100)';
 $string['searchusers']         = 'Nach Name oder E-Mail suchen';

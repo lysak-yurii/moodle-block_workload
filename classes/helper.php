@@ -1322,49 +1322,111 @@ class helper {
     }
 
     /**
-     * The courses a manager can set targets for, per course mode:
-     *  - cohort mode: distinct courses assigned to any cohort;
-     *  - enrollment mode: all real courses, optionally narrowed to a category
-     *    (and its sub-categories).
+     * Mode-aware FROM/WHERE for the course-targets universe, shared by the list
+     * and the count so their filtering can never drift apart.
      *
      * @param int|null $categoryid Enrollment mode only; null/0 = all categories.
      * @param bool     $includesubcats Include sub-categories of $categoryid.
-     * @return array courseid => record (id, fullname, shortname, category)
+     * @param string   $search Free text matched against course full/short name.
+     * @return array [string $from, string $where, array $params, bool $distinct]
      */
-    public static function get_targets_course_universe(?int $categoryid = null, bool $includesubcats = false): array {
+    private static function targets_universe_sql(?int $categoryid, bool $includesubcats, string $search): array {
         global $DB;
 
         $coursemode = get_config('block_workload', 'coursemode') ?: 'enrollment';
 
-        if ($coursemode !== 'enrollment') {
-            return $DB->get_records_sql(
-                "SELECT DISTINCT co.id, co.fullname, co.shortname, co.category
-                   FROM {block_workload_courses} bc
-                   JOIN {course} co ON co.id = bc.courseid
-                  WHERE co.id <> :site
-               ORDER BY co.fullname ASC",
-                ['site' => SITEID]
-            );
-        }
-
         $where  = 'co.id <> :site';
         $params = ['site' => SITEID];
-        if ($categoryid) {
-            $catids = [$categoryid];
-            if ($includesubcats) {
-                $catids = array_merge($catids, self::get_all_subcategory_ids($categoryid));
+
+        if ($coursemode !== 'enrollment') {
+            // Cohort mode: the universe is the cohort-assigned courses. DISTINCT because
+            // one course may be assigned to several cohorts.
+            $from     = '{block_workload_courses} bc JOIN {course} co ON co.id = bc.courseid';
+            $distinct = true;
+        } else {
+            $from     = '{course} co';
+            $distinct = false;
+
+            if ($categoryid) {
+                $catids = [$categoryid];
+                if ($includesubcats) {
+                    $catids = array_merge($catids, self::get_all_subcategory_ids($categoryid));
+                }
+                [$insql, $inparams] = $DB->get_in_or_equal($catids, SQL_PARAMS_NAMED, 'cat');
+                $where .= " AND co.category $insql";
+                $params += $inparams;
             }
-            [$insql, $inparams] = $DB->get_in_or_equal($catids, SQL_PARAMS_NAMED, 'cat');
-            $where .= " AND co.category $insql";
-            $params += $inparams;
         }
+
+        if ($search !== '') {
+            // Case/accent-insensitive; sql_like_escape() so a literal % or _ in the
+            // query cannot act as a wildcard.
+            $like = '(' . $DB->sql_like('co.fullname', ':q1', false, false)
+                  . ' OR ' . $DB->sql_like('co.shortname', ':q2', false, false) . ')';
+            $where .= " AND $like";
+            $params['q1'] = '%' . $DB->sql_like_escape($search) . '%';
+            $params['q2'] = '%' . $DB->sql_like_escape($search) . '%';
+        }
+
+        return [$from, $where, $params, $distinct];
+    }
+
+    /**
+     * The courses a manager can set targets for, per course mode:
+     *  - cohort mode: distinct courses assigned to any cohort;
+     *  - enrollment mode: all real courses, optionally narrowed to a category
+     *    (and its sub-categories).
+     * Optionally filtered by a free-text search and paged.
+     *
+     * @param int|null $categoryid Enrollment mode only; null/0 = all categories.
+     * @param bool     $includesubcats Include sub-categories of $categoryid.
+     * @param string   $search Free text matched against course full/short name.
+     * @param int      $limit Page size; 0 = no limit (used by the export).
+     * @param int      $offset Number of records to skip.
+     * @return array courseid => record (id, fullname, shortname, category)
+     */
+    public static function get_targets_course_universe(
+        ?int $categoryid = null,
+        bool $includesubcats = false,
+        string $search = '',
+        int $limit = 0,
+        int $offset = 0
+    ): array {
+        global $DB;
+
+        [$from, $where, $params, $distinct] = self::targets_universe_sql($categoryid, $includesubcats, $search);
+
+        $select = ($distinct ? 'DISTINCT ' : '') . 'co.id, co.fullname, co.shortname, co.category';
+
         return $DB->get_records_sql(
-            "SELECT co.id, co.fullname, co.shortname, co.category
-               FROM {course} co
-              WHERE $where
-           ORDER BY co.fullname ASC",
-            $params
+            "SELECT $select FROM $from WHERE $where ORDER BY co.fullname ASC",
+            $params,
+            $offset,
+            $limit
         );
+    }
+
+    /**
+     * How many courses the targets universe holds for the given filters.
+     * Mirrors get_targets_course_universe() exactly, minus the paging.
+     *
+     * @param int|null $categoryid Enrollment mode only; null/0 = all categories.
+     * @param bool     $includesubcats Include sub-categories of $categoryid.
+     * @param string   $search Free text matched against course full/short name.
+     * @return int
+     */
+    public static function get_targets_course_universe_count(
+        ?int $categoryid = null,
+        bool $includesubcats = false,
+        string $search = ''
+    ): int {
+        global $DB;
+
+        [$from, $where, $params, $distinct] = self::targets_universe_sql($categoryid, $includesubcats, $search);
+
+        $count = $distinct ? 'COUNT(DISTINCT co.id)' : 'COUNT(1)';
+
+        return (int) $DB->count_records_sql("SELECT $count FROM $from WHERE $where", $params);
     }
 
     /**

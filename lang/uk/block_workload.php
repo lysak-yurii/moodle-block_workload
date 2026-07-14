@@ -312,6 +312,7 @@ $string['role']                   = 'Роль';
 $string['role_manager_desc'] = 'Менеджер якості: керує когортами, учасниками, курсами та переглядає всю статистику навантаження.';
 $string['role_manager_name'] = 'Менеджер навантаження';
 $string['save']           = 'Зберегти зміни';
+$string['searchcourses']    = 'Пошук курсів';
 $string['searchresultcount']   = 'Знайдено {$a} користувача(ів)';
 $string['searchresultlimit']   = '(показано перші 100)';
 $string['searchusers']         = 'Пошук за ім\'ям або електронною поштою';

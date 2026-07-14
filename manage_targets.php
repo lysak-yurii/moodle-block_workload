@@ -33,6 +33,9 @@ $includesubcats = optional_param('includesubcats', 0, PARAM_BOOL);
 $action         = optional_param('action', '', PARAM_ALPHA);
 $dataformat     = optional_param('dataformat', 'csv', PARAM_ALPHA);
 $applyimport    = optional_param('applyimport', 0, PARAM_BOOL);
+$search         = optional_param('search', '', PARAM_TEXT);
+$page           = optional_param('page', 0, PARAM_INT);
+$perpage        = optional_param('perpage', 25, PARAM_INT);
 
 $syscontext = context_system::instance();
 require_login();
@@ -55,9 +58,12 @@ if ($action === 'export' && confirm_sesskey()) {
     if (!in_array($dataformat, ['csv', 'excel'], true)) {
         $dataformat = 'csv';
     }
+    // No limit/offset: the export must hold every course in the current filter,
+    // never just the page being viewed.
     $universe = \block_workload\helper::get_targets_course_universe(
         ($coursemode === 'enrollment') ? ($catid ?: null) : null,
-        $includesubcats
+        $includesubcats,
+        $search
     );
     $targets = \block_workload\helper::get_all_targets();
 
@@ -132,13 +138,15 @@ if ($importform->get_data()) {
     foreach ($result['rows'] as $row) {
         $previewrows[] = $row + [
             'statuslabel' => get_string('importstatus_' . $row['status'], 'block_workload'),
+            // Both class families: badge-* styles under Bootstrap 4 (Moodle 4.5),
+            // text-bg-* keeps it correct on Bootstrap 5 themes.
             'badgeclass'  => [
-                'new'       => 'text-bg-success',
-                'changed'   => 'text-bg-primary',
-                'cleared'   => 'text-bg-warning',
-                'unchanged' => 'text-bg-secondary',
-                'unmatched' => 'text-bg-danger',
-                'invalid'   => 'text-bg-danger',
+                'new'       => 'badge-success text-bg-success',
+                'changed'   => 'badge-primary text-bg-primary',
+                'cleared'   => 'badge-warning text-bg-warning',
+                'unchanged' => 'badge-secondary text-bg-secondary',
+                'unmatched' => 'badge-danger text-bg-danger',
+                'invalid'   => 'badge-danger text-bg-danger',
             ][$row['status']],
         ];
     }
@@ -175,9 +183,18 @@ if ($isenrollment) {
     }
 }
 
+$offset = ($perpage > 0) ? $page * $perpage : 0;
+$total  = \block_workload\helper::get_targets_course_universe_count(
+    $isenrollment ? ($catid ?: null) : null,
+    $includesubcats,
+    $search
+);
 $universe = \block_workload\helper::get_targets_course_universe(
     $isenrollment ? ($catid ?: null) : null,
-    $includesubcats
+    $includesubcats,
+    $search,
+    $perpage,
+    $offset
 );
 
 $sourcecourse  = get_string('targetsource_course', 'block_workload');
@@ -204,6 +221,31 @@ foreach ($universe as $course) {
     ];
 }
 
+// Filter state carried by every paging/per-page link.
+$filterparams = array_filter([
+    'catid'          => $catid ?: null,
+    'includesubcats' => $includesubcats ?: null,
+    'search'         => ($search !== '') ? $search : null,
+]);
+
+$pagingurl  = new moodle_url($baseurl, $filterparams + ['perpage' => $perpage]);
+$showpaging = ($perpage > 0 && $total > $perpage);
+$pagingbar  = $showpaging ? $OUTPUT->paging_bar($total, $page, $perpage, $pagingurl) : '';
+
+// Per-page selector (mirrors manage_enrollment.php).
+$perpageopts = [];
+foreach ([25 => '25', 50 => '50', 100 => '100', 0 => get_string('showall', 'block_workload', $total)] as $opt => $lbl) {
+    $active        = ($opt == $perpage);
+    $perpageopts[] = [
+        'label'  => $lbl,
+        'active' => $active,
+        'islink' => !$active,
+        'url'    => !$active
+            ? (new moodle_url($baseurl, $filterparams + ['perpage' => $opt, 'page' => 0]))->out(false)
+            : '',
+    ];
+}
+
 $templatecontext = [
     'backurl'         => (new moodle_url(
         $isenrollment ? '/blocks/workload/manage_enrollment.php' : '/blocks/workload/manage.php'
@@ -220,16 +262,21 @@ $templatecontext = [
     'catopts'         => array_values($catopts),
     'selectedcatid'   => $catid,
     'includesubcats'  => $includesubcats,
-    'coursecount'     => count($rows),
+    'coursecount'     => $total,
+    'search'          => $search,
+    'pagingbartop'    => $pagingbar,
+    'pagingbarbottom' => $pagingbar,
+    'perpagestr'      => get_string('perpage', 'block_workload'),
+    'perpageopts'     => array_values($perpageopts),
     'hascourses'      => !empty($rows),
     'rows'            => array_values($rows),
     'exportcsvurl'   => (new moodle_url($baseurl, [
         'action' => 'export', 'dataformat' => 'csv', 'catid' => $catid,
-        'includesubcats' => $includesubcats, 'sesskey' => sesskey(),
+        'includesubcats' => $includesubcats, 'search' => $search, 'sesskey' => sesskey(),
     ]))->out(false),
     'exportxlsxurl'  => (new moodle_url($baseurl, [
         'action' => 'export', 'dataformat' => 'excel', 'catid' => $catid,
-        'includesubcats' => $includesubcats, 'sesskey' => sesskey(),
+        'includesubcats' => $includesubcats, 'search' => $search, 'sesskey' => sesskey(),
     ]))->out(false),
     'importformhtml' => $importform->render(),
 ];
