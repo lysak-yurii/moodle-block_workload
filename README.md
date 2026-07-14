@@ -44,9 +44,10 @@ teachers anonymized workload statistics for their own courses (Enrollment mode).
 **Admin / configuration**
 - Site-wide defaults: max hours per course/week, increment per click, courses per page, and
   course display order.
-- **In-course widget** (on by default) — master switch for the per-course block and its
-  progress bar; when off, only the dashboard block is shown. A **default target hours** value
-  (`0` = none) sets the fallback for courses without their own target.
+- **In-course widget** (off by default) — master switch for the per-course block and its
+  progress bar. Ticking it adds the block to **every course** automatically; unticking
+  removes it again. When off, only the dashboard block is shown. A **default target hours**
+  value (`0` = none) sets the fallback for courses without their own target.
 - **Course management mode** — *Cohort* (courses come from cohort assignments) or
   *Enrollment* (courses come from each student's Moodle enrolments, with per-student
   excludes and manual additions).
@@ -65,6 +66,11 @@ teachers anonymized workload statistics for their own courses (Enrollment mode).
   role can be de-anonymized selectively in a single course or category.
 
 ## Screenshots
+
+**Teachers** *(Enrollment mode)* — open **Course Statistics** from the block footer, pick one
+of your courses, filter by week range, and export the data as CSV if needed.
+
+**Quality managers** — open **Workload Management**, create a cohort, assi
 
 <details>
 <summary><strong>📸 View screenshot gallery</strong></summary>
@@ -109,14 +115,14 @@ teachers anonymized workload statistics for their own courses (Enrollment mode).
 
 ## Usage
 
-**Students** — log hours each week per course in your dashboard block *Workload Assessment*, 
-or *In-course widget* — to show it in every course. Also open **My Statistics** to view your 
-history.
+**Students** — log hours each week per course in your dashboard block *Workload Assessment*,
+and, where enabled, directly inside each course via the in-course widget. Open
+**My Statistics** to view your history.
 
 **Teachers** *(Enrollment mode)* — open **Course Statistics** from the block footer, pick one
 of your courses, filter by week range, and export the data as CSV if needed.
 
-**Quality managers** — open **Workload Management**, create a cohort, assign students and
+**Quality managers** — open **Workload Management**, create a cohort (if in cohort mode), assign students and
 courses (optionally set an activation period), then review **Workload Statistics**.
 
 ## Changelog

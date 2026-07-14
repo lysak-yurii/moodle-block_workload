@@ -107,12 +107,24 @@ if ($ADMIN->fulltree) {
         ]
     ));
 
-    $settings->add(new admin_setting_configcheckbox(
+    // Ticking this also creates the single site-wide block placement that shows the
+    // widget on every course page; unticking removes it again. A closure is used
+    // because post_write_settings() accepts any callable (core does the same), which
+    // keeps this plugin free of a lib.php and of new global functions.
+    $coursewidget = new admin_setting_configcheckbox(
         'block_workload/enablecoursewidget',
         get_string('enablecoursewidget', 'block_workload'),
         get_string('enablecoursewidget_desc', 'block_workload'),
-        1
-    ));
+        0
+    );
+    $coursewidget->set_updatedcallback(function () {
+        if (\block_workload\helper::course_widget_enabled()) {
+            \block_workload\helper::ensure_course_placement();
+        } else {
+            \block_workload\helper::remove_course_placement();
+        }
+    });
+    $settings->add($coursewidget);
 
     $settings->add(new \block_workload\local\admin_setting_nonnegnum(
         'block_workload/defaulttargethours',
@@ -121,6 +133,11 @@ if ($ADMIN->fulltree) {
         '0',
         PARAM_FLOAT
     ));
+    $settings->hide_if(
+        'block_workload/defaulttargethours',
+        'block_workload/enablecoursewidget',
+        'notchecked'
+    );
 
     $settings->add(new admin_setting_configcheckbox(
         'block_workload/enrollmentactiveonly',

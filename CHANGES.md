@@ -1,10 +1,10 @@
 # Changelog
 
-## Changes in version 1.1.3 (Build: 2026071301)
+## Changes in version 1.1.3 (Build: 2026071406)
 
 - **New Feature**: In-course widget - students can log hours for a single course and track cumulative progress against the course's target hours directly in that course's block drawer; the widget hides itself in courses where the student has no active workload
 - **New Feature**: Per-course target hours - quality managers set the expected workload per course, either inline on the *Course target hours* page or by CSV/Excel bulk upload (export a pre-filled course list, edit the `target_hours` column, and re-upload with a previewed apply step); a site-wide default covers courses without their own target
-- **New Feature**: "Enable in-course widget" admin master switch (on by default) - when disabled, the plugin reverts to dashboard-only behaviour and course targets are not shown to students
+- **New Feature**: "Enable in-course widget" admin master switch (off by default) - ticking it places the block in every course automatically, with no per-course setup; unticking removes it again. When off, the plugin reverts to dashboard-only behaviour and course targets are not shown to students
 - **Updated**: Privacy provider exports and deletes the manager authorship stored on course targets
 - **Fixed**: In enrollment mode, hour saving now honours the per-student widget toggle, so a student whose widget was disabled can no longer record hours via a direct request
 

@@ -29,6 +29,12 @@ namespace block_workload;
  * Helper functions for block_workload.
  */
 class helper {
+    /** @var string Page-type pattern of the auto-provisioned in-course placement. */
+    private const COURSE_PLACEMENT_PAGETYPE = 'course-view-*';
+
+    /** @var string Block region of the auto-provisioned in-course placement. */
+    private const COURSE_PLACEMENT_REGION = 'side-pre';
+
     // Cohort queries.
 
 
@@ -1082,13 +1088,85 @@ class helper {
 
     /**
      * Whether the in-course widget feature is enabled (admin master switch).
-     * Defaults to enabled when the setting has never been saved.
+     * Unset means disabled: the setting ships default OFF, and enabling it also
+     * provisions the site-wide course placement (see ensure_course_placement()).
      *
      * @return bool
      */
     public static function course_widget_enabled(): bool {
-        $raw = get_config('block_workload', 'enablecoursewidget');
-        return ($raw === false) ? true : (bool) $raw;
+        return (bool) get_config('block_workload', 'enablecoursewidget');
+    }
+
+    /**
+     * The single auto-provisioned block placement that shows the in-course widget
+     * on every course page, or null when it does not exist.
+     *
+     * Matched on its exact shape so hand-placed blocks (per course, or with other
+     * page-type patterns) are never mistaken for it.
+     *
+     * @return \stdClass|null
+     */
+    public static function find_course_placement(): ?\stdClass {
+        global $DB;
+
+        // IGNORE_MULTIPLE: never throw if a duplicate somehow exists — act on the first.
+        $record = $DB->get_record(
+            'block_instances',
+            [
+                'blockname'       => 'workload',
+                'parentcontextid' => \context_system::instance()->id,
+                'pagetypepattern' => self::COURSE_PLACEMENT_PAGETYPE,
+                'subpagepattern'  => null,
+            ],
+            '*',
+            IGNORE_MULTIPLE
+        );
+
+        return $record ?: null;
+    }
+
+    /**
+     * Create the site-wide in-course placement if it is not already there.
+     * Idempotent: calling it twice never creates a second block.
+     */
+    public static function ensure_course_placement(): void {
+        global $CFG;
+
+        if (self::find_course_placement()) {
+            return;
+        }
+
+        require_once($CFG->libdir . '/blocklib.php');
+
+        // Mirrors blocks_add_default_system_blocks(). add_blocks() (not add_block())
+        // registers the region first, and a fresh page has no block records loaded so
+        // the "is it addable here?" guard is skipped — required, because the block is
+        // deliberately not addable on a system-context page.
+        $page = new \moodle_page();
+        $page->set_context(\context_system::instance());
+        $page->blocks->add_blocks(
+            [self::COURSE_PLACEMENT_REGION => ['workload']],
+            self::COURSE_PLACEMENT_PAGETYPE,
+            null,
+            true,
+            0
+        );
+    }
+
+    /**
+     * Remove the site-wide in-course placement. No-op when it is not there.
+     * Uses the core API so the block context, positions and user preferences go too.
+     */
+    public static function remove_course_placement(): void {
+        global $CFG;
+
+        $instance = self::find_course_placement();
+        if (!$instance) {
+            return;
+        }
+
+        require_once($CFG->libdir . '/blocklib.php');
+        blocks_delete_instance($instance);
     }
 
     /**
