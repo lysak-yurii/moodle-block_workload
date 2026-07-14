@@ -431,6 +431,7 @@ function block_workload_render_student_list(
     $templatecontext = [
         'statsurl'    => (new moodle_url('/blocks/workload/statistics.php'))->out(false),
         'globalurl'   => (new moodle_url('/blocks/workload/manage_global.php'))->out(false),
+        'targetsurl'  => (new moodle_url('/blocks/workload/manage_targets.php'))->out(false),
         'alphabars'   => array_values($alphabars),
         'perpagestr'  => get_string('perpage', 'block_workload'),
         'perpageopts' => array_values($perpageopts),

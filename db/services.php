@@ -65,4 +65,14 @@ $functions = [
         'loginrequired' => true,
         'capabilities'  => 'block/workload:viewallstats',
     ],
+
+    'block_workload_set_course_target' => [
+        'classname'     => 'block_workload\external\set_course_target',
+        'methodname'    => 'execute',
+        'description'   => 'Set or clear the workload target hours for a course',
+        'type'          => 'write',
+        'ajax'          => true,
+        'loginrequired' => true,
+        'capabilities'  => 'block/workload:manage',
+    ],
 ];

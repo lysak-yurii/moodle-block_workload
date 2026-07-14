@@ -232,6 +232,7 @@ function block_workload_action_list(): void {
             ['action' => 'add', 'modal' => 1]
         ))->out(false),
         'statisticsurl' => (new moodle_url('/blocks/workload/statistics.php'))->out(false),
+        'targetsurl'    => (new moodle_url('/blocks/workload/manage_targets.php'))->out(false),
         'manageurl'     => (new moodle_url('/blocks/workload/manage.php'))->out(false),
         'sesskey'       => sesskey(),
         'hascohorts'    => !empty($cohorts),

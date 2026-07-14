@@ -14,18 +14,29 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
+namespace block_workload\local;
+
 /**
- * Workload Assessment block version definition.
+ * Admin text setting that rejects numeric values below 0.
+ *
+ * Autoloaded so settings.php keeps a single inline class (PSR1), while the
+ * plugin can still validate the default-target-hours field as a number >= 0.
  *
  * @package   block_workload
- * @copyright  2026 Yurii Lysak
+ * @copyright 2026 Yurii Lysak
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-
-defined('MOODLE_INTERNAL') || die();
-
-$plugin->version   = 2026071401;
-$plugin->requires  = 2024100700; // Moodle 4.5 or later.
-$plugin->component = 'block_workload';
-$plugin->maturity  = MATURITY_BETA;
-$plugin->release   = '1.1.3';
+class admin_setting_nonnegnum extends \admin_setting_configtext {
+    /**
+     * Validate that the value is a number greater than or equal to 0.
+     *
+     * @param mixed $data
+     * @return bool|string true when valid, otherwise an error message.
+     */
+    public function validate($data) {
+        if (!is_numeric($data) || (float) $data < 0) {
+            return get_string('targethours_invalid', 'block_workload');
+        }
+        return true;
+    }
+}

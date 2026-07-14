@@ -3,7 +3,7 @@
 ![Moodle](https://img.shields.io/badge/Moodle-4.5+-orange?logo=moodle)
 ![PHP](https://img.shields.io/badge/PHP-7.4+-777BB4?logo=php&logoColor=white)
 ![License](https://img.shields.io/badge/License-GPL%20v3-green?logo=gnu)
-![Version](https://img.shields.io/badge/Release-1.1.2%20(beta)-blue)
+![Version](https://img.shields.io/badge/Release-1.1.3%20(beta)-blue)
 
 A Moodle block that lets students log the hours they spend on each course every week, gives
 quality managers cohort-wide statistics on student workload across the semester, and gives
@@ -15,6 +15,8 @@ teachers anonymized workload statistics for their own courses (Enrollment mode).
 
 **For students**
 - Log weekly hours per course directly in the block with `+` / `−` buttons or an `h:mm` field.
+- **In-course widget** — log hours for a single course and track progress against its target
+  hours, directly in that course's block drawer.
 - Personal **My Statistics** page: KPI cards, weekly and per-course charts, and CSV export.
 
 **For teachers** *(Enrollment mode)*
@@ -36,10 +38,15 @@ teachers anonymized workload statistics for their own courses (Enrollment mode).
   cohort) and courses (from the category tree, reorderable, toggleable per cohort).
 - Aggregate **statistics**: KPI cards, average-hours and active-students charts, top-10 pie
   chart, and a filterable student table with one-click drill-down and CSV export.
+- **Course target hours** — set the expected workload per course (inline or by CSV/Excel bulk
+  upload, previewed before applying); a site-wide default covers courses without their own.
 
 **Admin / configuration**
 - Site-wide defaults: max hours per course/week, increment per click, courses per page, and
   course display order.
+- **In-course widget** (on by default) — master switch for the per-course block and its
+  progress bar; when off, only the dashboard block is shown. A **default target hours** value
+  (`0` = none) sets the fallback for courses without their own target.
 - **Course management mode** — *Cohort* (courses come from cohort assignments) or
   *Enrollment* (courses come from each student's Moodle enrolments, with per-student
   excludes and manual additions).
@@ -105,11 +112,20 @@ teachers anonymized workload statistics for their own courses (Enrollment mode).
 **Students** — add the *Workload Assessment* block to your dashboard, log hours each week per
 course, and open **My Statistics** for your history.
 
+**In-course widget** — to show it in every course, an administrator adds the block once and
+configures it to display on **Any course main page** throughout the site; it hides itself where
+a student has no active workload. Set the per-course goals under **Course target hours** (from
+*Workload Management*).
+
 **Teachers** *(Enrollment mode)* — open **Course Statistics** from the block footer, pick one
 of your courses, filter by week range, and export the data as CSV if needed.
 
 **Quality managers** — open **Workload Management**, create a cohort, assign students and
 courses (optionally set an activation period), then review **Workload Statistics**.
+
+## Changelog
+
+For detailed version history, see [CHANGES.md](CHANGES.md).
 
 ## License
 

@@ -1077,6 +1077,218 @@ class helper {
         $DB->delete_records('block_workload_global_courses', ['courseid' => $courseid]);
     }
 
+    // Course workload targets (in-course widget).
+
+
+    /**
+     * Whether the in-course widget feature is enabled (admin master switch).
+     * Defaults to enabled when the setting has never been saved.
+     *
+     * @return bool
+     */
+    public static function course_widget_enabled(): bool {
+        $raw = get_config('block_workload', 'enablecoursewidget');
+        return ($raw === false) ? true : (bool) $raw;
+    }
+
+    /**
+     * Effective workload target for a course, in hours.
+     * Per-course value (> 0) wins; otherwise the site default (> 0); otherwise
+     * null, meaning "no target" (the widget shows no progress bar).
+     *
+     * @param int $courseid
+     * @return float|null
+     */
+    public static function get_course_target(int $courseid): ?float {
+        global $DB;
+
+        $hours = $DB->get_field('block_workload_targets', 'targethours', ['courseid' => $courseid]);
+        if ($hours !== false && (float) $hours > 0) {
+            return (float) $hours;
+        }
+        $default = (float) (get_config('block_workload', 'defaulttargethours') ?: 0);
+        return ($default > 0) ? $default : null;
+    }
+
+    /**
+     * Insert or update a course's target hours.
+     *
+     * @param int   $courseid
+     * @param float $targethours
+     * @param int   $userid The manager performing the change (audit).
+     */
+    public static function set_course_target(int $courseid, float $targethours, int $userid): void {
+        global $DB;
+
+        $now      = time();
+        $existing = $DB->get_record('block_workload_targets', ['courseid' => $courseid]);
+        if ($existing) {
+            $existing->targethours  = $targethours;
+            $existing->createdby    = $userid;
+            $existing->timemodified = $now;
+            $DB->update_record('block_workload_targets', $existing);
+            return;
+        }
+        $DB->insert_record('block_workload_targets', (object) [
+            'courseid'     => $courseid,
+            'targethours'  => $targethours,
+            'createdby'    => $userid,
+            'timecreated'  => $now,
+            'timemodified' => $now,
+        ]);
+    }
+
+    /**
+     * Remove a course's target so the global default applies again.
+     *
+     * @param int $courseid
+     */
+    public static function delete_course_target(int $courseid): void {
+        global $DB;
+        $DB->delete_records('block_workload_targets', ['courseid' => $courseid]);
+    }
+
+    /**
+     * All per-course targets as courseid => targethours.
+     *
+     * @return array
+     */
+    public static function get_all_targets(): array {
+        global $DB;
+        return $DB->get_records_menu('block_workload_targets', null, '', 'courseid, targethours');
+    }
+
+    /**
+     * Total hours a student has logged for one course across all weeks.
+     *
+     * @param int $userid
+     * @param int $courseid
+     * @return float
+     */
+    public static function get_course_logged_total(int $userid, int $courseid): float {
+        global $DB;
+        return (float) $DB->get_field_sql(
+            "SELECT COALESCE(SUM(hours), 0)
+               FROM {block_workload_entries}
+              WHERE userid = :userid AND courseid = :courseid",
+            ['userid' => $userid, 'courseid' => $courseid]
+        );
+    }
+
+    /**
+     * Whether a course is an active workload course for a student right now —
+     * i.e. it would appear on their dashboard. Used to gate the in-course
+     * widget. Mirrors the dashboard resolution per course mode:
+     *  - enrollment: widget active, course visible and date-active (when
+     *    enforced), and force-included OR (enrolled, not force-excluded, not
+     *    globally hidden) — the same rule save_hours enforces.
+     *  - cohort: the course is an active assignment in one of the student's
+     *    currently-active cohorts.
+     *
+     * @param int $userid
+     * @param int $courseid
+     * @return bool
+     */
+    public static function is_course_workload_active_for_user(int $userid, int $courseid): bool {
+        global $DB, $CFG;
+
+        if ($courseid == SITEID) {
+            return false;
+        }
+        $course = $DB->get_record('course', ['id' => $courseid], 'id, visible, startdate, enddate');
+        if (!$course || !$course->visible) {
+            return false;
+        }
+
+        $coursemode = get_config('block_workload', 'coursemode') ?: 'enrollment';
+
+        if ($coursemode === 'enrollment') {
+            if (!self::is_user_widget_active($userid)) {
+                return false;
+            }
+            if (
+                self::enrollment_dates_enforced()
+                    && self::course_date_status((int) $course->startdate, (int) $course->enddate) !== 'active'
+            ) {
+                return false;
+            }
+            require_once($CFG->libdir . '/enrollib.php');
+            $coursecontext = \context_course::instance($courseid, IGNORE_MISSING);
+            if (!$coursecontext) {
+                return false;
+            }
+            $override = $DB->get_record('block_workload_user_courses', [
+                'userid'   => $userid,
+                'courseid' => $courseid,
+            ]);
+            $forceexcluded = $override && $override->active !== null && (int) $override->active === 0;
+            $forceincluded = $override && $override->active !== null && (int) $override->active === 1;
+            $enrolled      = is_enrolled($coursecontext, $userid);
+
+            return $forceincluded
+                || ($enrolled && !$forceexcluded && !self::is_course_globally_hidden($courseid));
+        }
+
+        // Cohort mode.
+        $activecohorts = self::filter_cohorts_active_now(self::get_user_active_cohorts($userid));
+        if (empty($activecohorts)) {
+            return false;
+        }
+        [$insql, $inparams] = $DB->get_in_or_equal(array_keys($activecohorts), SQL_PARAMS_NAMED, 'coh');
+        $inparams['courseid'] = $courseid;
+        return $DB->record_exists_sql(
+            "SELECT 1 FROM {block_workload_courses}
+              WHERE courseid = :courseid AND active = 1 AND cohortid $insql",
+            $inparams
+        );
+    }
+
+    /**
+     * The courses a manager can set targets for, per course mode:
+     *  - cohort mode: distinct courses assigned to any cohort;
+     *  - enrollment mode: all real courses, optionally narrowed to a category
+     *    (and its sub-categories).
+     *
+     * @param int|null $categoryid Enrollment mode only; null/0 = all categories.
+     * @param bool     $includesubcats Include sub-categories of $categoryid.
+     * @return array courseid => record (id, fullname, shortname, category)
+     */
+    public static function get_targets_course_universe(?int $categoryid = null, bool $includesubcats = false): array {
+        global $DB;
+
+        $coursemode = get_config('block_workload', 'coursemode') ?: 'enrollment';
+
+        if ($coursemode !== 'enrollment') {
+            return $DB->get_records_sql(
+                "SELECT DISTINCT co.id, co.fullname, co.shortname, co.category
+                   FROM {block_workload_courses} bc
+                   JOIN {course} co ON co.id = bc.courseid
+                  WHERE co.id <> :site
+               ORDER BY co.fullname ASC",
+                ['site' => SITEID]
+            );
+        }
+
+        $where  = 'co.id <> :site';
+        $params = ['site' => SITEID];
+        if ($categoryid) {
+            $catids = [$categoryid];
+            if ($includesubcats) {
+                $catids = array_merge($catids, self::get_all_subcategory_ids($categoryid));
+            }
+            [$insql, $inparams] = $DB->get_in_or_equal($catids, SQL_PARAMS_NAMED, 'cat');
+            $where .= " AND co.category $insql";
+            $params += $inparams;
+        }
+        return $DB->get_records_sql(
+            "SELECT co.id, co.fullname, co.shortname, co.category
+               FROM {course} co
+              WHERE $where
+           ORDER BY co.fullname ASC",
+            $params
+        );
+    }
+
     /**
      * Move a course up or down in the per-student sort order (enrollment mode).
      *

@@ -109,6 +109,9 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
                 if (response.success) {
                     updateWarning(courseId, response.hours);
                     flashRow(courseId);
+                    if (typeof response.coursetotal !== 'undefined') {
+                        updateProgress(response.coursetotal);
+                    }
                 }
             },
             fail: function(ex) {
@@ -186,6 +189,33 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
         setTimeout(function() {
             row.style.backgroundColor = '';
         }, 600);
+    }
+
+    /**
+     * Repaint the in-course progress bar from a new cumulative total.
+     * No-op on the dashboard (elements absent) or when no target is set.
+     *
+     * @param {number} total  Cumulative logged hours for the course.
+     */
+    function updateProgress(total) {
+        var bar = document.querySelector('.workload-progress-bar');
+        var text = document.querySelector('.workload-progress-text');
+        if (!bar || !text) {
+            return;
+        }
+        var target = parseFloat(text.dataset.target) || 0;
+        if (!target) {
+            return;
+        }
+        var pct = Math.min(100, Math.round((total / target) * 100));
+        bar.style.width = pct + '%';
+        bar.setAttribute('aria-valuenow', pct);
+        if (cfg.progresstexttpl) {
+            text.textContent = cfg.progresstexttpl
+                .replace('{l}', total.toFixed(1))
+                .replace('{t}', target.toFixed(1))
+                .replace('{p}', pct);
+        }
     }
 
     /**
@@ -460,7 +490,7 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
          * Initialise the block.
          *
          * @param {Object} config  {cohortid, weeknumber, year, coursesperpage,
-         *                          minweekint, maxweekint, weeklabeltpl, weektooltiptpl}
+         *                          minweekint, maxweekint, weeklabeltpl, weektooltiptpl, progresstexttpl}
          */
         init: function(config) {
             cfg = config || {};

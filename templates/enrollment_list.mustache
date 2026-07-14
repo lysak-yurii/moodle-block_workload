@@ -27,6 +27,7 @@
     {
         "statsurl": "http://example.com/blocks/workload/statistics.php",
         "globalurl": "http://example.com/blocks/workload/manage_global.php",
+        "targetsurl": "http://example.com/blocks/workload/manage_targets.php",
         "alphabars": [
             {
                 "bartype": "firstinitial", "barlabel": "First name",
@@ -49,6 +50,9 @@
 
     {{! Statistics + globally-hidden courses links }}
     <div class="mb-3 d-flex justify-content-end gap-2">
+        <a href="{{{targetsurl}}}" class="btn btn-outline-secondary">
+            {{#str}}coursetargets, block_workload{{/str}}
+        </a>
         <a href="{{{globalurl}}}" class="btn btn-outline-secondary">
             {{#str}}globalhiddencourses, block_workload{{/str}}
         </a>

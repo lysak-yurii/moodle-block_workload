@@ -108,6 +108,21 @@ if ($ADMIN->fulltree) {
     ));
 
     $settings->add(new admin_setting_configcheckbox(
+        'block_workload/enablecoursewidget',
+        get_string('enablecoursewidget', 'block_workload'),
+        get_string('enablecoursewidget_desc', 'block_workload'),
+        1
+    ));
+
+    $settings->add(new \block_workload\local\admin_setting_nonnegnum(
+        'block_workload/defaulttargethours',
+        get_string('defaulttargethours', 'block_workload'),
+        get_string('defaulttargethours_desc', 'block_workload'),
+        '0',
+        PARAM_FLOAT
+    ));
+
+    $settings->add(new admin_setting_configcheckbox(
         'block_workload/enrollmentactiveonly',
         get_string('enrollmentactiveonly', 'block_workload'),
         get_string('enrollmentactiveonly_desc', 'block_workload'),

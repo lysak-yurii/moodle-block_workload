@@ -1,0 +1,155 @@
+{{!
+    This file is part of Moodle - http://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+}}
+{{!
+    @template block_workload/manage_targets
+
+    Manager page: per-course workload target hours with inline editing,
+    export scaffold and bulk import.
+
+    @package   block_workload
+    @copyright 2026 Yurii Lysak
+    @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+
+    Example context (json):
+    {
+        "backurl": "http://example.com/blocks/workload/manage_enrollment.php",
+        "backlabel": "Back to management",
+        "sesskey": "abc",
+        "featuredisabled": false,
+        "hasdefault": true,
+        "defaultinfo": "Global default: 150.0 h — changed in site administration.",
+        "isenrollment": true,
+        "catformaction": "http://example.com/blocks/workload/manage_targets.php",
+        "catopts": [{"value": 0, "label": "All categories", "selected": true}],
+        "selectedcatid": 0,
+        "includesubcats": 0,
+        "coursecount": 1,
+        "hascourses": true,
+        "rows": [{"courseid": 2, "name": "Course A", "shortname": "CA",
+                  "courseurl": "http://example.com/course/view.php?id=2",
+                  "target": "150", "effectivetext": "150.0 h (course)"}],
+        "exportcsvurl": "http://example.com/export?f=csv",
+        "exportxlsxurl": "http://example.com/export?f=xlsx",
+        "importformhtml": "<form></form>"
+    }
+}}
+
+<div class="block_workload-manage-targets">
+
+    {{#featuredisabled}}
+    <div class="alert alert-warning d-flex align-items-center" role="alert">
+        <span>{{#str}}targetsdisabledbanner, block_workload{{/str}}</span>
+    </div>
+    {{/featuredisabled}}
+
+    <div class="mb-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <a href="{{{backurl}}}" class="btn btn-outline-secondary">&larr; {{backlabel}}</a>
+        <span class="text-muted small">{{defaultinfo}}</span>
+    </div>
+
+    {{#isenrollment}}
+    {{! Category filter (enrollment mode: the universe is all courses) }}
+    <form method="get" action="{{{catformaction}}}" class="card p-3 mb-3">
+        <div class="d-flex align-items-end gap-2 flex-wrap">
+            <div>
+                <label class="form-label small fw-semibold" for="wl-targets-cat">
+                    {{#str}}filterbycategory, block_workload{{/str}}
+                </label>
+                <select id="wl-targets-cat" name="catid" class="form-select">
+                    {{#catopts}}
+                    <option value="{{value}}"{{#selected}} selected{{/selected}}>{{label}}</option>
+                    {{/catopts}}
+                </select>
+            </div>
+            <div class="form-check mb-2">
+                <input class="form-check-input" type="checkbox" name="includesubcats" value="1"
+                       id="wl-targets-subcats"{{#includesubcats}} checked{{/includesubcats}}>
+                <label class="form-check-label small" for="wl-targets-subcats">
+                    {{#str}}includesubcategories, block_workload{{/str}}
+                </label>
+            </div>
+            <button type="submit" class="btn btn-secondary mb-1">{{#str}}filterresults, block_workload{{/str}}</button>
+        </div>
+    </form>
+    {{/isenrollment}}
+
+    {{! Course list with inline target editing }}
+    <div class="card p-3 mb-3">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h5 class="mb-0">{{#str}}coursetargets, block_workload{{/str}}</h5>
+            <span class="text-muted small">{{#str}}courseresultcount, block_workload, {{coursecount}}{{/str}}</span>
+        </div>
+
+        {{^hascourses}}
+        <p class="text-muted mb-0">{{#str}}notargetcourses, block_workload{{/str}}</p>
+        {{/hascourses}}
+
+        {{#hascourses}}
+        <div class="table-responsive">
+            <table id="wl-targets-table" class="table table-sm align-middle">
+                <thead>
+                    <tr>
+                        <th scope="col">{{#str}}course{{/str}}</th>
+                        <th scope="col">{{#str}}shortnamecourse{{/str}}</th>
+                        <th scope="col" style="width:9rem;">{{#str}}targethourslabel, block_workload{{/str}}</th>
+                        <th scope="col" style="width:12rem;">{{#str}}effectivetarget, block_workload{{/str}}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{#rows}}
+                    <tr>
+                        <td><a href="{{{courseurl}}}">{{name}}</a></td>
+                        <td class="text-muted small">{{shortname}}</td>
+                        <td>
+                            <input type="text"
+                                   class="wl-target-input form-control form-control-sm"
+                                   data-courseid="{{courseid}}"
+                                   value="{{target}}"
+                                   placeholder="{{#str}}targetplaceholder, block_workload{{/str}}"
+                                   aria-label="{{#str}}targethourslabel, block_workload{{/str}}">
+                        </td>
+                        <td class="wl-target-effective small">{{effectivetext}}</td>
+                    </tr>
+                    {{/rows}}
+                </tbody>
+            </table>
+        </div>
+        {{/hascourses}}
+    </div>
+
+    {{! Export scaffold: course list with a target_hours column to fill in }}
+    <div class="card p-3 mb-3">
+        <h5 class="mb-1">{{#str}}exportcourselist, block_workload{{/str}}</h5>
+        <p class="text-muted small mb-2">{{#str}}exportcourselist_desc, block_workload{{/str}}</p>
+        <div class="d-flex gap-2">
+            <a href="{{{exportcsvurl}}}" class="btn btn-outline-primary">
+                {{#str}}exportcsv, block_workload{{/str}}
+            </a>
+            <a href="{{{exportxlsxurl}}}" class="btn btn-outline-primary">
+                {{#str}}exportxlsx, block_workload{{/str}}
+            </a>
+        </div>
+    </div>
+
+    {{! Bulk import: upload the completed scaffold, then preview before applying }}
+    <div class="card p-3 mb-3">
+        <h5 class="mb-1">{{#str}}importtargets, block_workload{{/str}}</h5>
+        <p class="text-muted small mb-2">{{#str}}importtargets_desc, block_workload{{/str}}</p>
+        {{{importformhtml}}}
+    </div>
+
+</div>

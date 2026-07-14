@@ -132,5 +132,29 @@ function xmldb_block_workload_upgrade(int $oldversion): bool {
         upgrade_block_savepoint(true, 2026071001, 'workload');
     }
 
+    if ($oldversion < 2026071300) {
+        // Per-course workload target hours ("time required") for the in-course
+        // widget's progress bar. Absence of a row means the global default
+        // (block_workload/defaulttargethours) applies.
+        $table = new xmldb_table('block_workload_targets');
+
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $table->add_field('courseid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('targethours', XMLDB_TYPE_NUMBER, '6, 1', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('createdby', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('timemodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+        $table->add_key('fk_courseid', XMLDB_KEY_FOREIGN_UNIQUE, ['courseid'], 'course', ['id']);
+        $table->add_key('fk_createdby', XMLDB_KEY_FOREIGN, ['createdby'], 'user', ['id']);
+
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        upgrade_block_savepoint(true, 2026071300, 'workload');
+    }
+
     return true;
 }

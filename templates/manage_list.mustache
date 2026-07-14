@@ -22,6 +22,7 @@
     Context variables:
         addurl          (string) URL for the add-cohort modal iframe
         statisticsurl   (string) URL for the statistics page
+        targetsurl      (string) URL for the course targets management page
         hascohorts      (bool)   whether any cohorts exist
         cohorts[]
             id               (int)
@@ -43,6 +44,7 @@
     {
         "addurl": "http://example.com/blocks/workload/manage.php?action=add&modal=1",
         "statisticsurl": "http://example.com/blocks/workload/statistics.php",
+        "targetsurl": "http://example.com/blocks/workload/manage_targets.php",
         "manageurl": "http://example.com/blocks/workload/manage.php",
         "sesskey": "abc123",
         "hascohorts": true,
@@ -68,6 +70,9 @@
     </button>
     <a href="{{{statisticsurl}}}" class="btn btn-outline-primary">
         {{#str}}statisticstitle, block_workload{{/str}}
+    </a>
+    <a href="{{{targetsurl}}}" class="btn btn-outline-secondary">
+        {{#str}}coursetargets, block_workload{{/str}}
     </a>
 </div>
 

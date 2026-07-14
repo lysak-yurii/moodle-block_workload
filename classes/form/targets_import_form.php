@@ -14,18 +14,35 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
-/**
- * Workload Assessment block version definition.
- *
- * @package   block_workload
- * @copyright  2026 Yurii Lysak
- * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- */
+namespace block_workload\form;
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version   = 2026071401;
-$plugin->requires  = 2024100700; // Moodle 4.5 or later.
-$plugin->component = 'block_workload';
-$plugin->maturity  = MATURITY_BETA;
-$plugin->release   = '1.1.3';
+require_once($CFG->libdir . '/formslib.php');
+
+/**
+ * Upload form for the course-targets bulk import (.csv / .xlsx).
+ *
+ * @package   block_workload
+ * @copyright 2026 Yurii Lysak
+ * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+class targets_import_form extends \moodleform {
+    /**
+     * Define the form fields.
+     */
+    protected function definition(): void {
+        $mform = $this->_form;
+
+        $mform->addElement(
+            'filepicker',
+            'targetsfile',
+            get_string('importfile', 'block_workload'),
+            null,
+            ['accepted_types' => ['.csv', '.xlsx']]
+        );
+        $mform->addRule('targetsfile', null, 'required');
+
+        $this->add_action_buttons(false, get_string('uploadandpreview', 'block_workload'));
+    }
+}

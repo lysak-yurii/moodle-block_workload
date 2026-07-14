@@ -33,15 +33,20 @@ class block_workload extends block_base {
     }
 
     /**
-     * Only show on the user dashboard.
+     * Show on the user dashboard, and on course pages when the in-course
+     * widget feature is enabled (admin master switch).
      *
      * @return array
      */
     public function applicable_formats(): array {
-        return [
+        $formats = [
             'my'   => true,
             'site' => false,
         ];
+        if (\block_workload\helper::course_widget_enabled()) {
+            $formats['course-view'] = true;
+        }
+        return $formats;
     }
 
     /**
@@ -77,6 +82,11 @@ class block_workload extends block_base {
         $this->content         = new stdClass();
         $this->content->text   = '';
         $this->content->footer = '';
+
+        // In-course widget: a single-course logger + progress bar on course pages.
+        if (strpos($this->page->pagetype, 'course-view') === 0 && $this->page->course->id != SITEID) {
+            return $this->get_course_content();
+        }
 
         $syscontext = context_system::instance();
         $coursemode = get_config('block_workload', 'coursemode') ?: 'enrollment';
@@ -188,17 +198,6 @@ class block_workload extends block_base {
         $hourstepmin = ($rawstep !== false) ? max(1, (int) $rawstep) : 60;
         $hourstep    = $hourstepmin / 60;
 
-        // Format a decimal hour value as H:MM for display in the input.
-        $hhmm = static function (float $dec): string {
-            $h = (int) floor($dec);
-            $m = (int) round(($dec - $h) * 60);
-            if ($m >= 60) {
-                $h++;
-                $m = 0;
-            }
-            return sprintf('%d:%02d', $h, $m);
-        };
-
         $coursedata = [];
         $idx = 0;
         foreach ($courses as $course) {
@@ -207,7 +206,7 @@ class block_workload extends block_base {
                 'courseid'        => (int) $course->id,
                 'coursename'      => format_string($course->fullname),
                 'courseurl'       => (new moodle_url('/course/view.php', ['id' => $course->id]))->out(false),
-                'hours_display'   => $hhmm($hours),
+                'hours_display'   => self::format_hhmm($hours),
                 'hours_raw'       => $hours,
                 'not_entered'     => ($hours == 0),
                 'maxhours'        => $maxhours,
@@ -255,6 +254,130 @@ class block_workload extends block_base {
         ]]);
 
         $this->content->text = $OUTPUT->render_from_template('block_workload/block', $templatecontext);
+
+        return $this->content;
+    }
+
+    /**
+     * Format a decimal hour value as H:MM for display in an input.
+     *
+     * @param float $dec
+     * @return string
+     */
+    private static function format_hhmm(float $dec): string {
+        $h = (int) floor($dec);
+        $m = (int) round(($dec - $h) * 60);
+        if ($m >= 60) {
+            $h++;
+            $m = 0;
+        }
+        return sprintf('%d:%02d', $h, $m);
+    }
+
+    /**
+     * Build the in-course widget content (course pages only).
+     *
+     * Self-hides (empty content) when the feature is disabled, the user cannot
+     * submit hours, or the course is not an active workload course for them —
+     * mirroring the dashboard block's self-hiding behaviour.
+     *
+     * @return stdClass
+     */
+    private function get_course_content(): stdClass {
+        global $USER, $OUTPUT;
+
+        if (!\block_workload\helper::course_widget_enabled()) {
+            return $this->content;
+        }
+
+        $syscontext = context_system::instance();
+        if (!has_capability('block/workload:submit', $syscontext)) {
+            return $this->content;
+        }
+
+        $courseid = (int) $this->page->course->id;
+        if (!\block_workload\helper::is_course_workload_active_for_user((int) $USER->id, $courseid)) {
+            return $this->content;
+        }
+
+        // Current ISO week/year.
+        $weeknumber = (int) date('W');
+        $year       = (int) date('o');
+
+        $entries  = \block_workload\helper::get_week_entries((int) $USER->id, $weeknumber, $year);
+        $hours    = (float) ($entries[$courseid] ?? 0);
+        $maxhours = (int) (get_config('block_workload', 'maxhours') ?: 40);
+        $rawstep     = get_config('block_workload', 'hourstep');
+        $hourstepmin = ($rawstep !== false) ? max(1, (int) $rawstep) : 60;
+        $hourstep    = $hourstepmin / 60;
+
+        // Cumulative progress against the course's target (null = no bar).
+        $target  = \block_workload\helper::get_course_target($courseid);
+        $logged  = \block_workload\helper::get_course_logged_total((int) $USER->id, $courseid);
+        $percent = $target ? (int) round(min(100, $logged / $target * 100)) : 0;
+
+        $bounds  = \block_workload\helper::get_editable_week_bounds((int) $USER->id);
+        $weekint = $year * 100 + $weeknumber;
+        $hasnav  = ($bounds['min'] < $bounds['max']);
+
+        $progresstext = $target
+            ? get_string('progress_text', 'block_workload', (object) [
+                'logged'  => number_format($logged, 1),
+                'target'  => number_format($target, 1),
+                'percent' => $percent,
+            ])
+            : '';
+
+        $templatecontext = [
+            'courseid'           => $courseid,
+            'hours_display'      => self::format_hhmm($hours),
+            'hours_raw'          => $hours,
+            'not_entered'        => ($hours == 0),
+            'maxhours'           => $maxhours,
+            'hourstep'           => $hourstep,
+            'weeknumber'         => $weeknumber,
+            'year'               => $year,
+            'weeknumber_tooltip' => get_string(
+                'weeknumber_tooltip',
+                'block_workload',
+                (object) ['week' => $weeknumber, 'year' => $year]
+            ),
+            'hasweeknav'         => $hasnav,
+            'prevdisabled'       => ($weekint <= $bounds['min']),
+            'nextdisabled'       => ($weekint >= $bounds['max']),
+            'blocktitle_tooltip' => get_string($hasnav ? 'coursewidget_tooltip_nav' : 'coursewidget_tooltip', 'block_workload'),
+            'hastarget'          => ($target !== null),
+            'target_raw'         => $target,
+            'percent'            => $percent,
+            'progresstext'       => $progresstext,
+        ];
+
+        // Student stats footer link, as on the dashboard.
+        if (has_capability('block/workload:viewownstats', $syscontext)) {
+            $this->content->footer = $OUTPUT->render_from_template(
+                'block_workload/block_footer',
+                ['links' => [[
+                    'url'       => (new moodle_url('/blocks/workload/mystats.php'))->out(false),
+                    'label'     => get_string('viewmystats', 'block_workload'),
+                    'separator' => false,
+                ]]]
+            );
+        }
+
+        $this->page->requires->js_call_amd('block_workload/workload', 'init', [[
+            'weeknumber'      => $weeknumber,
+            'year'            => $year,
+            'coursesperpage'  => 0,
+            'minweekint'      => (int) $bounds['min'],
+            'maxweekint'      => (int) $bounds['max'],
+            'weeklabeltpl'    => get_string('weeknumber', 'block_workload', '{w}'),
+            'weektooltiptpl'  => get_string('weeknumber_tooltip', 'block_workload', (object) ['week' => '{w}', 'year' => '{y}']),
+            'progresstexttpl' => get_string('progress_text', 'block_workload', (object) [
+                'logged' => '{l}', 'target' => '{t}', 'percent' => '{p}',
+            ]),
+        ]]);
+
+        $this->content->text = $OUTPUT->render_from_template('block_workload/block_course', $templatecontext);
 
         return $this->content;
     }

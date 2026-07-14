@@ -85,6 +85,13 @@ class save_hours extends external_api {
         $allcohorts = null;
 
         if ($coursemode === 'enrollment') {
+            // A manager may have disabled the workload widget for this student.
+            // The dashboard and in-course widget both hide in that case; enforce
+            // it here too so a disabled student cannot log hours via direct AJAX.
+            if (!\block_workload\helper::is_user_widget_active((int) $USER->id)) {
+                throw new \moodle_exception('workloadinactive', 'block_workload');
+            }
+
             // Enrollment mode: validate via Moodle enrollment + manager overrides.
             require_once($CFG->libdir . '/enrollib.php');
             $coursecontext = \context_course::instance($params['courseid'], IGNORE_MISSING);
@@ -145,7 +152,11 @@ class save_hours extends external_api {
             $hours
         );
 
-        return ['success' => true, 'hours' => $hours];
+        return [
+            'success'     => true,
+            'hours'       => $hours,
+            'coursetotal' => \block_workload\helper::get_course_logged_total((int) $USER->id, $params['courseid']),
+        ];
     }
 
     /**
@@ -155,8 +166,9 @@ class save_hours extends external_api {
      */
     public static function execute_returns(): external_single_structure {
         return new external_single_structure([
-            'success' => new external_value(PARAM_BOOL, 'Whether the save succeeded'),
-            'hours'   => new external_value(PARAM_FLOAT, 'The saved hours value (after clamping)'),
+            'success'     => new external_value(PARAM_BOOL, 'Whether the save succeeded'),
+            'hours'       => new external_value(PARAM_FLOAT, 'The saved hours value (after clamping)'),
+            'coursetotal' => new external_value(PARAM_FLOAT, 'Total hours logged for this course across all weeks'),
         ]);
     }
 }
