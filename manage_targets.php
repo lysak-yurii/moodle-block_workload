@@ -233,18 +233,7 @@ $showpaging = ($perpage > 0 && $total > $perpage);
 $pagingbar  = $showpaging ? $OUTPUT->paging_bar($total, $page, $perpage, $pagingurl) : '';
 
 // Per-page selector (mirrors manage_enrollment.php).
-$perpageopts = [];
-foreach ([25 => '25', 50 => '50', 100 => '100', 0 => get_string('showall', 'block_workload', $total)] as $opt => $lbl) {
-    $active        = ($opt == $perpage);
-    $perpageopts[] = [
-        'label'  => $lbl,
-        'active' => $active,
-        'islink' => !$active,
-        'url'    => !$active
-            ? (new moodle_url($baseurl, $filterparams + ['perpage' => $opt, 'page' => 0]))->out(false)
-            : '',
-    ];
-}
+$perpageopts = \block_workload\helper::build_perpage_options($baseurl, $filterparams, $perpage, $total);
 
 $templatecontext = [
     'backurl'         => (new moodle_url(

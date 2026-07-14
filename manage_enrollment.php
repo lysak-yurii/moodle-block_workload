@@ -43,6 +43,10 @@ $page        = optional_param('page', 0, PARAM_INT);
 
 $catid          = optional_param('catid', 0, PARAM_INT);
 $includesubcats = optional_param('includesubcats', 0, PARAM_BOOL);
+// Course search on the per-student "Manage Courses" adder. Shares page/perpage
+// with the student list above: the two views are separate URLs (the detail view
+// always carries userid), so they never contend.
+$search         = optional_param('search', '', PARAM_TEXT);
 $confirm        = optional_param('confirm', 0, PARAM_BOOL);
 
 $syscontext = context_system::instance();
@@ -185,7 +189,14 @@ if ($bulkaddcourses && $userid && confirm_sesskey()) {
         }
     }
     redirect(
-        new moodle_url('/blocks/workload/manage_enrollment.php', ['userid' => $userid, 'catid' => $catid]),
+        new moodle_url('/blocks/workload/manage_enrollment.php', array_filter([
+            'userid'         => $userid,
+            'catid'          => $catid ?: null,
+            'includesubcats' => $includesubcats ?: null,
+            'search'         => ($search !== '') ? $search : null,
+            'page'           => $page ?: null,
+            'perpage'        => ($perpage != 25) ? $perpage : null,
+        ])),
         get_string('coursesadded', 'block_workload', $added),
         null,
         \core\output\notification::NOTIFY_SUCCESS
@@ -319,7 +330,7 @@ if ($userid && ($moveup || $movedown) && confirm_sesskey()) {
 // Route to view.
 
 if ($userid) {
-    block_workload_render_student_detail($userid, $catid, (bool)$includesubcats);
+    block_workload_render_student_detail($userid, $catid, (bool)$includesubcats, $search, $page, $perpage);
     exit;
 }
 block_workload_render_student_list($firstletter, $lastletter, $perpage, $alphabet);
@@ -385,25 +396,13 @@ function block_workload_render_student_list(
         ];
     }
 
-    // Per-page selector.
-    $perpageopts = [];
-    foreach (
-        [25 => '25', 50 => '50', 100 => '100',
-              0  => get_string('showall', 'block_workload', $total)] as $opt => $lbl
-    ) {
-        $active = ($opt == $perpage);
-        $perpageopts[] = [
-            'label'  => $lbl,
-            'active' => $active,
-            'islink' => !$active,
-            'url'    => !$active
-                ? (new moodle_url($filterbase, [
-                    'perpage' => $opt, 'page' => 0,
-                    'firstletter' => $firstletter, 'lastletter' => $lastletter,
-                  ]))->out(false)
-                : '',
-        ];
-    }
+    // Per-page selector. The alphabet filter is the state to preserve here.
+    $perpageopts = \block_workload\helper::build_perpage_options(
+        $filterbase,
+        ['firstletter' => $firstletter, 'lastletter' => $lastletter],
+        $perpage,
+        $total
+    );
 
     // Student table via Moodle table class (captures output).
     $filterset = new \block_workload\table\enrollment_students_filterset();
@@ -455,7 +454,14 @@ function block_workload_render_student_list(
  * @param int  $catid
  * @param bool $includesubcats
  */
-function block_workload_render_student_detail(int $userid, int $catid, bool $includesubcats = false): void {
+function block_workload_render_student_detail(
+    int $userid,
+    int $catid,
+    bool $includesubcats = false,
+    string $search = '',
+    int $page = 0,
+    int $perpage = 25
+): void {
     global $OUTPUT, $PAGE, $DB;
 
     $user     = $DB->get_record('user', ['id' => $userid, 'deleted' => 0], '*', MUST_EXIST);
@@ -486,8 +492,17 @@ function block_workload_render_student_detail(int $userid, int $catid, bool $inc
     $addcourserows  = [];
     $catresultinfo  = '';
 
-    if ($catid > 0) {
-        $available = \block_workload\helper::get_courses_in_category($catid, $includesubcats);
+    $total = 0;
+    if ($catid > 0 || $search !== '') {
+        $offset    = ($perpage > 0) ? $page * $perpage : 0;
+        $total     = \block_workload\helper::get_courses_in_category_count($catid ?: null, $includesubcats, $search);
+        $available = \block_workload\helper::get_courses_in_category(
+            $catid ?: null,
+            $includesubcats,
+            $search,
+            $perpage,
+            $offset
+        );
         if (empty($available)) {
             $nocoursesincat = true;
         } else {
@@ -497,14 +512,9 @@ function block_workload_render_student_detail(int $userid, int $catid, bool $inc
                     ? ($c->override_active === null || (int)$c->override_active === 1)
                     : (int)$c->override_active === 1;
             }));
-            $alreadycount  = count(array_filter(
-                $available,
-                fn($c) => in_array((int)$c->id, $shownids)
-            ));
-            $catresultinfo = get_string('courseresultcount', 'block_workload', count($available))
-                . ($alreadycount
-                    ? ', ' . get_string('alreadyassignedcount', 'block_workload', $alreadycount)
-                    : '');
+            // The per-row "already assigned" badge reports this precisely; an aggregate
+            // here would silently mean "on this page" once the list is paged.
+            $catresultinfo = get_string('courseresultcount', 'block_workload', $total);
 
             foreach ($available as $c) {
                 $already         = in_array((int)$c->id, $shownids);
@@ -651,12 +661,34 @@ function block_workload_render_student_detail(int $userid, int $catid, bool $inc
         ];
     }
 
+    // Filter state carried by every paging/per-page link on the add-courses table.
+    $detailbase   = new moodle_url('/blocks/workload/manage_enrollment.php');
+    $filterparams = array_filter([
+        'userid'         => $userid,
+        'catid'          => $catid ?: null,
+        'includesubcats' => $includesubcats ?: null,
+        'search'         => ($search !== '') ? $search : null,
+    ]);
+
+    $pagingurl  = new moodle_url($detailbase, $filterparams + ['perpage' => $perpage]);
+    $showpaging = ($perpage > 0 && $total > $perpage);
+    $pagingbar  = $showpaging ? $OUTPUT->paging_bar($total, $page, $perpage, $pagingurl) : '';
+
+    $perpageopts = \block_workload\helper::build_perpage_options($detailbase, $filterparams, $perpage, $total);
+
     $templatecontext = [
         'backurl'    => (new moodle_url('/blocks/workload/manage_enrollment.php'))->out(false),
         'backlabel'  => get_string('backstudentlist', 'block_workload'),
         'statsurl'   => (new moodle_url('/blocks/workload/statistics.php'))->out(false),
         'userid'     => $userid,
         'sesskey'    => sesskey(),
+        'search'          => $search,
+        'selectedpage'    => $page,
+        'selectedperpage' => $perpage,
+        'pagingbartop'    => $pagingbar,
+        'pagingbarbottom' => $pagingbar,
+        'perpagestr'      => get_string('perpage', 'block_workload'),
+        'perpageopts'     => array_values($perpageopts),
         'catformaction' => (new moodle_url('/blocks/workload/manage_enrollment.php'))->out(false),
         'catopts'    => array_values($catopts),
         'selectedcatid'  => $catid,

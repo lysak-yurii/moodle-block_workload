@@ -31,6 +31,9 @@ $action         = optional_param('action', '', PARAM_ALPHA);
 $courseid       = optional_param('courseid', 0, PARAM_INT);
 $catid          = optional_param('catid', 0, PARAM_INT);
 $includesubcats = optional_param('includesubcats', 0, PARAM_BOOL);
+$search         = optional_param('search', '', PARAM_TEXT);
+$page           = optional_param('page', 0, PARAM_INT);
+$perpage        = optional_param('perpage', 25, PARAM_INT);
 
 $syscontext = context_system::instance();
 require_login();
@@ -96,7 +99,13 @@ if ($hidecourses && confirm_sesskey()) {
         }
     }
     redirect(
-        new moodle_url($baseurl, ['catid' => $catid]),
+        new moodle_url($baseurl, array_filter([
+            'catid'          => $catid ?: null,
+            'includesubcats' => $includesubcats ?: null,
+            'search'         => ($search !== '') ? $search : null,
+            'page'           => $page ?: null,
+            'perpage'        => ($perpage != 25) ? $perpage : null,
+        ])),
         get_string('courseshiddenglobally', 'block_workload', $hiddencount),
         null,
         \core\output\notification::NOTIFY_SUCCESS
@@ -123,20 +132,23 @@ $nocoursesincat = false;
 $addcourserows  = [];
 $catresultinfo  = '';
 
-if ($catid > 0) {
-    $available = \block_workload\helper::get_courses_in_category($catid, $includesubcats);
+if ($catid > 0 || $search !== '') {
+    $offset    = ($perpage > 0) ? $page * $perpage : 0;
+    $total     = \block_workload\helper::get_courses_in_category_count($catid ?: null, $includesubcats, $search);
+    $available = \block_workload\helper::get_courses_in_category(
+        $catid ?: null,
+        $includesubcats,
+        $search,
+        $perpage,
+        $offset
+    );
     if (empty($available)) {
         $nocoursesincat = true;
     } else {
         $hascatresults = true;
-        $alreadycount  = count(array_filter(
-            $available,
-            fn($c) => in_array((int)$c->id, $hiddenids, true)
-        ));
-        $catresultinfo = get_string('courseresultcount', 'block_workload', count($available))
-            . ($alreadycount
-                ? ', ' . get_string('alreadyhiddencount', 'block_workload', $alreadycount)
-                : '');
+        // The per-row "already hidden" badge reports this precisely; an aggregate
+        // here would silently mean "on this page" once the list is paged.
+        $catresultinfo = get_string('courseresultcount', 'block_workload', $total);
 
         foreach ($available as $c) {
             $already         = in_array((int)$c->id, $hiddenids, true);
@@ -178,6 +190,21 @@ foreach (array_values($hidden) as $course) {
     ];
 }
 
+// Filter state carried by every paging/per-page link.
+$filterparams = array_filter([
+    'catid'          => $catid ?: null,
+    'includesubcats' => $includesubcats ?: null,
+    'search'         => ($search !== '') ? $search : null,
+]);
+
+$total      = $total ?? 0;
+$pagingurl  = new moodle_url($baseurl, $filterparams + ['perpage' => $perpage]);
+$showpaging = ($perpage > 0 && $total > $perpage);
+$pagingbar  = $showpaging ? $OUTPUT->paging_bar($total, $page, $perpage, $pagingurl) : '';
+
+// Per-page selector (mirrors manage_targets.php / manage_enrollment.php).
+$perpageopts = \block_workload\helper::build_perpage_options($baseurl, $filterparams, $perpage, $total);
+
 $templatecontext = [
     'backurl'   => (new moodle_url('/blocks/workload/manage_enrollment.php'))->out(false),
     'backlabel' => get_string('backstudentlist', 'block_workload'),
@@ -187,6 +214,13 @@ $templatecontext = [
     'catopts'        => array_values($catopts),
     'selectedcatid'  => $catid,
     'includesubcats' => $includesubcats,
+    'search'          => $search,
+    'selectedperpage' => $perpage,
+    'selectedpage'    => $page,
+    'pagingbartop'    => $pagingbar,
+    'pagingbarbottom' => $pagingbar,
+    'perpagestr'      => get_string('perpage', 'block_workload'),
+    'perpageopts'     => array_values($perpageopts),
 
     'hascatresults'  => $hascatresults,
     'nocoursesincat' => $nocoursesincat,

@@ -36,6 +36,13 @@
             {"value": 3, "label": "BSc Courses", "selected": false}
         ],
         "selectedcatid": 0,
+        "search": "",
+        "selectedpage": 0,
+        "selectedperpage": 25,
+        "pagingbartop": "",
+        "pagingbarbottom": "",
+        "perpagestr": "Per page",
+        "perpageopts": [{"label": "25", "active": true, "islink": false, "url": ""}],
         "hascatresults": false,
         "catresultinfo": "",
         "addcourserows": [],
@@ -88,11 +95,20 @@
         <input type="hidden" name="userid" value="{{userid}}">
         <div class="d-flex align-items-end gap-2 flex-wrap">
             <div class="d-flex flex-column">
+                <label for="wl-detail-search" class="form-label small">
+                    {{#str}}searchcourses, block_workload{{/str}}
+                </label>
+                <input type="text" id="wl-detail-search" name="search"
+                       class="form-control" style="min-width:220px;"
+                       value="{{search}}"
+                       placeholder="{{#str}}searchcourses, block_workload{{/str}}">
+            </div>
+            <div class="d-flex flex-column">
                 <label for="wl-catid" class="form-label small">
                     {{#str}}filterbycategory, block_workload{{/str}}
                 </label>
                 <select name="catid" id="wl-catid"
-                        class="select custom-select form-select form-select-sm" style="min-width:260px;">
+                        class="select custom-select form-select" style="min-width:260px;">
                     {{#catopts}}
                     <option value="{{value}}"{{#selected}} selected{{/selected}}>{{label}}</option>
                     {{/catopts}}
@@ -116,10 +132,24 @@
     {{! Add-courses table (shown when a category is selected) }}
     {{#hascatresults}}
     <p class="small text-muted mb-2">{{catresultinfo}}</p>
+    <div class="d-flex justify-content-between align-items-center flex-wrap mb-2">
+        <div class="small">
+            <span class="font-weight-bold mr-1">{{perpagestr}}:</span>
+            {{#perpageopts}}
+            {{#islink}}<a href="{{{url}}}" class="mr-1">{{label}}</a>{{/islink}}
+            {{^islink}}<span class="mr-1 font-weight-bold">{{label}}</span>{{/islink}}
+            {{/perpageopts}}
+        </div>
+        <div>{{{pagingbartop}}}</div>
+    </div>
     <form method="post">
-        <input type="hidden" name="userid"       value="{{userid}}">
-        <input type="hidden" name="catid"        value="{{selectedcatid}}">
-        <input type="hidden" name="sesskey"      value="{{sesskey}}">
+        <input type="hidden" name="userid"         value="{{userid}}">
+        <input type="hidden" name="catid"          value="{{selectedcatid}}">
+        <input type="hidden" name="includesubcats" value="{{includesubcats}}">
+        <input type="hidden" name="search"         value="{{search}}">
+        <input type="hidden" name="page"           value="{{selectedpage}}">
+        <input type="hidden" name="perpage"        value="{{selectedperpage}}">
+        <input type="hidden" name="sesskey"        value="{{sesskey}}">
         <input type="hidden" name="bulkaddcourses" value="1">
         <table class="generaltable table-sm table-hover mb-3">
             <thead>
@@ -165,6 +195,7 @@
                 {{/addcourserows}}
             </tbody>
         </table>
+        {{{pagingbarbottom}}}
         <button type="submit" class="btn btn-primary">
             {{#str}}addcourses, block_workload{{/str}}
         </button>
@@ -173,7 +204,7 @@
 
     {{#nocoursesincat}}
     <div class="alert alert-info" role="alert">
-        {{#str}}nocoursesincategory, block_workload{{/str}}
+        {{#str}}notargetcourses, block_workload{{/str}}
     </div>
     {{/nocoursesincat}}
 

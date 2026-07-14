@@ -1702,33 +1702,130 @@ class helper {
     }
 
     /**
-     * Return courses in a category (non-site courses).
+     * WHERE clause for the course finder, shared by the list and the count so
+     * their filtering can never drift apart.
      *
-     * @param int  $categoryid
-     * @param bool $includesubcats Also include courses from sub-categories.
-     * @return array
+     * @param int|null $categoryid null/0 = no category filter (search everywhere).
+     * @param bool     $includesubcats Include sub-categories of $categoryid.
+     * @param string   $search Free text matched against course full/short name.
+     * @return array [string $where, array $params]
      */
-    public static function get_courses_in_category(int $categoryid, bool $includesubcats = false): array {
+    private static function courses_in_category_sql(?int $categoryid, bool $includesubcats, string $search): array {
         global $DB;
-        if ($includesubcats) {
-            $catids = self::get_all_subcategory_ids($categoryid);
-            [$sql, $params] = $DB->get_in_or_equal($catids, SQL_PARAMS_NAMED, 'cat');
-            $params['site'] = SITEID;
-            return $DB->get_records_select(
-                'course',
-                "category $sql AND id <> :site",
-                $params,
-                'fullname ASC',
-                'id, fullname, shortname, startdate, enddate'
-            );
+
+        $where  = 'id <> :site';
+        $params = ['site' => SITEID];
+
+        if ($categoryid) {
+            // ... get_all_subcategory_ids() already includes the category itself.
+            $catids = $includesubcats ? self::get_all_subcategory_ids($categoryid) : [$categoryid];
+            [$insql, $inparams] = $DB->get_in_or_equal($catids, SQL_PARAMS_NAMED, 'cat');
+            $where .= " AND category $insql";
+            $params += $inparams;
         }
+
+        if ($search !== '') {
+            // Case/accent-insensitive; sql_like_escape() so a literal % or _ in the
+            // Query cannot act as a wildcard.
+            $like = '(' . $DB->sql_like('fullname', ':q1', false, false)
+                  . ' OR ' . $DB->sql_like('shortname', ':q2', false, false) . ')';
+            $where .= " AND $like";
+            $params['q1'] = '%' . $DB->sql_like_escape($search) . '%';
+            $params['q2'] = '%' . $DB->sql_like_escape($search) . '%';
+        }
+
+        return [$where, $params];
+    }
+
+    /**
+     * Courses a manager can pick from, ordered by full name.
+     *
+     * With no category and no search this returns every real course, so callers
+     * that browse (rather than search) should require a category first.
+     *
+     * @param int|null $categoryid null/0 = no category filter.
+     * @param bool     $includesubcats Include sub-categories of $categoryid.
+     * @param string   $search Free text matched against course full/short name.
+     * @param int      $limit Page size; 0 = no limit.
+     * @param int      $offset Number of records to skip.
+     * @return array courseid => record (id, fullname, shortname, startdate, enddate)
+     */
+    public static function get_courses_in_category(
+        ?int $categoryid = null,
+        bool $includesubcats = false,
+        string $search = '',
+        int $limit = 0,
+        int $offset = 0
+    ): array {
+        global $DB;
+
+        [$where, $params] = self::courses_in_category_sql($categoryid, $includesubcats, $search);
+
         return $DB->get_records_select(
             'course',
-            'category = :cat AND id <> :site',
-            ['cat' => $categoryid, 'site' => SITEID],
+            $where,
+            $params,
             'fullname ASC',
-            'id, fullname, shortname, startdate, enddate'
+            'id, fullname, shortname, startdate, enddate',
+            $offset,
+            $limit
         );
+    }
+
+    /**
+     * How many courses match the given filters. Mirrors get_courses_in_category()
+     * exactly, minus the paging.
+     *
+     * @param int|null $categoryid null/0 = no category filter.
+     * @param bool     $includesubcats Include sub-categories of $categoryid.
+     * @param string   $search Free text matched against course full/short name.
+     * @return int
+     */
+    public static function get_courses_in_category_count(
+        ?int $categoryid = null,
+        bool $includesubcats = false,
+        string $search = ''
+    ): int {
+        global $DB;
+
+        [$where, $params] = self::courses_in_category_sql($categoryid, $includesubcats, $search);
+
+        return (int) $DB->count_records_select('course', $where, $params);
+    }
+
+    /**
+     * Options for a "Per page: 25 | 50 | 100 | Show all" selector, as used by every
+     * course-picker table in the plugin. Each link keeps the current filter and
+     * resets to the first page.
+     *
+     * @param \moodle_url $baseurl Page the links point at.
+     * @param array $filterparams Filter state to preserve (already free of nulls).
+     * @param int $perpage Currently selected page size; 0 = show all.
+     * @param int $total Total rows, used for the "Show all (N)" label.
+     * @return array List of ['label' => string, 'active' => bool, 'islink' => bool, 'url' => string]
+     */
+    public static function build_perpage_options(
+        \moodle_url $baseurl,
+        array $filterparams,
+        int $perpage,
+        int $total
+    ): array {
+        $options = [];
+        $sizes   = [25 => '25', 50 => '50', 100 => '100', 0 => get_string('showall', 'block_workload', $total)];
+
+        foreach ($sizes as $opt => $label) {
+            $active    = ($opt == $perpage);
+            $options[] = [
+                'label'  => $label,
+                'active' => $active,
+                'islink' => !$active,
+                'url'    => !$active
+                    ? (new \moodle_url($baseurl, $filterparams + ['perpage' => $opt, 'page' => 0]))->out(false)
+                    : '',
+            ];
+        }
+
+        return $options;
     }
 
 

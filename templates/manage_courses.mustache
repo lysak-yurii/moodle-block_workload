@@ -25,6 +25,13 @@
     {
         "backurl": "#", "cohortid": 1, "sesskey": "abc",
         "selectedcategory": 0,
+        "search": "",
+        "selectedpage": 0,
+        "selectedperpage": 25,
+        "pagingbartop": "",
+        "pagingbarbottom": "",
+        "perpagestr": "Per page",
+        "perpageopts": [{"label": "25", "active": true, "islink": false, "url": ""}],
         "catopts": [{"value":"0","text":"Select category","selected":true}],
         "hascatcourses": false, "nocatcourses": false,
         "catresultinfo": "", "catrows": [],
@@ -47,11 +54,21 @@
     <input type="hidden" name="id" value="{{cohortid}}">
 
     <div class="d-flex flex-column">
+        <label for="wl-courses-search" class="form-label small">
+            {{#str}}searchcourses, block_workload{{/str}}
+        </label>
+        <input type="text" id="wl-courses-search" name="search"
+               class="form-control" style="min-width:220px;"
+               value="{{search}}"
+               placeholder="{{#str}}searchcourses, block_workload{{/str}}">
+    </div>
+
+    <div class="d-flex flex-column">
         <label for="catsel" class="form-label small">
             {{#str}}filterbycategory, block_workload{{/str}}
         </label>
         <select name="categoryid" id="catsel"
-                class="select custom-select form-select form-select-sm" style="min-width:250px;">
+                class="select custom-select form-select" style="min-width:250px;">
             {{#catopts}}
             <option value="{{value}}"{{#selected}} selected{{/selected}}>{{{text}}}</option>
             {{/catopts}}
@@ -72,18 +89,32 @@
     </div>
 </form>
 
-{{#selectedcategory}}
-
 {{#nocatcourses}}
-<p class="text-muted">{{#str}}nocoursesincategory, block_workload{{/str}}</p>
+<p class="text-muted">{{#str}}notargetcourses, block_workload{{/str}}</p>
 {{/nocatcourses}}
 
 {{#hascatcourses}}
 <p class="text-muted small mb-2">{{{catresultinfo}}}</p>
 
+<div class="d-flex justify-content-between align-items-center flex-wrap mb-2">
+    <div class="small">
+        <span class="font-weight-bold mr-1">{{perpagestr}}:</span>
+        {{#perpageopts}}
+        {{#islink}}<a href="{{{url}}}" class="mr-1">{{label}}</a>{{/islink}}
+        {{^islink}}<span class="mr-1 font-weight-bold">{{label}}</span>{{/islink}}
+        {{/perpageopts}}
+    </div>
+    <div>{{{pagingbartop}}}</div>
+</div>
+
 <form method="post" id="wl-addcourses-form">
     <input type="hidden" name="action" value="courses">
     <input type="hidden" name="id" value="{{cohortid}}">
+    <input type="hidden" name="categoryid"     value="{{selectedcategory}}">
+    <input type="hidden" name="includesubcats" value="{{includesubcats}}">
+    <input type="hidden" name="search"         value="{{search}}">
+    <input type="hidden" name="page"           value="{{selectedpage}}">
+    <input type="hidden" name="perpage"        value="{{selectedperpage}}">
     <input type="hidden" name="sesskey" value="{{sesskey}}">
 
     <table class="generaltable table-sm table-hover">
@@ -137,14 +168,13 @@
             {{/catrows}}
         </tbody>
     </table>
+    {{{pagingbarbottom}}}
 
     <button type="submit" class="btn btn-primary" disabled>
         {{#str}}addcourses, block_workload{{/str}}
     </button>
 </form>
 {{/hascatcourses}}
-
-{{/selectedcategory}}
 
 {{! ── Assigned courses ───────────────────────────────────────────────── }}
 <h5 class="mt-4">

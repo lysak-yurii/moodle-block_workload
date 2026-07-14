@@ -869,6 +869,16 @@ function block_workload_action_courses(int $id): void {
 
     // Mutation handlers (unchanged logic).
 
+    // Add-courses browser state. Read up front so the action handlers below can
+    // preserve it when they redirect. The assigned table is deliberately unpaged —
+    // it is curated per cohort, whereas this browser can match every course on the
+    // site once a search is used.
+    $selectedcategory = optional_param('categoryid', 0, PARAM_INT);
+    $includesubcats   = optional_param('includesubcats', 0, PARAM_BOOL);
+    $search           = optional_param('search', '', PARAM_TEXT);
+    $page             = optional_param('page', 0, PARAM_INT);
+    $perpage          = optional_param('perpage', 25, PARAM_INT);
+
     // Single remove: show confirmation.
     $confirmremoveid = optional_param('confirmremoveid', 0, PARAM_INT);
     if ($confirmremoveid) {
@@ -1055,7 +1065,15 @@ function block_workload_action_courses(int $id): void {
             ])->trigger();
         }
         redirect(
-            new moodle_url('/blocks/workload/manage.php', ['action' => 'courses', 'id' => $id]),
+            new moodle_url('/blocks/workload/manage.php', array_filter([
+                'action'         => 'courses',
+                'id'             => $id,
+                'categoryid'     => $selectedcategory ?: null,
+                'includesubcats' => $includesubcats ?: null,
+                'search'         => ($search !== '') ? $search : null,
+                'page'           => $page ?: null,
+                'perpage'        => ($perpage != 25) ? $perpage : null,
+            ])),
             get_string('coursesadded', 'block_workload', $added),
             null,
             \core\output\notification::NOTIFY_SUCCESS
@@ -1067,8 +1085,6 @@ function block_workload_action_courses(int $id): void {
     $PAGE->requires->js_call_amd('block_workload/manage', 'initCourses', []);
     $PAGE->requires->js_call_amd('block_workload/toggleall', 'init');
 
-    $selectedcategory = optional_param('categoryid', 0, PARAM_INT);
-    $includesubcats   = optional_param('includesubcats', 0, PARAM_BOOL);
     $assignedcourses  = \block_workload\helper::get_cohort_courses_all($id);
     $assignedids      = array_map(fn($c) => (int)$c->id, $assignedcourses);
     $catoptions       = \block_workload\helper::get_category_options();
@@ -1080,16 +1096,27 @@ function block_workload_action_courses(int $id): void {
     $hascatcourses = false;
     $nocatcourses  = false;
     $catresultinfo = '';
-    if ($selectedcategory) {
-        $catcourses    = \block_workload\helper::get_courses_in_category($selectedcategory, (bool)$includesubcats);
+    $cattotal = 0;
+    if ($selectedcategory || $search !== '') {
+        $catoffset     = ($perpage > 0) ? $page * $perpage : 0;
+        $cattotal      = \block_workload\helper::get_courses_in_category_count(
+            $selectedcategory ?: null,
+            (bool)$includesubcats,
+            $search
+        );
+        $catcourses    = \block_workload\helper::get_courses_in_category(
+            $selectedcategory ?: null,
+            (bool)$includesubcats,
+            $search,
+            $perpage,
+            $catoffset
+        );
         $hascatcourses = !empty($catcourses);
         $nocatcourses  = empty($catcourses);
         if ($hascatcourses) {
-            $alreadycount  = count(array_filter($catcourses, fn($c) => in_array((int)$c->id, $assignedids, true)));
-            $catresultinfo = get_string('courseresultcount', 'block_workload', count($catcourses));
-            if ($alreadycount) {
-                $catresultinfo .= ', ' . get_string('alreadyassignedcount', 'block_workload', $alreadycount);
-            }
+            // The per-row "already assigned" badge reports this precisely; an aggregate
+            // here would silently mean "on this page" once the list is paged.
+            $catresultinfo = get_string('courseresultcount', 'block_workload', $cattotal);
             foreach ($catcourses as $c) {
                 $already    = in_array((int)$c->id, $assignedids, true);
                 $catrows[] = [
@@ -1166,12 +1193,38 @@ function block_workload_action_courses(int $id): void {
 
     $catopts = [0 => get_string('selectcategory', 'block_workload')] + $catoptions;
 
+    // Filter state carried by every paging/per-page link on the add-courses table.
+    $coursesbase  = new moodle_url('/blocks/workload/manage.php');
+    $filterparams = array_filter([
+        'action'         => 'courses',
+        'id'             => $id,
+        'categoryid'     => $selectedcategory ?: null,
+        'includesubcats' => $includesubcats ?: null,
+        'search'         => ($search !== '') ? $search : null,
+    ]);
+
+    $pagingurl     = new moodle_url($coursesbase, $filterparams + ['perpage' => $perpage]);
+    $showcatpaging = ($perpage > 0 && $cattotal > $perpage);
+    $catpagingbar  = $showcatpaging ? $OUTPUT->paging_bar($cattotal, $page, $perpage, $pagingurl) : '';
+
     $ctx = [
         'backurl'           => (new moodle_url('/blocks/workload/manage.php'))->out(false),
         'cohortid'          => $id,
         'sesskey'           => sesskey(),
         'selectedcategory'  => $selectedcategory,
         'includesubcats'    => (bool)$includesubcats,
+        'search'            => $search,
+        'selectedpage'      => $page,
+        'selectedperpage'   => $perpage,
+        'pagingbartop'      => $catpagingbar,
+        'pagingbarbottom'   => $catpagingbar,
+        'perpagestr'        => get_string('perpage', 'block_workload'),
+        'perpageopts'       => \block_workload\helper::build_perpage_options(
+            $coursesbase,
+            $filterparams,
+            $perpage,
+            $cattotal
+        ),
         'catopts'           => block_workload_build_select_opts($catopts, $selectedcategory),
         'hascatcourses'     => $hascatcourses,
         'nocatcourses'      => $nocatcourses,
