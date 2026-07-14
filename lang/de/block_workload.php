@@ -298,6 +298,9 @@ $string['privacy:metadata:block_workload_user_courses:active']        = 'Art der
 $string['privacy:metadata:block_workload_user_courses:courseid']      = 'Die ID des Kurses.';
 $string['privacy:metadata:block_workload_user_courses:sortorder']     = 'Die manuelle Sortierposition dieses Kurses in der Liste der/des Studierenden.';
 $string['privacy:metadata:block_workload_user_courses:userid']        = 'Die ID der/des Studierenden.';
+$string['privacy:metadata:block_workload_user_settings']              = 'Speichert die studierendenspezifischen Einstellungen des Arbeitsaufwand-Widgets, die der Qualitätsmanager im Einschreibungsmodus festlegt (ob das Widget für die/den Studierenden aktiviert ist).';
+$string['privacy:metadata:block_workload_user_settings:active']       = 'Ob das Arbeitsaufwand-Widget für die/den Studierenden aktiviert ist: 1 = aktiviert, 0 = deaktiviert.';
+$string['privacy:metadata:block_workload_user_settings:userid']       = 'Die ID der/des Studierenden.';
 $string['progress_text']            = '{$a->logged} / {$a->target} h · {$a->percent}%';
 $string['progresslabel']            = 'Kursfortschritt';
 $string['pseudonym'] = '{$a->adjective} {$a->animal} {$a->code}';

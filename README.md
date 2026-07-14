@@ -109,13 +109,9 @@ teachers anonymized workload statistics for their own courses (Enrollment mode).
 
 ## Usage
 
-**Students** — add the *Workload Assessment* block to your dashboard, log hours each week per
-course, and open **My Statistics** for your history.
-
-**In-course widget** — to show it in every course, an administrator adds the block once and
-configures it to display on **Any course main page** throughout the site; it hides itself where
-a student has no active workload. Set the per-course goals under **Course target hours** (from
-*Workload Management*).
+**Students** — log hours each week per course in your dashboard block *Workload Assessment*, 
+or *In-course widget* — to show it in every course. Also open **My Statistics** to view your 
+history.
 
 **Teachers** *(Enrollment mode)* — open **Course Statistics** from the block footer, pick one
 of your courses, filter by week range, and export the data as CSV if needed.

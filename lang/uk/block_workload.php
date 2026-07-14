@@ -298,6 +298,9 @@ $string['privacy:metadata:block_workload_user_courses:active']        = 'Тип 
 $string['privacy:metadata:block_workload_user_courses:courseid']      = 'Ідентифікатор курсу.';
 $string['privacy:metadata:block_workload_user_courses:sortorder']     = 'Порядок ручного сортування цього курсу у списку студента.';
 $string['privacy:metadata:block_workload_user_courses:userid']        = 'Ідентифікатор студента.';
+$string['privacy:metadata:block_workload_user_settings']              = 'Зберігає індивідуальні налаштування віджета навантаження для студента, встановлені менеджером якості в режимі зарахування (чи увімкнено віджет для цього студента).';
+$string['privacy:metadata:block_workload_user_settings:active']       = 'Чи увімкнено віджет навантаження для студента: 1 = увімкнено, 0 = вимкнено.';
+$string['privacy:metadata:block_workload_user_settings:userid']       = 'Ідентифікатор студента.';
 $string['progress_text']            = '{$a->logged} / {$a->target} год · {$a->percent}%';
 $string['progresslabel']            = 'Прогрес курсу';
 $string['pseudonym'] = '{$a->adjective} {$a->animal} {$a->code}';
