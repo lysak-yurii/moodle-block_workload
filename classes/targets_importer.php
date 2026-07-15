@@ -173,6 +173,75 @@ class targets_importer {
     }
 
     /**
+     * Fetch every course whose $field matches one of $values, keyed for in-memory matching.
+     *
+     * Shortname and idnumber maps are keyed lower-case: the IN() comparison the
+     * database just made may be case-insensitive (MySQL), so a row's spelling can
+     * differ from the stored one. Lower-casing both sides can only ever match a
+     * record the database itself returned. First match wins, mirroring the
+     * IGNORE_MULTIPLE fallback these non-unique columns need.
+     *
+     * @param string $field One of id, shortname, idnumber.
+     * @param array $values Values to look up; an empty list queries nothing.
+     * @return array Map of match key => course record.
+     */
+    protected static function fetch_courses_by(string $field, array $values): array {
+        global $DB;
+
+        $map = [];
+        // Chunked to stay under the 1000-item IN() limit some databases impose.
+        foreach (array_chunk($values, 500) as $chunk) {
+            $records = $DB->get_records_list(
+                'course',
+                $field,
+                $chunk,
+                'id',
+                'id, fullname, shortname, idnumber'
+            );
+            foreach ($records as $course) {
+                $key = ($field === 'id')
+                    ? (int) $course->id
+                    : \core_text::strtolower((string) $course->{$field});
+                if (!isset($map[$key])) {
+                    $map[$key] = $course;
+                }
+            }
+        }
+        return $map;
+    }
+
+    /**
+     * Preload every course referenced by the rows, in a handful of queries.
+     *
+     * This is a bulk tool, so matching row-by-row would mean a query per
+     * spreadsheet line — the whole point is that a manager can hand it the
+     * site's entire course list.
+     *
+     * @param array $rows Rows from parse_file().
+     * @return array ['id' => map, 'shortname' => map, 'idnumber' => map]
+     */
+    protected static function preload_courses(array $rows): array {
+        $ids = $shortnames = $idnumbers = [];
+        foreach ($rows as $r) {
+            if ($r['course_id'] !== '' && is_numeric($r['course_id'])) {
+                $ids[(int) $r['course_id']] = true;
+            }
+            if ($r['shortname'] !== '') {
+                $shortnames[$r['shortname']] = true;
+            }
+            if ($r['idnumber'] !== '') {
+                $idnumbers[$r['idnumber']] = true;
+            }
+        }
+
+        return [
+            'id'        => self::fetch_courses_by('id', array_keys($ids)),
+            'shortname' => self::fetch_courses_by('shortname', array_keys($shortnames)),
+            'idnumber'  => self::fetch_courses_by('idnumber', array_keys($idnumbers)),
+        ];
+    }
+
+    /**
      * Match rows to courses and categorise them for the preview.
      * Nothing is written here.
      *
@@ -181,9 +250,8 @@ class targets_importer {
      *                'changes' => actionable [['c' => courseid, 'h' => hours], ...]]
      */
     public static function categorise(array $rows): array {
-        global $DB;
-
         $targets = helper::get_all_targets();
+        $courses = self::preload_courses($rows);
         $counts  = ['new' => 0, 'changed' => 0, 'unchanged' => 0, 'cleared' => 0, 'unmatched' => 0, 'invalid' => 0];
         $preview = [];
         $changes = [];
@@ -191,27 +259,13 @@ class targets_importer {
         foreach ($rows as $r) {
             $course = null;
             if ($r['course_id'] !== '' && is_numeric($r['course_id'])) {
-                $course = $DB->get_record('course', ['id' => (int) $r['course_id']], 'id, fullname, shortname');
+                $course = $courses['id'][(int) $r['course_id']] ?? null;
             }
             if (!$course && $r['shortname'] !== '') {
-                // IGNORE_MULTIPLE: shortname is normally unique, but never crash the
-                // whole preview on a duplicate — take the first match.
-                $course = $DB->get_record(
-                    'course',
-                    ['shortname' => $r['shortname']],
-                    'id, fullname, shortname',
-                    IGNORE_MULTIPLE
-                );
+                $course = $courses['shortname'][\core_text::strtolower($r['shortname'])] ?? null;
             }
             if (!$course && $r['idnumber'] !== '') {
-                // The course.idnumber column has no unique DB constraint, so duplicates
-                // are a realistic admin state — IGNORE_MULTIPLE avoids a fatal exception.
-                $course = $DB->get_record(
-                    'course',
-                    ['idnumber' => $r['idnumber']],
-                    'id, fullname, shortname',
-                    IGNORE_MULTIPLE
-                );
+                $course = $courses['idnumber'][\core_text::strtolower($r['idnumber'])] ?? null;
             }
 
             $identifier = ($r['course_id'] !== '') ? $r['course_id']
@@ -271,6 +325,17 @@ class targets_importer {
         $counts   = ['created' => 0, 'updated' => 0, 'cleared' => 0];
         $existing = helper::get_all_targets();
 
+        // The payload is confirmed by a manager, but courses can be deleted between
+        // preview and apply — so still verify, just not once per row.
+        $wanted = [];
+        foreach ($changes as $ch) {
+            $courseid = (int) ($ch['c'] ?? 0);
+            if ($courseid > 0) {
+                $wanted[$courseid] = true;
+            }
+        }
+        $livecourses = self::fetch_courses_by('id', array_keys($wanted));
+
         $tx = $DB->start_delegated_transaction();
         foreach ($changes as $ch) {
             $courseid = (int) ($ch['c'] ?? 0);
@@ -278,7 +343,7 @@ class targets_importer {
             if ($courseid <= 0 || $courseid === SITEID || $hours < 0) {
                 continue;
             }
-            if (!$DB->record_exists('course', ['id' => $courseid])) {
+            if (!isset($livecourses[$courseid])) {
                 continue;
             }
             if ($hours == 0.0) {
