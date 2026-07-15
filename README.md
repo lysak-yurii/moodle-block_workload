@@ -67,11 +67,6 @@ teachers anonymized workload statistics for their own courses (Enrollment mode).
 
 ## Screenshots
 
-**Teachers** *(Enrollment mode)* — open **Course Statistics** from the block footer, pick one
-of your courses, filter by week range, and export the data as CSV if needed.
-
-**Quality managers** — open **Workload Management**, create a cohort, assi
-
 <details>
 <summary><strong>📸 View screenshot gallery</strong></summary>
 
