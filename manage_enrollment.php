@@ -453,6 +453,9 @@ function block_workload_render_student_list(
  * @param int $userid
  * @param int  $catid
  * @param bool $includesubcats
+ * @param string $search
+ * @param int $page
+ * @param int $perpage
  */
 function block_workload_render_student_detail(
     int $userid,
