@@ -383,6 +383,7 @@ $string['workload:viewcoursestats'] = 'View workload statistics of students in o
 $string['workload:viewownstats']  = 'View own workload statistics';
 $string['workload:viewrealnames'] = 'See real user identities in workload statistics';
 $string['workloadinactive'] = 'The workload survey is currently not active for your cohort.';
+$string['workloadnocourses'] = 'You have no courses to record hours for at the moment. Your earlier hours are still available under "My Statistics".';
 $string['year']                  = 'Year';
 $string['yearfrom']          = 'From Year';
 $string['yearto']            = 'To Year';

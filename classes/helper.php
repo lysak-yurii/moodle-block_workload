@@ -531,6 +531,20 @@ class helper {
     }
 
     /**
+     * Whether a user has ever recorded any hours.
+     *
+     * Used to decide if the dashboard block still has something to offer a
+     * student who currently has no courses.
+     *
+     * @param int $userid
+     * @return bool
+     */
+    public static function user_has_entries(int $userid): bool {
+        global $DB;
+        return $DB->record_exists('block_workload_entries', ['userid' => $userid]);
+    }
+
+    /**
      * Insert or update a single workload entry.
      *
      * @param int      $userid

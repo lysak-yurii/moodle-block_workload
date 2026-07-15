@@ -25,6 +25,9 @@
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class block_workload extends block_base {
+    /** @var bool|null Memoised "has the user ever recorded hours?"; null until asked. */
+    private $hasentries = null;
+
     /**
      * Initialise the block title.
      */
@@ -73,8 +76,6 @@ class block_workload extends block_base {
      * @return stdClass
      */
     public function get_content(): stdClass {
-        global $USER, $OUTPUT;
-
         if ($this->content !== null) {
             return $this->content;
         }
@@ -87,6 +88,25 @@ class block_workload extends block_base {
         if (strpos($this->page->pagetype, 'course-view') === 0 && $this->page->course->id != SITEID) {
             return $this->get_course_content();
         }
+
+        $this->content->text = $this->get_dashboard_text();
+
+        // The footer is built last, and deliberately so: core hides a block only
+        // when text and footer are both empty (block_base::is_empty()), so a footer
+        // rendered up front would keep an otherwise empty block on screen.
+        $this->content->footer = $this->get_dashboard_footer($this->content->text !== '');
+
+        return $this->content;
+    }
+
+    /**
+     * Build the dashboard footer links.
+     *
+     * @param bool $hasstudentcontent Whether the block rendered any student content.
+     * @return string Rendered footer, or '' when the user has no links at all.
+     */
+    private function get_dashboard_footer(bool $hasstudentcontent): string {
+        global $USER, $OUTPUT;
 
         $syscontext = context_system::instance();
         $coursemode = get_config('block_workload', 'coursemode') ?: 'enrollment';
@@ -121,27 +141,79 @@ class block_workload extends block_base {
             ];
         }
 
-        // Student stats link — shown based on viewownstats, independent of submit.
-        if (has_capability('block/workload:viewownstats', $syscontext)) {
+        // Student stats link. Offered whenever the block has student content, and
+        // otherwise only to someone who has hours to look at — a student with
+        // neither courses nor records gets no link, which lets the block hide.
+        // The short-circuit keeps the extra query off the common path.
+        if (
+            has_capability('block/workload:viewownstats', $syscontext)
+                && ($hasstudentcontent || $this->user_has_entries())
+        ) {
             array_unshift($links, [
                 'url'   => (new moodle_url('/blocks/workload/mystats.php'))->out(false),
                 'label' => get_string('viewmystats', 'block_workload'),
             ]);
         }
 
-        if ($links) {
-            foreach ($links as $i => $link) {
-                $links[$i]['separator'] = ($i < count($links) - 1);
-            }
-            $this->content->footer = $OUTPUT->render_from_template(
-                'block_workload/block_footer',
-                ['links' => $links]
-            );
+        if (!$links) {
+            return '';
         }
 
-        // Student block content.
+        foreach ($links as $i => $link) {
+            $links[$i]['separator'] = ($i < count($links) - 1);
+        }
+
+        return $OUTPUT->render_from_template('block_workload/block_footer', ['links' => $links]);
+    }
+
+    /**
+     * Whether the current user has ever recorded any hours.
+     *
+     * Memoised: both the body and the footer need the answer, and only in the
+     * uncommon case where there are no courses to show.
+     *
+     * @return bool
+     */
+    private function user_has_entries(): bool {
+        global $USER;
+
+        if ($this->hasentries === null) {
+            $this->hasentries = \block_workload\helper::user_has_entries((int) $USER->id);
+        }
+        return $this->hasentries;
+    }
+
+    /**
+     * Body shown when the student has no courses to record hours for.
+     *
+     * Someone who has logged hours before gets an explanation and keeps the
+     * route to their history; someone with nothing at all gets '', which lets
+     * the block hide itself.
+     *
+     * @return string
+     */
+    private function get_no_courses_text(): string {
+        global $OUTPUT;
+
+        if (!$this->user_has_entries()) {
+            return '';
+        }
+        return $OUTPUT->render_from_template('block_workload/block_nocourses', []);
+    }
+
+    /**
+     * Build the student-facing dashboard content.
+     *
+     * @return string Rendered block body, or '' when there is nothing to show.
+     */
+    private function get_dashboard_text(): string {
+        global $USER, $OUTPUT;
+
+        $syscontext = context_system::instance();
+        $coursemode = get_config('block_workload', 'coursemode') ?: 'enrollment';
+
         if (!has_capability('block/workload:submit', $syscontext)) {
-            return $this->content;
+            return '';
         }
 
         $courseorder    = get_config('block_workload', 'courseorder') ?: 'sortorder';
@@ -156,7 +228,7 @@ class block_workload extends block_base {
             // Manager may have disabled the widget for this individual student —
             // hide the block entirely, mirroring cohort mode's "not in any cohort" behaviour.
             if (!\block_workload\helper::is_user_widget_active((int)$USER->id)) {
-                return $this->content;
+                return '';
             }
 
             // Enrollment mode: show courses the student is enrolled in (+ manager overrides).
@@ -166,7 +238,7 @@ class block_workload extends block_base {
             );
 
             if (empty($courses)) {
-                return $this->content;
+                return $this->get_no_courses_text();
             }
         } else {
             // Cohort mode (default).
@@ -174,21 +246,21 @@ class block_workload extends block_base {
             $activecohorts = \block_workload\helper::filter_cohorts_active_now($allcohorts);
 
             if (empty($allcohorts)) {
-                return $this->content;
+                return $this->get_no_courses_text();
             }
 
             if (empty($activecohorts)) {
-                $this->content->text = $OUTPUT->render_from_template('block_workload/block_inactive', []);
-                return $this->content;
+                return $OUTPUT->render_from_template('block_workload/block_inactive', []);
             }
 
             $cohortids = array_keys($activecohorts);
             $courses   = \block_workload\helper::get_merged_cohort_courses($cohortids, $courseorder, (int)$USER->id);
         }
 
-        // No courses assigned: render nothing so the block is hidden entirely.
+        // No courses assigned: explain it to someone with hours on record, and
+        // render nothing for anyone else so the block is hidden entirely.
         if (empty($courses)) {
-            return $this->content;
+            return $this->get_no_courses_text();
         }
 
         $entries      = \block_workload\helper::get_week_entries($USER->id, $weeknumber, $year);
@@ -253,9 +325,7 @@ class block_workload extends block_base {
             'weektooltiptpl' => get_string('weeknumber_tooltip', 'block_workload', (object)['week' => '{w}', 'year' => '{y}']),
         ]]);
 
-        $this->content->text = $OUTPUT->render_from_template('block_workload/block', $templatecontext);
-
-        return $this->content;
+        return $OUTPUT->render_from_template('block_workload/block', $templatecontext);
     }
 
     /**

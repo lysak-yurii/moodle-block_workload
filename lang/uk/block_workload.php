@@ -383,6 +383,7 @@ $string['workload:viewcoursestats'] = 'Переглядати статистик
 $string['workload:viewownstats']  = 'Переглядати власну статистику навантаження';
 $string['workload:viewrealnames'] = 'Бачити справжні імена у статистиці навантаження';
 $string['workloadinactive'] = 'Опитування щодо навантаження наразі неактивне для вашої когорти.';
+$string['workloadnocourses'] = 'Наразі немає курсів, для яких можна фіксувати години. Ваші попередні години доступні в розділі «Моя статистика».';
 $string['year']                  = 'Рік';
 $string['yearfrom']          = 'З року';
 $string['yearto']            = 'До року';

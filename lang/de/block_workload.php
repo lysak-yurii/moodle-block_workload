@@ -383,6 +383,7 @@ $string['workload:viewcoursestats'] = 'Arbeitsaufwand-Statistiken der Studierend
 $string['workload:viewownstats']  = 'Eigene Arbeitsaufwand-Statistiken anzeigen';
 $string['workload:viewrealnames'] = 'Echte Identitäten in Arbeitsaufwand-Statistiken sehen';
 $string['workloadinactive'] = 'Die Arbeitsaufwand-Erhebung ist für Ihre Kohorte derzeit nicht aktiv.';
+$string['workloadnocourses'] = 'Derzeit gibt es keine Kurse, für die Sie Stunden erfassen können. Ihre bisherigen Stunden finden Sie weiterhin unter „Meine Statistiken".';
 $string['year']                  = 'Jahr';
 $string['yearfrom']          = 'Von Jahr';
 $string['yearto']            = 'Bis Jahr';
