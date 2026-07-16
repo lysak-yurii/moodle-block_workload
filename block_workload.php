@@ -18,6 +18,8 @@
  * Workload Assessment block main class.
  *
  * Students see a weekly hour-entry form for each course in their cohort.
+ * Teachers do not record hours: in the courses they teach they get a read-only
+ * summary of their students' workload instead.
  * Quality Managers see links to the management dashboard and statistics.
  *
  * @package   block_workload
@@ -27,6 +29,9 @@
 class block_workload extends block_base {
     /** @var bool|null Memoised "has the user ever recorded hours?"; null until asked. */
     private $hasentries = null;
+
+    /** @var int[]|null Memoised ids of the courses the user teaches; null until asked. */
+    private $taughtcourseids = null;
 
     /**
      * Initialise the block title.
@@ -127,14 +132,9 @@ class block_workload extends block_base {
         }
 
         // Teacher footer link (enrollment mode): statistics for the students
-        // of their own courses. get_user_capability_course() is cheap here —
-        // it derives the check from the already-loaded access data and
-        // returns false without touching the course table when the user
-        // holds the capability nowhere; otherwise a single LIMIT 1 query.
-        if (
-            $coursemode === 'enrollment'
-                && get_user_capability_course('block/workload:viewcoursestats', null, false, '', '', 1)
-        ) {
+        // of their own courses. The ids are memoised and shared with the body,
+        // which filters these same courses out of the recordable list.
+        if ($coursemode === 'enrollment' && $this->taught_course_ids()) {
             $links[] = [
                 'url'   => (new moodle_url('/blocks/workload/coursestats.php'))->out(false),
                 'label' => get_string('coursestatstitle', 'block_workload'),
@@ -181,6 +181,23 @@ class block_workload extends block_base {
             $this->hasentries = \block_workload\helper::user_has_entries((int) $USER->id);
         }
         return $this->hasentries;
+    }
+
+    /**
+     * Ids of the courses the current user teaches.
+     *
+     * Memoised: the dashboard body filters them out of the course list and the
+     * footer decides the Course statistics link from the same answer.
+     *
+     * @return int[]
+     */
+    private function taught_course_ids(): array {
+        global $USER;
+
+        if ($this->taughtcourseids === null) {
+            $this->taughtcourseids = \block_workload\helper::get_user_taught_course_ids((int) $USER->id);
+        }
+        return $this->taughtcourseids;
     }
 
     /**
@@ -236,6 +253,17 @@ class block_workload extends block_base {
                 (int)$USER->id,
                 ($courseorder === 'recentaccess') ? 'recentaccess' : 'sortorder'
             );
+
+            // Teaching staff are enrolled in the courses they teach, but have no
+            // workload to record against them — drop those before the empty check,
+            // so a user who only teaches falls through to the no-courses path and
+            // the block hides itself rather than offering steppers they must not use.
+            $taught = $this->taught_course_ids();
+            if ($taught) {
+                $courses = array_filter($courses, function ($course) use ($taught) {
+                    return !in_array((int) $course->id, $taught, true);
+                });
+            }
 
             if (empty($courses)) {
                 return $this->get_no_courses_text();
@@ -351,6 +379,10 @@ class block_workload extends block_base {
      * submit hours, or the course is not an active workload course for them —
      * mirroring the dashboard block's self-hiding behaviour.
      *
+     * Teaching staff get the read-only overview instead; that branch comes
+     * first, because a teacher must see it whether or not they hold submit and
+     * regardless of whether the course is workload-active for them personally.
+     *
      * @return stdClass
      */
     private function get_course_content(): stdClass {
@@ -360,12 +392,17 @@ class block_workload extends block_base {
             return $this->content;
         }
 
+        $courseid = (int) $this->page->course->id;
+
+        if (\block_workload\helper::user_teaches_course((int) $USER->id, $courseid)) {
+            return $this->get_teacher_course_content($courseid);
+        }
+
         $syscontext = context_system::instance();
         if (!has_capability('block/workload:submit', $syscontext)) {
             return $this->content;
         }
 
-        $courseid = (int) $this->page->course->id;
         if (!\block_workload\helper::is_course_workload_active_for_user((int) $USER->id, $courseid)) {
             return $this->content;
         }
@@ -448,6 +485,54 @@ class block_workload extends block_base {
         ]]);
 
         $this->content->text = $OUTPUT->render_from_template('block_workload/block_course', $templatecontext);
+
+        return $this->content;
+    }
+
+    /**
+     * Build the in-course widget as teaching staff see it: a read-only summary
+     * of what this course's students recorded, plus a link to the full report.
+     *
+     * The figures come from the same helpers coursestats.php uses, so the block
+     * and the page it links to can never disagree. Both count staff among the
+     * students (see the comment in coursestats.php) — a wart worth keeping over
+     * two views of one course reporting different numbers.
+     *
+     * Aggregates only, so no anonymization applies: there are no identities
+     * here, and coursestats.php likewise shows its KPI cards to everyone who
+     * may open it.
+     *
+     * @param int $courseid
+     * @return stdClass
+     */
+    private function get_teacher_course_content(int $courseid): stdClass {
+        global $OUTPUT;
+
+        $kpis     = \block_workload\helper::get_course_overview_kpis($courseid);
+        $recorded = (int) $kpis->usercount;
+        $total    = (float) $kpis->totalhours;
+        $enrolled = count_enrolled_users(context_course::instance($courseid), '', 0, true);
+
+        $templatecontext = [
+            'blocktitle_tooltip' => get_string('coursewidget_teacher_tooltip', 'block_workload'),
+            'recordingtext'      => get_string('studentsrecording_value', 'block_workload', (object) [
+                'recording' => $recorded,
+                'enrolled'  => $enrolled,
+            ]),
+            'totalhours'         => number_format($total, 1),
+            'avghours'           => number_format($total / max(1, $recorded), 1),
+        ];
+
+        $this->content->footer = $OUTPUT->render_from_template(
+            'block_workload/block_footer',
+            ['links' => [[
+                'url'       => (new moodle_url('/blocks/workload/coursestats.php', ['id' => $courseid]))->out(false),
+                'label'     => get_string('coursestatstitle', 'block_workload'),
+                'separator' => false,
+            ]]]
+        );
+
+        $this->content->text = $OUTPUT->render_from_template('block_workload/block_course_teacher', $templatecontext);
 
         return $this->content;
     }

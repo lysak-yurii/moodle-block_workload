@@ -3,7 +3,7 @@
 ![Moodle](https://img.shields.io/badge/Moodle-4.5+-orange?logo=moodle)
 ![PHP](https://img.shields.io/badge/PHP-7.4+-777BB4?logo=php&logoColor=white)
 ![License](https://img.shields.io/badge/License-GPL%20v3-green?logo=gnu)
-![Version](https://img.shields.io/badge/Release-1.1.3%20(beta)-blue)
+![Version](https://img.shields.io/badge/Release-1.1.4%20(beta)-blue)
 
 A Moodle block that lets students log the hours they spend on each course every week, gives
 quality managers cohort-wide statistics on student workload across the semester, and gives

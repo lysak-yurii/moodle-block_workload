@@ -1336,6 +1336,61 @@ class helper {
     }
 
     /**
+     * Whether the user is teaching staff on a course, and therefore reads the
+     * workload of its students instead of recording their own.
+     *
+     * "Teacher" is nothing more than holding block/workload:viewcoursestats in
+     * the course — the same capability that opens coursestats.php — so admins
+     * control who counts through the standard permissions UI.
+     *
+     * $doanything is false deliberately: has_capability() answers true for site
+     * admins in every context, which would otherwise strip the recording UI
+     * from every admin on the site. Only a real role assignment counts, as in
+     * the coursestats.php course picker.
+     *
+     * Enrollment mode only. In cohort mode a manager adds members explicitly,
+     * so a teacher with the widget was deliberately made a participant and
+     * keeps recording.
+     *
+     * @param int $userid
+     * @param int $courseid
+     * @return bool
+     */
+    public static function user_teaches_course(int $userid, int $courseid): bool {
+        if ($courseid == SITEID) {
+            return false;
+        }
+        $coursemode = get_config('block_workload', 'coursemode') ?: 'enrollment';
+        if ($coursemode !== 'enrollment') {
+            return false;
+        }
+        $coursecontext = \context_course::instance($courseid, IGNORE_MISSING);
+        if (!$coursecontext) {
+            return false;
+        }
+        return has_capability('block/workload:viewcoursestats', $coursecontext, $userid, false);
+    }
+
+    /**
+     * Ids of the courses the user teaches — the bulk counterpart of
+     * user_teaches_course(), for filtering a dashboard course list in one call
+     * rather than one context load per course.
+     *
+     * @param int|null $userid Null = current user.
+     * @return int[] Course ids, empty in cohort mode or when the user teaches nothing.
+     */
+    public static function get_user_taught_course_ids(?int $userid = null): array {
+        $coursemode = get_config('block_workload', 'coursemode') ?: 'enrollment';
+        if ($coursemode !== 'enrollment') {
+            return [];
+        }
+        // Returns false when the user holds the capability nowhere. The records
+        // are a plain list, not keyed by id, so pull the ids by column.
+        $courses = get_user_capability_course('block/workload:viewcoursestats', $userid, false, '', '', 0);
+        return $courses ? array_map('intval', array_column($courses, 'id')) : [];
+    }
+
+    /**
      * Mode-aware FROM/WHERE for the course-targets universe, shared by the list
      * and the count so their filtering can never drift apart.
      *

@@ -92,6 +92,16 @@ class save_hours extends external_api {
                 throw new \moodle_exception('workloadinactive', 'block_workload');
             }
 
+            // Teaching staff read their students' workload, they do not record
+            // their own. The block offers them no stepper; enforce it here too,
+            // so a teacher cannot log hours via direct AJAX and skew the very
+            // statistics they are reading. Checked before the enrollment rules
+            // below, which a teacher would otherwise satisfy — they are enrolled
+            // in the courses they teach.
+            if (\block_workload\helper::user_teaches_course((int) $USER->id, $params['courseid'])) {
+                throw new \moodle_exception('invalidcourse', 'block_workload');
+            }
+
             // Enrollment mode: validate via Moodle enrollment + manager overrides.
             require_once($CFG->libdir . '/enrollib.php');
             $coursecontext = \context_course::instance($params['courseid'], IGNORE_MISSING);

@@ -1,5 +1,10 @@
 # Changelog
 
+## Changes in version 1.1.4 (Build: 2026071602)
+
+- **New Feature** (enrollment mode): Teacher view of the in-course widget - in a course they teach, teachers now see a short read-only summary of their students' workload: how many are recording hours, the course total, and the average per student, with a link straight to that course's statistics
+- **Fixed** (enrollment mode): Teachers can no longer record hours in the courses they teach. They are enrolled in those courses, so the block previously offered them the student hour-recording stepper, and any hours they logged skewed the statistics they were meant to read. Courses a teacher teaches also no longer appear on their own workload dashboard, and hour saving rejects them server-side, so the block cannot be bypassed with a direct request
+
 ## Changes in version 1.1.3 (Build: 2026071506)
 
 - **New Feature**: In-course widget - students can log hours for a single course and track cumulative progress against the course's target hours directly in that course's block drawer; the widget hides itself in courses where the student has no active workload
